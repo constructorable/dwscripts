@@ -1,0 +1,1 @@
+javascript:(function(){document.querySelectorAll('span[data-bind*="text: name"]').forEach(s=>{s.textContent&&(s.textContent=s.textContent.replace(/^Dokumente\s*-\s*/i,'').replace(/^Bauteile\s*-\s*/i,'').replace(/^MietFirmEtPersKont\s*-\s*/i,'').replace(/^Objektdaten\s*-\s*/i,'').replace(/^Belege\s*-\s*/i,''))})})();
