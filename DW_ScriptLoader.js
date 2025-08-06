@@ -1,7 +1,7 @@
 (function(){
     const scripts = [
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/CopyPasteButton.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Schaltfl%C3%A4chen.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Schaltflaechen.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/AutocompleteIBANuOEMN.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Button_Best%C3%A4tigen_001.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger.js',
