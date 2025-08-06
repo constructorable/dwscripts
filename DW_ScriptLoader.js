@@ -1,24 +1,25 @@
-javascript:(function(){
+(function(){
     const scripts = [
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/DW_QuickButtonsFurther_41.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/DW_QuickButtons.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/CopyPasteButton.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Schaltfl%C3%A4chen.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/AutocompleteIBANuOEMN.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Button_Best%C3%A4tigen_001.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/AutocompleteIBANuOEMN_04.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/searchoperato_03.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger_001.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sternsuche.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tabNamenk%C3%BCrzen.js'
     ];
 
     const scriptNames = {
-        'DW_QuickButtonsFurther_41': '1_Copy Paste Buttons',
-        'DW_QuickButtons': '2_Copy Paste Buttons Alternative',
-        'Button_Bestätigen_001': '3_Schaltflächen',
-        'AutocompleteIBANuOEMN_04': '4_Autocomplete',
-        'searchoperato_03': '5_Sternsuche',
-        'Textareabigger_001': '7_Textarea vergrößern',
-        'tabNamenkürzen': '8_Tab-Namen kürzen'
+        'CopyPasteButton': '1_Copy Paste Buttons',
+        'Schaltflächen': '2_Schaltflächen',
+        'AutocompleteIBANuOEMN': '3_Autocomplete IBAN',
+        'Button_Bestätigen_001': '4_Button Bestätigen',
+        'Textareabigger': '5_Textarea vergrößern',
+        'sternsuche': '6_Sternsuche',
+        'tabNamenkürzen': '7_Tab-Namen kürzen'
     };
 
+    // Font Awesome laden falls nicht vorhanden
     if(!document.querySelector('link[href*="font-awesome"]')) {
         const faLink = document.createElement('link');
         faLink.rel = 'stylesheet';
@@ -26,6 +27,7 @@ javascript:(function(){
         document.head.appendChild(faLink);
     }
 
+    // LocalStorage Funktionen
     function getSettings() {
         try {
             return JSON.parse(localStorage.getItem('dwScriptSettings') || '{}');
@@ -36,6 +38,75 @@ javascript:(function(){
         try {
             localStorage.setItem('dwScriptSettings', JSON.stringify(settings));
         } catch(e) {}
+    }
+
+    // Sequenzielles Script-Laden mit Delay
+    async function loadScriptSequentially(url, fileName, index, total) {
+        const statusEl = document.getElementById(`status-${index}`);
+        const iconEl = document.getElementById(`icon-${index}`);
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        
+        statusEl.textContent = 'Lade...';
+        statusEl.style.background = '#dbeafe';
+        statusEl.style.color = '#1d4ed8';
+        
+        try {
+            console.log(`🔄 Lade Script ${index + 1}/${total}: ${fileName}`);
+            
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const code = await response.text();
+            
+            // Altes Script entfernen falls vorhanden
+            const existingScript = document.querySelector(`script[data-dw-script="${fileName}"]`);
+            if(existingScript) existingScript.remove();
+            
+            const script = document.createElement('script');
+            script.textContent = code;
+            script.setAttribute('data-dw-script', fileName);
+            document.head.appendChild(script);
+            
+            // Visuelles Feedback
+            iconEl.className = 'fas fa-check-circle';
+            iconEl.style.color = '#475569';
+            iconEl.style.animation = 'none';
+            document.getElementById(`script-${index}`).style.background = '#f0f9ff';
+            statusEl.textContent = 'Geladen';
+            statusEl.style.background = '#dbeafe';
+            statusEl.style.color = '#1e40af';
+            
+            // In LocalStorage als geladen markieren
+            const settings = getSettings();
+            if(!settings.loadedScripts) settings.loadedScripts = {};
+            settings.loadedScripts[fileName] = true;
+            saveSettings(settings);
+            
+            // Progress aktualisieren
+            const loaded = index + 1;
+            progressBar.style.width = `${(loaded / total) * 100}%`;
+            progressText.innerHTML = `${loaded} von ${total} Scripts geladen`;
+            console.log(`✅ Script ${loaded}/${total} erfolgreich geladen: ${fileName}`);
+            
+            // 100ms Pause vor dem nächsten Script
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            return true;
+            
+        } catch (error) {
+            iconEl.className = 'fas fa-exclamation-triangle';
+            iconEl.style.color = '#64748b';
+            iconEl.style.animation = 'none';
+            document.getElementById(`script-${index}`).style.background = '#f9fafb';
+            statusEl.textContent = 'Fehler';
+            statusEl.style.background = '#f3f4f6';
+            statusEl.style.color = '#374151';
+            console.error(`❌ Fehler beim Laden von ${fileName}:`, error);
+            
+            // Auch bei Fehler 100ms warten
+            await new Promise(resolve => setTimeout(resolve, 100));
+            return false;
+        }
     }
 
     // Prüfen ob Scripts bereits geladen wurden
@@ -219,8 +290,6 @@ javascript:(function(){
     document.body.appendChild(modal);
 
     const scriptList = document.getElementById('scriptList');
-    const progressBar = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
 
     window.loadSelectedScripts = async function() {
         const checkboxes = document.querySelectorAll('#scriptSelection input[type="checkbox"]');
@@ -251,6 +320,8 @@ javascript:(function(){
             return selectedScripts.includes(fileName);
         });
 
+        console.log(`🚀 Starte sequenzielles Laden von ${scriptsToLoad.length} Scripts...`);
+
         // Script-Liste erstellen
         scriptsToLoad.forEach((url, index) => {
             const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
@@ -259,7 +330,7 @@ javascript:(function(){
             item.id = `script-${index}`;
             item.innerHTML = `
                 <div style="display:flex;align-items:center;padding:12px 15px;border-bottom:1px solid #f1f5f9;">
-                    <i id="icon-${index}" class="fas fa-hourglass-half fa-spin" style="font-size:14px;color:#475569;width:18px;text-align:center;margin-right:12px;"></i>
+                    <i id="icon-${index}" class="fas fa-hourglass-half" style="font-size:14px;color:#94a3b8;width:18px;text-align:center;margin-right:12px;"></i>
                     <div style="flex:1;">
                         <div style="font-weight:500;color:#334155;font-size:13px;margin-bottom:2px;">${displayName}</div>
                         <div style="font-size:11px;color:#64748b;">${fileName}.js</div>
@@ -270,75 +341,37 @@ javascript:(function(){
             scriptList.appendChild(item);
         });
 
-        let loaded = 0;
-        const total = scriptsToLoad.length;
-
-        async function loadScript(url, index) {
-            const statusEl = document.getElementById(`status-${index}`);
-            const iconEl = document.getElementById(`icon-${index}`);
+        // Scripts sequenziell laden
+        let successCount = 0;
+        for(let i = 0; i < scriptsToLoad.length; i++) {
+            const url = scriptsToLoad[i];
             const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
             
-            statusEl.textContent = 'Lade...';
-            statusEl.style.background = '#dbeafe';
-            statusEl.style.color = '#1d4ed8';
+            // Icon auf "loading" setzen
+            const iconEl = document.getElementById(`icon-${i}`);
+            iconEl.className = 'fas fa-spinner fa-spin';
+            iconEl.style.color = '#475569';
             
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const code = await response.text();
-                
-                const script = document.createElement('script');
-                script.textContent = code;
-                script.setAttribute('data-dw-script', fileName);
-                document.head.appendChild(script);
-                
-                iconEl.className = 'fas fa-check-circle';
-                iconEl.style.color = '#475569';
-                iconEl.style.animation = 'none';
-                document.getElementById(`script-${index}`).style.background = '#f0f9ff';
-                statusEl.textContent = 'Geladen';
-                statusEl.style.background = '#dbeafe';
-                statusEl.style.color = '#1e40af';
-                
-                // In LocalStorage als geladen markieren
-                const settings = getSettings();
-                if(!settings.loadedScripts) settings.loadedScripts = {};
-                settings.loadedScripts[fileName] = true;
-                saveSettings(settings);
-                
-                loaded++;
-                progressBar.style.width = `${(loaded / total) * 100}%`;
-                progressText.innerHTML = `${loaded} von ${total} Scripts geladen`;
-                console.log(`✅ ${loaded}/${total}: ${fileName}`);
-                
-                if(loaded === total) {
-                    window.dwScriptsLoaded = true;
-                    setTimeout(() => {
-                        progressText.innerHTML = '<i class="fas fa-check-double" style="color:#475569;margin-right:8px;"></i>Alle Scripts erfolgreich geladen!';
-                        setTimeout(() => {
-                            modal.style.opacity = '0';
-                            modal.style.transform = 'scale(0.95)';
-                            modal.style.transition = 'all 0.2s ease';
-                            setTimeout(() => modal.remove(), 200);
-                        }, 1000);
-                    }, 300);
-                    console.log('🎉 Alle ausgewählten Scripts erfolgreich geladen!');
-                }
-            } catch (error) {
-                iconEl.className = 'fas fa-exclamation-triangle';
-                iconEl.style.color = '#64748b';
-                iconEl.style.animation = 'none';
-                document.getElementById(`script-${index}`).style.background = '#f9fafb';
-                statusEl.textContent = 'Fehler';
-                statusEl.style.background = '#f3f4f6';
-                statusEl.style.color = '#374151';
-                console.error(`❌ Fehler beim Laden: ${fileName}`, error);
-            }
+            const success = await loadScriptSequentially(url, fileName, i, scriptsToLoad.length);
+            if(success) successCount++;
         }
 
-        // Scripts nacheinander laden
-        for(let i = 0; i < scriptsToLoad.length; i++) {
-            setTimeout(() => loadScript(scriptsToLoad[i], i), i * 150);
-        }
+        // Abschluss
+        window.dwScriptsLoaded = true;
+        const progressText = document.getElementById('progressText');
+        
+        setTimeout(() => {
+            progressText.innerHTML = `<i class="fas fa-check-double" style="color:#475569;margin-right:8px;"></i>Alle Scripts geladen! (${successCount}/${scriptsToLoad.length} erfolgreich)`;
+            
+            setTimeout(() => {
+                const modal = document.getElementById('dwScriptModal');
+                modal.style.opacity = '0';
+                modal.style.transform = 'scale(0.95)';
+                modal.style.transition = 'all 0.2s ease';
+                setTimeout(() => modal.remove(), 200);
+            }, 1500);
+        }, 200);
+        
+        console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
