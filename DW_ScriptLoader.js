@@ -10,6 +10,10 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen.js'
     ];
 
+    const specialDelayScripts = {
+    'BK_Buttonablegen': 3000  // 3 Sekunden Verzögerung für dieses Script
+};
+
     const scriptNames = {
         'CopyPasteButton': '1_Copy Paste Buttons',
         'Schaltflächen': '2_Schaltflächen',
@@ -194,7 +198,7 @@
                 setTimeout(() => {
                     button.innerHTML = originalText;
                     button.disabled = false;
-                }, 1500);
+                }, 1000);
                 
                 console.log(`✅ Script neu geladen: ${fileName}`);
             } catch (error) {
@@ -202,7 +206,7 @@
                 setTimeout(() => {
                     button.innerHTML = originalText;
                     button.disabled = false;
-                }, 2000);
+                }, 100);
                 console.error(`❌ Fehler beim Neuladen: ${fileName}`, error);
             }
         };
@@ -367,12 +371,13 @@
             setTimeout(() => {
                 const modal = document.getElementById('dwScriptModal');
                 modal.style.opacity = '0';
-                modal.style.transform = 'scale(0.95)';
+                modal.style.transform = 'scale(1)';
                 modal.style.transition = 'all 0.2s ease';
-                setTimeout(() => modal.remove(), 200);
-            }, 1500);
-        }, 200);
+                setTimeout(() => modal.remove(), 100);
+            }, 1000);
+        }, 100);
         
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
+
