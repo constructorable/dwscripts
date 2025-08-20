@@ -11,7 +11,7 @@
     ];
 
     const specialDelayScripts = {
-    'BK_Buttonablegen': 3000  // 3 Sekunden Verzögerung für dieses Script
+    'BK_Buttonablegen5': 1000  // 3 Sekunden Verzögerung für dieses Script
 };
 
     const scriptNames = {
