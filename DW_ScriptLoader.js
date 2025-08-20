@@ -7,7 +7,7 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sternsuche.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tabNamenk%C3%BCrzen.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen.js'
+         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen5.js'
     ];
 
     const specialDelayScripts = {
