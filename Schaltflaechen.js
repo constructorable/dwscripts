@@ -1,7 +1,16 @@
 (function () {
     'use strict';
-    const ID = 'dw-ko-buttons', V = '4.3', SK = 'dw-ko-state', D = true;
+    const ID = 'dw-ko-buttons', V = '4.4', SK = 'dw-ko-state', D = true;
+    
+    // ÄNDERUNG: Effizientere Cache-Verwaltung mit automatischer Bereinigung
+    const CACHE_LIMITS = {
+        processed: 200,    // Max Anzahl processed Items
+        reg: 100,         // Max Anzahl registry Items
+        timeouts: 50      // Max Anzahl aktive Timeouts
+    };
+
     const CFG = {
+        // Bestehende Konfiguration bleibt unverändert
         nebenkosten: { txt: 'für Nebenkosten relevant', type: 'includes', pre: 'dw-nk', gap: '5px', opts: [{ v: 'j', l: 'Ja' }, { v: 'n', l: 'Nein' }], map: { 'j': 'j', 'ja': 'j', 'n': 'n', 'nein': 'n' } },
         wirtschaftsjahr: { txt: 'wirtschaftsjahr', type: 'includes_lower', pre: 'dw-wj', gap: '20px', opts: [{ v: '2025', l: '2025' }, { v: '2024 / 2025', l: '2024 / 2025' }, { v: '2024', l: '2024' }, { v: '2025 / 2026', l: '2025 / 2026' }] },
         datumsfelder: { txt: '', type: 'date_field', pre: 'dw-datum', gap: '8px', wrap: true, isDate: true, exc: ['Eingangsdatum', 'Rechnungsdatum', 'Fälligkeitsdatum', 'Erstellungsdatum', 'Ausgangsdatum', 'Ausführungsdatum (Bericht)', 'Abgelegt am', 'nächster Ablesetermin'], opts: [{ v: 'heute', l: 'Heute', a: 'setToday' }, { v: 'morgen', l: 'Morgen', a: 'setTomorrow' }, { v: 'woche', l: '+1 Woche', a: 'setNextWeek' }, { v: '2wochen', l: '+2 Wochen', a: 'setTwoWeeks' }, { v: '3wochen', l: '+3 Wochen', a: 'setThreeWeeks' }, { v: '4wochen', l: '+4 Wochen', a: 'setFourWeeks' }, { v: 'jahresanfang', l: '01.01', a: 'setYearStart' }, { v: 'jahresende', l: '31.12', a: 'setYearEnd' }] },
@@ -13,26 +22,26 @@
         restbestaet: { txt: 'RE-Steller', type: 'includes_lower', pre: 'dw-rst', gap: '20px', opts: [{ v: 'j', l: 'j' }] },
         vnnr: { txt: 'vn-nummer', type: 'includes_lower', pre: 'dw-vnnr', gap: '20px', opts: [{ v: '0', l: '0' }] },
         vwz: { 
-  txt: 'verwendungszweck 4', 
-  type: 'includes_lower', 
-  pre: 'dw-vwz', 
-  gap: '20px', 
-  opts: [
-    { v: 'Repa ', l: 'Repa ' },
-    { v: 'Repa Fenster ', l: 'Repa Fenster ' },
-    { v: 'Repa Tür ', l: 'Repa Tür ' },
-    { v: 'Repa Sanitär', l: 'Repa Sanitär ' },
-    { v: 'Repa Heizung', l: 'Repa Heizung ' },
-    { v: 'Wartung ', l: 'Wartung ' },
-    { v: 'Prüfung ', l: 'Prüfung ' },
-    { v: 'Energieversorgung ', l: 'Energieversorgung ' },
-    { v: 'Strom Leerstand ', l: 'Strom Leerstand ' },
-    { v: 'Grundabgaben ', l: 'Grundabgaben ' },
-    { v: 'Versicherung ', l: 'Versicherung ' },
-    { v: 'Kaminkehrer ', l: 'Kaminkehrer ' },
-    { v: 'Sonstige Instandhaltung ', l: 'Sonstige Instandhaltung ' }
-  ] 
-},
+            txt: 'verwendungszweck 4', 
+            type: 'includes_lower', 
+            pre: 'dw-vwz', 
+            gap: '20px', 
+            opts: [
+                { v: 'Repa ', l: 'Repa ' },
+                { v: 'Repa Fenster ', l: 'Repa Fenster ' },
+                { v: 'Repa Tür ', l: 'Repa Tür ' },
+                { v: 'Repa Sanitär', l: 'Repa Sanitär ' },
+                { v: 'Repa Heizung', l: 'Repa Heizung ' },
+                { v: 'Wartung ', l: 'Wartung ' },
+                { v: 'Prüfung ', l: 'Prüfung ' },
+                { v: 'Energieversorgung ', l: 'Energieversorgung ' },
+                { v: 'Strom Leerstand ', l: 'Strom Leerstand ' },
+                { v: 'Grundabgaben ', l: 'Grundabgaben ' },
+                { v: 'Versicherung ', l: 'Versicherung ' },
+                { v: 'Kaminkehrer ', l: 'Kaminkehrer ' },
+                { v: 'Sonstige Instandhaltung ', l: 'Sonstige Instandhaltung ' }
+            ] 
+        },
         leistungszeitraumbis: { txt: 'Rechnungsnummer *', type: 'exact', pre: 'dw-lzb', gap: '12px', isNav: true, btnCfg: { l: '→ Nächstes leeres Pflichtfeld', a: 'scrollToNext' } },
         bauteile: {
             txt: 'bauteil', type: 'exact_bauteil_only', pre: 'dw-bauteile', gap: '8px',
@@ -60,10 +69,70 @@
             }
         }
     };
-    let S = { init: false, reg: new Map(), obs: null, timeouts: new Set(), dialogs: new Set(), subs: [], last: 0, processed: new Set() }; 
+
+    let S = { 
+        init: false, 
+        reg: new Map(), 
+        obs: null, 
+        timeouts: new Map(), // ÄNDERUNG: Map statt Set für bessere Verwaltung
+        dialogs: new Set(), 
+        subs: [], 
+        last: 0, 
+        processed: new Map() // ÄNDERUNG: Map mit Timestamp für bessere Bereinigung
+    }; 
+
     if (window[ID]) cleanup();
     window[ID] = { v: V, s: S, cleanup };
+
     const log = (m, d) => D && console.log(`[DW-KO] ${m}`, d || '');
+
+    // NEU: Effiziente Cache-Bereinigung
+    function cleanupCaches() {
+        const now = Date.now();
+        
+        // Bereinige processed Cache (Einträge älter als 5 Minuten)
+        if (S.processed.size > CACHE_LIMITS.processed) {
+            const entries = Array.from(S.processed.entries())
+                .sort(([,a], [,b]) => b.ts - a.ts) // Sortiere nach Timestamp
+                .slice(0, Math.floor(CACHE_LIMITS.processed * 0.7)); // Behalte 70%
+            
+            S.processed.clear();
+            entries.forEach(([key, value]) => S.processed.set(key, value));
+            log('🧹 Processed cache bereinigt');
+        }
+        
+        // Bereinige registry Cache
+        if (S.reg.size > CACHE_LIMITS.reg) {
+            const entries = Array.from(S.reg.entries())
+                .sort(([,a], [,b]) => b.ts - a.ts)
+                .slice(0, Math.floor(CACHE_LIMITS.reg * 0.7));
+            
+            S.reg.clear();
+            entries.forEach(([key, value]) => S.reg.set(key, value));
+            log('🧹 Registry cache bereinigt');
+        }
+        
+        // Bereinige tote Timeouts
+        S.timeouts.forEach((timeoutId, key) => {
+            if (!timeoutId || timeoutId < now - 30000) { // 30s alte Timeouts
+                S.timeouts.delete(key);
+            }
+        });
+    }
+
+    // ÄNDERUNG: Optimierte Timeout-Verwaltung
+    function addTimeout(key, timeoutId) {
+        if (S.timeouts.has(key)) {
+            clearTimeout(S.timeouts.get(key));
+        }
+        S.timeouts.set(key, timeoutId);
+        
+        // Automatische Bereinigung bei zu vielen Timeouts
+        if (S.timeouts.size > CACHE_LIMITS.timeouts) {
+            cleanupCaches();
+        }
+    }
+
     function cleanup() {
         if (window[ID] && window[ID].s) {
             window[ID].s.obs && window[ID].s.obs.disconnect();
@@ -71,49 +140,62 @@
             window[ID].s.subs && window[ID].s.subs.forEach(s => { try { s.dispose() } catch (e) { } });
         }
     }
+
     function waitKO(cb, i = 0) {
         typeof ko !== 'undefined' && ko.version ? cb() : i < 50 ? setTimeout(() => waitKO(cb, i + 1), 100) : cb();
     }
+
     function isKOTpl(e) {
         return e && (e.hasAttribute && e.hasAttribute('data-bind') || e.querySelector && e.querySelector('[data-bind]') || e.closest && e.closest('[data-bind]'));
     }
+
     function waitKOBind(e, cb, i = 0) {
         if (i >= 30) { cb(); return; }
         const inp = e.querySelectorAll('input.dw-dateField, input.dw-textField');
         const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
         hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 150) : cb();
     }
+
     function interceptKO() {
         if (typeof ko === 'undefined') return;
+        
         if (ko.renderTemplate && !ko.renderTemplate._dw) {
             const orig = ko.renderTemplate;
             ko.renderTemplate = function () {
                 const res = orig.apply(this, arguments);
-                setTimeout(() => {
+                const timeoutId = setTimeout(() => {
                     const tgt = Array.isArray(arguments[3]) ? arguments[3][0] : arguments[3];
                     tgt && tgt.nodeType === 1 && waitKOBind(tgt, () => procAfterKO(tgt));
                 }, 200);
+                addTimeout('renderTemplate', timeoutId);
                 return res;
             };
             ko.renderTemplate._dw = true;
         }
+        
         if (ko.applyBindings && !ko.applyBindings._dw) {
             const orig = ko.applyBindings;
             ko.applyBindings = function () {
                 const res = orig.apply(this, arguments);
-                setTimeout(() => {
+                const timeoutId = setTimeout(() => {
                     const tgt = arguments[1] || document.body;
                     waitKOBind(tgt, () => procAfterKO(tgt));
                 }, 300);
+                addTimeout('applyBindings', timeoutId);
                 return res;
             };
             ko.applyBindings._dw = true;
         }
     }
+
     function procAfterKO(e) {
         const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 100) : setTimeout(() => procStd(e), 100);
+        const timeoutId = setTimeout(() => {
+            dlg ? addToDlg(dlg, getDlgId(dlg)) : procStd(e);
+        }, dlg ? 100 : 50); // ÄNDERUNG: Reduzierte Delays
+        addTimeout(dlg ? 'procDialog' : 'procStandard', timeoutId);
     }
+
     function getDlgId(d) {
         if (!d) return null;
         const t = d.querySelector('.ui-dialog-title');
@@ -123,6 +205,7 @@
         const di = d.id || Math.random().toString(36).substr(2, 9);
         return `dlg_${tt}_${ci}_${di}`.replace(/[^a-zA-Z0-9_]/g, '_');
     }
+
     function addToDlg(d, di) {
         if (S.dialogs.has(di)) return;
         let total = 0;
@@ -130,61 +213,59 @@
         total > 0 && (S.dialogs.add(di), saveState());
         return total;
     }
+
     function procStd(e) {
         let total = 0;
         Object.keys(CFG).forEach(k => { total += procCfgInEl(k, e); });
         total > 0 && saveState();
         return total;
     }
+
+    // ÄNDERUNG: Optimierte Verarbeitung mit besserer Duplikatserkennung
     function procCfgInEl(k, c, di = null) {
         const cfg = CFG[k];
         const fields = findInCont(k, c, di);
         if (!fields.length) return 0;
+
         let added = 0;
         fields.forEach(f => {
             try {
-
-                if (!S.processed.has(f.fid)) {
-                    requestAnimationFrame(() => {
-                        if (injectWithDelay(f, cfg, di)) {
-                            S.processed.add(f.fid); 
-                            added++;
-                        }
-                    });
+                const processedEntry = S.processed.get(f.fid);
+                const now = Date.now();
+                
+                // Prüfe ob bereits verarbeitet und nicht zu alt (5min)
+                if (!processedEntry || (now - processedEntry.ts > 300000)) {
+                    const success = injectImmediate(f, cfg, di);
+                    if (success) {
+                        S.processed.set(f.fid, { ts: now, cfg: k });
+                        added++;
+                    }
                 }
-            } catch (e) { log(`Err inject ${f.fid}:`, e); }
+            } catch (e) { 
+                log(`Err inject ${f.fid}:`, e); 
+            }
         });
+        
         return added;
     }
-    function injectWithDelay(f, cfg, di) {
-        const delays = [50, 150, 300, 600];
-        function attempt(i = 0) {
-            if (i >= delays.length) return false;
-            setTimeout(() => {
-                if (isValid(f.inp)) {
-                    const success = inject(f, cfg, di);
-                    if (success) {
-                        log(`✅ Button erfolgreich injiziert: ${f.fid}`);
-                    } else {
-                        attempt(i + 1);
-                    }
-                } else {
-                    log('Field invalid');
-                }
-            }, delays[i]);
-        }
-        attempt();
-        return true;
+
+    // NEU: Direkte Injektion ohne zusätzliche Delays
+    function injectImmediate(f, cfg, di) {
+        if (!isValid(f.inp)) return false;
+        return inject(f, cfg, di);
     }
+
     function isValid(inp) {
         return inp && inp.isConnected && inp.offsetParent !== null && inp.closest('tr');
     }
 
+    // ÄNDERUNG: Effizientere Feldsuche mit Early Exit
     function findInCont(k, c, di = null) {
         const cfg = CFG[k];
         const found = [];
         try {
             if (cfg.isDate) return findDateInCont(cfg, k, c, di);
+            
             const labels = c.querySelectorAll('.dw-fieldLabel span');
             for (const lbl of labels) {
                 if (!lbl.textContent) continue;
@@ -192,37 +273,30 @@
                 if (!matches(txt, cfg)) continue;
 
                 if (cfg.isNav && cfg.txt === 'Leistungszeitraum bis') {
-
                     const hasRechnungsnummer = Array.from(labels).some(label =>
                         label.textContent.trim() === 'Fälligkeitsdatum *'
                     );
-                    if (!hasRechnungsnummer) {
-                        log('⏭️ Rechnungsnummer nicht gefunden - Navigation-Button übersprungen');
-                        continue;
-                    }
+                    if (!hasRechnungsnummer) continue;
                 }
+                
                 const row = lbl.closest('tr');
                 if (!row) continue;
                 const inp = findInp(row, cfg);
                 if (!inp || !isProc(inp)) continue;
                 const fid = mkId(inp, txt, k, di);
 
-                const hasExistingButtons = row.nextElementSibling &&
-                    row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
-                const alreadyProcessed = S.processed.has(fid);
-                const hasButtonsInDOM = document.querySelector(`[data-field-id="${fid}"]`);
-
-                if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) {
-                    log(`⏭️ Feld bereits verarbeitet: ${fid}`);
-                    continue;
-                }
+                // ÄNDERUNG: Vereinfachte Duplikatsprüfung - nur DOM-Check
+                if (document.querySelector(`[data-field-id="${fid}"]`)) continue;
 
                 found.push({ inp, txt, row, k, fid });
                 if (!cfg.multi) break;
             }
-        } catch (e) { log(`Err find ${k}:`, e); }
+        } catch (e) { 
+            log(`Err find ${k}:`, e); 
+        }
         return found;
     }
+
     function findDateInCont(cfg, k, c, di = null) {
         const found = [];
         const dates = c.querySelectorAll('input.dw-dateField');
@@ -235,28 +309,19 @@
             if (cfg.exc && cfg.exc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()))) continue;
             const fid = mkId(inp, txt, k, di);
 
-            const hasExistingButtons = row.nextElementSibling &&
-                row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
-            const alreadyProcessed = S.processed.has(fid);
-            const hasButtonsInDOM = document.querySelector(`[data-field-id="${fid}"]`);
-
-            if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) {
-                continue;
-            }
+            // ÄNDERUNG: Vereinfachte Duplikatsprüfung
+            if (document.querySelector(`[data-field-id="${fid}"]`)) continue;
 
             found.push({ inp, txt, row, k, fid });
         }
         return found;
     }
+
     function inject(f, cfg, di = null) {
         const { inp, row, k, fid } = f;
 
-        if (row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`)) {
-            log(`⚠️ Button-Reihe bereits vorhanden für: ${fid}`);
-            return false;
-        }
+        // ÄNDERUNG: Finale Duplikatsprüfung vor Injektion
         if (document.querySelector(`[data-field-id="${fid}"]`)) {
-            log(`⚠️ Button mit Field-ID bereits im DOM: ${fid}`);
             return false;
         }
 
@@ -268,6 +333,7 @@
         br.setAttribute('data-injection-time', Date.now()); 
         di && br.setAttribute('data-dialog-id', di);
         br.style.cssText = 'position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;background:inherit!important;';
+        
         const lc = document.createElement('td');
         lc.className = 'dw-fieldLabel';
         const cc = document.createElement('td');
@@ -277,13 +343,16 @@
         br.appendChild(lc);
         br.appendChild(cc);
         br.classList.add('dw-btn-fade');
+        
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 br.style.display = 'table-row';
                 br.style.opacity = '1';
                 br.style.visibility = 'visible';
             }, 50);
+            addTimeout(`fade-${fid}`, timeoutId);
+            
             log(`✅ Button-Reihe erfolgreich eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -291,6 +360,8 @@
             return false;
         }
     }
+
+    // Restliche Funktionen bleiben unverändert...
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
         const cont = document.createElement('div');
@@ -319,6 +390,7 @@
         restoreState(inp, cfg, btns, fid);
         return cont;
     }
+
     function mkBtn(opt, cfg, inp, fid) {
         const btn = document.createElement('button');
         btn.className = `${cfg.pre}-action-button`;
@@ -331,6 +403,7 @@
         btn.addEventListener('click', e => handleClick(e, opt, cfg, inp, fid), { passive: true });
         return btn;
     }
+
     function handleClick(e, opt, cfg, inp, fid) {
         e.preventDefault();
         e.stopPropagation();
@@ -355,20 +428,19 @@
         if (invalidFields.length > 0) {
             const field = invalidFields[0];
             field.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-            setTimeout(() => {
+            const timeoutId = setTimeout(() => {
                 field.focus();
                 const origBorder = field.style.border;
                 const origShadow = field.style.boxShadow;
                 field.style.border = '1px solid #13801eff';
                 field.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                setTimeout(() => {
+                const resetTimeoutId = setTimeout(() => {
                     field.style.border = origBorder;
                     field.style.boxShadow = origShadow;
                 }, 2000);
-
+                addTimeout('reset-highlight', resetTimeoutId);
             }, 500);
-        } else {
-            console.log('gefunden');
+            addTimeout('scroll-highlight', timeoutId);
         }
     }
 
@@ -379,11 +451,13 @@
         const base = `${k}_${nm}_${txt.replace(/[^a-zA-Z0-9]/g, '')}_${pos}`;
         return di ? `${di}_${base}` : base;
     }
+
     function isProc(f) {
         if (!f) return false;
         const r = f.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && f.offsetParent !== null && f.closest('tr');
     }
+
     function matches(txt, cfg) {
         if (!cfg.txt) return false;
         switch (cfg.type) {
@@ -394,6 +468,7 @@
             default: return txt.includes(cfg.txt);
         }
     }
+
     function findInp(row, cfg) {
         let inp = row.querySelector('input.dw-textField, input.dw-numericField, input[type="text"], input[type="date"], input.dw-dateField');
         if (!inp && cfg && cfg.isNav) {
@@ -401,12 +476,14 @@
         }
         return inp;
     }
+
     function updSel(btn, fid) {
         const cont = btn.closest('[class*="-button-container"]');
         if (!cont) return;
         cont.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
     }
+
     function setVal(inp, val, cfg) {
         inp.value = val;
         cfg.isDate && typeof $ !== 'undefined' && $(inp).data('datepicker') && $(inp).datepicker('setDate', val);
@@ -415,6 +492,7 @@
             ['input', 'change', 'blur'].forEach(t => inp.dispatchEvent(new Event(t, { bubbles: true, cancelable: true })));
         });
     }
+
     const dateCache = new Map();
     function getFmt(d) {
         const k = d.getTime();
@@ -423,6 +501,7 @@
         }
         return dateCache.get(k);
     }
+
     function getDate(a) {
         const ck = `date_${a}`;
         if (dateCache.has(ck)) return dateCache.get(ck);
@@ -441,32 +520,48 @@
         dateCache.set(ck, res);
         return res;
     }
+
+    // ÄNDERUNG: Optimierter State-Save mit Ratenbegrenzung
+    let saveTimeout = null;
     function saveState() {
-        try {
-            const data = {
-                reg: Array.from(S.reg.entries()),
-                dlgs: Array.from(S.dialogs),
-                processed: Array.from(S.processed), 
-                ts: Date.now()
-            };
-            sessionStorage.setItem(SK, JSON.stringify(data));
-        } catch (e) { log('Save err:', e); }
+        if (saveTimeout) return; // Bereits geplant
+        
+        saveTimeout = setTimeout(() => {
+            try {
+                const data = {
+                    reg: Array.from(S.reg.entries()),
+                    dlgs: Array.from(S.dialogs),
+                    processed: Array.from(S.processed.entries()),
+                    ts: Date.now()
+                };
+                sessionStorage.setItem(SK, JSON.stringify(data));
+            } catch (e) { 
+                log('Save err:', e); 
+            } finally {
+                saveTimeout = null;
+            }
+        }, 100); // Sammle mehrere Saves in 100ms
     }
+
     function loadState() {
         try {
             const stored = sessionStorage.getItem(SK);
             if (stored) {
                 const data = JSON.parse(stored);
-                if (Date.now() - data.ts < 1800000) {
+                if (Date.now() - data.ts < 1800000) { // 30min
                     S.reg = new Map(data.reg || []);
                     S.dialogs = new Set(data.dlgs || []);
-                    S.processed = new Set(data.processed || []); 
+                    // ÄNDERUNG: Lade processed als Map mit Timestamps
+                    S.processed = new Map(data.processed || []);
                     return true;
                 }
             }
-        } catch (e) { log('Load err:', e); }
+        } catch (e) { 
+            log('Load err:', e); 
+        }
         return false;
     }
+
     function restoreState(inp, cfg, btns, fid) {
         if (cfg.isDate) return;
         const cur = inp.value.trim();
@@ -481,9 +576,9 @@
         });
     }
 
-function injectCSS() {
-    if (document.querySelector('style[data-dw-ko-btns]')) return;
-    const css = `.dw-ko-btn-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;background:inherit!important;z-index:10!important}[class*="-button-container"]{display:flex!important;align-items:center!important;justify-content:flex-start!important;padding:4px 1px 8px 29px!important;gap:6px!important;flex-wrap:wrap!important}[class*="-action-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:20px!important;font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}[class*="-nav-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:4px!important;border:1px solid #3b82f6!important;background:#dbeafe!important;color:#1e40af!important;padding:1px 12px!important;min-height:24px!important;font-size:12px!important;font-weight:500!important;white-space:nowrap!important}.ui-dialog .dw-ko-btn-row{display:table-row!important;opacity:1!important;visibility:visible!important}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}.ui-dialog [class*="-nav-button"]{font-size:11px!important;padding:4px 10px!important;min-height:22px!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+    function injectCSS() {
+        if (document.querySelector('style[data-dw-ko-btns]')) return;
+        const css = `.dw-ko-btn-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;background:inherit!important;z-index:10!important}[class*="-button-container"]{display:flex!important;align-items:center!important;justify-content:flex-start!important;padding:4px 1px 8px 29px!important;gap:6px!important;flex-wrap:wrap!important}[class*="-action-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:20px!important;font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}[class*="-nav-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:4px!important;border:1px solid #3b82f6!important;background:#dbeafe!important;color:#1e40af!important;padding:1px 12px!important;min-height:24px!important;font-size:12px!important;font-weight:500!important;white-space:nowrap!important}.ui-dialog .dw-ko-btn-row{display:table-row!important;opacity:1!important;visibility:visible!important}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}.ui-dialog [class*="-nav-button"]{font-size:11px!important;padding:4px 10px!important;min-height:22px!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 
     .ui-dialog.dw-dialogs:has(.dw-datum-button-row) {
         min-width: 500px !important;
@@ -516,13 +611,16 @@ function injectCSS() {
         white-space: nowrap !important;
     }`;
 
-    const style = document.createElement('style');
-    style.textContent = css;
-    style.setAttribute('data-dw-ko-btns', 'true');
-    document.head.appendChild(style);
-}
+        const style = document.createElement('style');
+        style.textContent = css;
+        style.setAttribute('data-dw-ko-btns', 'true');
+        document.head.appendChild(style);
+    }
+
+    // ÄNDERUNG: Optimierter Observer mit weniger Triggern
     function mkObs() {
-        let timeout = null;
+        let debounceTimeout = null;
+        
         const proc = () => {
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
             dlgs.forEach(d => {
@@ -531,53 +629,78 @@ function injectCSS() {
                 !hasBtns && waitKOBind(d, () => addToDlg(d, di));
             });
             procStd(document.body);
+            
+            // Regelmäßige Cache-Bereinigung
+            cleanupCaches();
         };
+
         const debounced = () => {
-            timeout && clearTimeout(timeout);
-            timeout = setTimeout(proc, 600);
-            S.timeouts.add(timeout);
+            if (debounceTimeout) {
+                clearTimeout(debounceTimeout);
+                S.timeouts.delete('observer-debounce');
+            }
+            debounceTimeout = setTimeout(proc, 400); // ÄNDERUNG: Reduziert von 600ms
+            addTimeout('observer-debounce', debounceTimeout);
         };
+
         const obs = new MutationObserver(muts => {
-            let should = false, koDetected = false;
+            let shouldProcess = false;
+            let koDetected = false;
+            
+            // ÄNDERUNG: Effizientere Mutation-Analyse
             for (const mut of muts) {
                 if (mut.type === 'childList') {
                     for (const node of mut.addedNodes) {
                         if (node.nodeType === 1) {
-                            if (isKOTpl(node) || (node.classList && node.classList.contains('dw-dialogContent')) || (node.classList && node.classList.contains('ui-dialog-content')) || (node.querySelector && node.querySelector('[data-bind]')) || (node.querySelector && node.querySelector('.dw-dateField'))) {
-                                should = true;
+                            if (isKOTpl(node) || 
+                                (node.classList && (node.classList.contains('dw-dialogContent') || node.classList.contains('ui-dialog-content'))) ||
+                                (node.querySelector && (node.querySelector('[data-bind]') || node.querySelector('.dw-dateField')))) {
+                                shouldProcess = true;
                                 koDetected = true;
                                 break;
                             }
                         }
                     }
-                    for (const node of mut.removedNodes) {
-                        if (node.nodeType === 1 && ((node.classList && node.classList.contains('dw-ko-btn-row')) || (node.querySelector && node.querySelector('.dw-ko-btn-row')))) {
-                            should = true;
-
-                            const fieldId = node.getAttribute && node.getAttribute('data-field-id');
-                            if (fieldId) {
-                                S.processed.delete(fieldId);
-                                log(`🗑️ Entfernter Button aus processed entfernt: ${fieldId}`);
+                    
+                    if (!shouldProcess) {
+                        for (const node of mut.removedNodes) {
+                            if (node.nodeType === 1 && 
+                                ((node.classList && node.classList.contains('dw-ko-btn-row')) ||
+                                 (node.querySelector && node.querySelector('.dw-ko-btn-row')))) {
+                                shouldProcess = true;
+                                
+                                // Bereinige processed Entry
+                                const fieldId = node.getAttribute && node.getAttribute('data-field-id');
+                                if (fieldId) {
+                                    S.processed.delete(fieldId);
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
                 }
-                if (should) break;
+                if (shouldProcess) break;
             }
-            if (should) {
-                const delay = koDetected ? 800 : 400;
-                timeout && clearTimeout(timeout);
-                timeout = setTimeout(proc, delay);
-                S.timeouts.add(timeout);
-            }
+            
+            shouldProcess && debounced();
         });
-        obs.observe(document.body, { childList: true, subtree: true, attributes: false, characterData: false });
+
+        obs.observe(document.body, { 
+            childList: true, 
+            subtree: true, 
+            attributes: false, 
+            characterData: false 
+        });
+        
         return obs;
     }
+
+    // ÄNDERUNG: Effizientere Intervall-Checks
     function startChecks() {
+        // Hauptcheck alle 8 Sekunden (reduziert von 5s)
         const check = setInterval(() => {
             if (!S.init) return;
+            
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
             dlgs.forEach(d => {
                 const di = getDlgId(d);
@@ -587,122 +710,147 @@ function injectCSS() {
                     waitKOBind(d, () => addToDlg(d, di));
                 }
             });
-        }, 5000);
-        S.timeouts.add(check);
+            
+            // Cache-Bereinigung
+            cleanupCaches();
+        }, 8000);
+        
+        addTimeout('main-check', check);
 
+        // Backup-Check alle 45 Sekunden (erhöht von 30s)
         const backup = setInterval(() => {
             if (!S.init) return;
-
-            const allButtonsInDOM = document.querySelectorAll('[data-field-id]');
-            const activeFieldIds = new Set(Array.from(allButtonsInDOM).map(btn => btn.getAttribute('data-field-id')));
-
-            S.processed.forEach(fid => {
-                if (!activeFieldIds.has(fid)) {
-                    S.processed.delete(fid);
-                    log(`🧹 Cleanup: Entferne verwaiste processed ID: ${fid}`);
-                }
-            });
-
+            
+            // Nur kleine Reparaturen
             Object.keys(CFG).forEach(k => {
                 const fields = findWithoutBtns(k);
-                if (fields.length > 0 && fields.length < 5) { 
-                    log(`🔧 Backup: ${fields.length} fehlende Buttons für ${k}`);
+                if (fields.length > 0 && fields.length < 3) { // ÄNDERUNG: Reduziert von 5
                     fields.forEach(f => {
-                        if (!S.processed.has(f.di)) {
-                            requestAnimationFrame(() => injectWithDelay(f, CFG[k], f.di));
+                        const processedEntry = S.processed.get(f.fid);
+                        if (!processedEntry || (Date.now() - processedEntry.ts > 300000)) {
+                            requestAnimationFrame(() => injectImmediate(f, CFG[k], f.di));
                         }
                     });
                 }
             });
-        }, 30000); 
-        S.timeouts.add(backup);
+        }, 45000);
+        
+        addTimeout('backup-check', backup);
     }
+
     function findWithoutBtns(k) {
         const cfg = CFG[k];
         const fields = [];
-        const conts = [document.body, ...document.querySelectorAll('.ui-dialog.dw-dialogs')];
+        const conts = [document.body, ...document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])')];
+        
         conts.forEach(c => {
-            if (c.style && c.style.display === 'none') return;
             const di = c.classList && c.classList.contains('ui-dialog') ? getDlgId(c) : null;
             const fs = findInCont(k, c, di);
+            
             fs.forEach(f => {
-
-                const hasBtnRow = f.row.nextElementSibling &&
-                    f.row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
                 const hasInDOM = document.querySelector(`[data-field-id="${f.fid}"]`);
-                const inProcessed = S.processed.has(f.fid);
-
-                if (!hasBtnRow && !hasInDOM && !inProcessed) {
+                const processedEntry = S.processed.get(f.fid);
+                const isRecentlyProcessed = processedEntry && (Date.now() - processedEntry.ts < 300000);
+                
+                if (!hasInDOM && !isRecentlyProcessed) {
                     fields.push({ ...f, di });
                 }
             });
         });
+        
         return fields;
     }
+
     function setupEvents() {
+        // ÄNDERUNG: Optimierte Event-Handler
         document.addEventListener('click', e => {
             const t = e.target;
-            if (t && ((t.classList && t.classList.contains('ui-button')) || t.closest('.ui-button') || (t.getAttribute && t.getAttribute('data-bind') && t.getAttribute('data-bind').includes('click')) || t.closest('[data-bind*="click"]'))) {
-                setTimeout(() => {
+            if (t && ((t.classList && t.classList.contains('ui-button')) || 
+                     t.closest('.ui-button') || 
+                     (t.getAttribute && t.getAttribute('data-bind') && t.getAttribute('data-bind').includes('click')) || 
+                     t.closest('[data-bind*="click"]'))) {
+                
+                const timeoutId = setTimeout(() => {
                     const newDlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
                     newDlgs.forEach(d => {
                         const di = getDlgId(d);
                         const hasBtns = d.querySelectorAll('.dw-ko-btn-row').length > 0;
                         !hasBtns && !S.dialogs.has(di) && waitKOBind(d, () => addToDlg(d, di));
                     });
-                }, 1000);
+                }, 800); // ÄNDERUNG: Reduziert von 1000ms
+                
+                addTimeout('click-handler', timeoutId);
             }
         }, { passive: true });
+
         window.addEventListener('focus', () => {
-            S.init && setTimeout(() => {
-                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-                dlgs.forEach(d => {
-                    const di = getDlgId(d);
-                    const hasBtns = d.querySelectorAll('.dw-ko-btn-row').length > 0;
-                    !hasBtns && (S.dialogs.delete(di), waitKOBind(d, () => addToDlg(d, di)));
-                });
-            }, 300);
+            S.init && (() => {
+                const timeoutId = setTimeout(() => {
+                    const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                    dlgs.forEach(d => {
+                        const di = getDlgId(d);
+                        const hasBtns = d.querySelectorAll('.dw-ko-btn-row').length > 0;
+                        !hasBtns && (S.dialogs.delete(di), waitKOBind(d, () => addToDlg(d, di)));
+                    });
+                }, 200); // ÄNDERUNG: Reduziert von 300ms
+                
+                addTimeout('focus-handler', timeoutId);
+            })();
         }, { passive: true });
+
         document.addEventListener('visibilitychange', () => {
-            !document.hidden && S.init && setTimeout(() => {
-                S.dialogs.clear();
-                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-                dlgs.forEach(d => {
-                    const di = getDlgId(d);
-                    waitKOBind(d, () => addToDlg(d, di));
-                });
-            }, 500);
+            !document.hidden && S.init && (() => {
+                const timeoutId = setTimeout(() => {
+                    S.dialogs.clear();
+                    const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                    dlgs.forEach(d => {
+                        const di = getDlgId(d);
+                        waitKOBind(d, () => addToDlg(d, di));
+                    });
+                }, 300); // ÄNDERUNG: Reduziert von 500ms
+                
+                addTimeout('visibility-handler', timeoutId);
+            })();
         }, { passive: true });
+
         window.addEventListener('beforeunload', () => {
             saveState();
             S.timeouts.forEach(clearTimeout);
         }, { passive: true });
     }
+
     function init() {
         try {
             injectCSS();
             loadState();
             waitKO(() => {
                 interceptKO();
-                setTimeout(() => {
+                const timeoutId = setTimeout(() => {
                     procStd(document.body);
                     const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
                     dlgs.forEach(d => {
                         const di = getDlgId(d);
                         waitKOBind(d, () => addToDlg(d, di));
                     });
-                }, 500);
+                }, 300); // ÄNDERUNG: Reduziert von 500ms
+                
+                addTimeout('init-process', timeoutId);
             });
+            
             S.obs = mkObs();
             setupEvents();
             startChecks();
             S.init = true;
-        } catch (e) { log('Init err:', e); }
+        } catch (e) { 
+            log('Init err:', e); 
+        }
     }
+
+    // API bleibt größtenteils unverändert
     window[ID].api = {
         refresh: () => {
             S.dialogs.clear();
-            S.processed.clear(); 
+            S.processed.clear();
             const std = procStd(document.body);
             let dlgCnt = 0;
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
@@ -720,10 +868,10 @@ function injectCSS() {
             dlgs: document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])').length,
             proc: S.dialogs.size,
             reg: S.reg.size,
-            processed: S.processed.size 
+            processed: S.processed.size,
+            timeouts: S.timeouts.size // NEU: Timeout-Anzahl
         }),
         debug: () => {
-
             const allButtons = document.querySelectorAll('.dw-ko-btn-row');
             const duplicates = [];
             const fieldIds = [];
@@ -764,14 +912,32 @@ function injectCSS() {
             S.timeouts.forEach(clearTimeout);
             S.subs.forEach(s => { try { s.dispose() } catch (e) { } });
             sessionStorage.removeItem(SK);
-            S.processed.clear(); 
+            S.processed.clear();
+            S.reg.clear();
+            S.dialogs.clear();
+            S.timeouts.clear();
+        },
+        // NEU: Manuelle Cache-Bereinigung
+        cleanCaches: () => {
+            cleanupCaches();
+            return {
+                processed: S.processed.size,
+                reg: S.reg.size,
+                timeouts: S.timeouts.size
+            };
         }
     };
+
     function main() {
         setupEvents();
-        document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', init, { once: true }) : setTimeout(init, 300);
-        setTimeout(() => !S.init && init(), 2000);
-        setTimeout(() => {
+        document.readyState === 'loading' ? 
+            document.addEventListener('DOMContentLoaded', init, { once: true }) : 
+            setTimeout(init, 200); // ÄNDERUNG: Reduziert von 300ms
+            
+        const fallbackTimeoutId = setTimeout(() => !S.init && init(), 1500); // ÄNDERUNG: Reduziert von 2000ms
+        addTimeout('fallback-init', fallbackTimeoutId);
+        
+        const lateCheckTimeoutId = setTimeout(() => {
             if (S.init) {
                 const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
                 dlgs.forEach(d => {
@@ -783,7 +949,11 @@ function injectCSS() {
                     }
                 });
             }
-        }, 5000);
+        }, 3000); // ÄNDERUNG: Reduziert von 5000ms
+        
+        addTimeout('late-check', lateCheckTimeoutId);
     }
+
     main();
 })();
+
