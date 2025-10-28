@@ -1,0 +1,2141 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immolli - Intelligenter DocuWare KI-Assistent</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* === RESET & GRUNDLAGEN === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            max-width: 1400px;
+            width: 100%;
+            height: 92vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e1e4e8;
+        }
+
+        /* === HEADER === */
+        header {
+            background: linear-gradient(135deg, #3b67c7 0%, #2e4799 100%);
+            color: white;
+            padding: 20px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2f4691;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-icon {
+            width: 42px;
+            height: 42px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .header-text h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 2px;
+            letter-spacing: -0.3px;
+        }
+
+        .header-text p {
+            font-size: 13px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-header {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: white;
+            width: 38px;
+            height: 38px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-header:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* === SETTINGS PANEL === */
+        .settings-panel {
+            position: absolute;
+            top: 90px;
+            right: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            width: 460px;
+            max-width: 90vw;
+            z-index: 1000;
+            border: 1px solid #e1e4e8;
+        }
+
+        .settings-header {
+            background: #f8f9fa;
+            padding: 18px 22px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .settings-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .settings-header i {
+            color: #2563eb;
+        }
+
+        .btn-close {
+            background: transparent;
+            border: none;
+            color: #6b7280;
+            width: 30px;
+            height: 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-close:hover {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .settings-content {
+            padding: 24px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .input-group {
+            margin-bottom: 18px;
+        }
+
+        .input-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .input-group label i {
+            color: #2563eb;
+            font-size: 12px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .namespace-selector {
+            margin-bottom: 20px;
+        }
+
+        .namespace-selector label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .namespace-selector label i {
+            color: #2563eb;
+        }
+
+        .namespace-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .namespace-option {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .namespace-option:hover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .namespace-option.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .namespace-option input[type="checkbox"] {
+            margin-right: 10px;
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+
+        .namespace-option i {
+            margin-right: 8px;
+            color: #2563eb;
+            font-size: 14px;
+        }
+
+        .namespace-option span {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        /* === CHAT CONTAINER === */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 28px;
+            background: #fafbfc;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f3f4;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .user-message .message-avatar {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+        }
+
+        .assistant-message .message-avatar {
+            background: #f3f4f6;
+            color: #2563eb;
+        }
+
+        .message-content {
+            flex: 1;
+            max-width: 85%;
+        }
+
+        .message-text {
+            background: white;
+            padding: 14px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            line-height: 1.6;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        .user-message .message-text {
+            background: linear-gradient(135deg, #3256a2 0%, #2c4186 100%);
+            color: white;
+            border: none;
+        }
+
+        .assistant-message .message-text {
+            background: white;
+        }
+
+        /* === NAMESPACE BADGES === */
+        .namespace-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .namespace-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #2563eb;
+        }
+
+        .namespace-badge i {
+            font-size: 10px;
+        }
+
+        /* === CONTEXT SOURCES === */
+        .context-sources {
+            margin-top: 14px;
+            padding: 14px;
+            background: #f9fafb;
+            border-left: 3px solid #2563eb;
+            border-radius: 6px;
+            max-height: 450px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .context-sources.collapsed {
+            max-height: 44px;
+        }
+
+        .sources-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 600;
+            color: #374151;
+            font-size: 13px;
+            user-select: none;
+        }
+
+        .sources-toggle:hover {
+            color: #2563eb;
+        }
+
+        .sources-toggle i {
+            margin-right: 6px;
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        .context-sources.collapsed .sources-toggle i {
+            transform: rotate(-90deg);
+        }
+
+        .sources-count {
+            background: #2563eb;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-left: 6px;
+        }
+
+        .sources-list {
+            margin-top: 12px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .source-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+
+        .source-item:hover {
+            border-color: #2563eb;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.1);
+        }
+
+        .source-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .source-number {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .source-header i {
+            color: #2563eb;
+            font-size: 13px;
+        }
+
+        .source-header strong {
+            color: #374151;
+            font-size: 13px;
+            flex: 1;
+        }
+
+        .source-score {
+            background: #eff6ff;
+            color: #2563eb;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .source-text {
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.5;
+            padding: 8px;
+            background: #f9fafb;
+            border-radius: 4px;
+            border-left: 2px solid #e5e7eb;
+        }
+
+        /* === TYPING INDICATOR === */
+        .typing-indicator {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .typing-indicator .message-avatar {
+            background: #f3f4f6;
+            color: #2563eb;
+        }
+
+        .typing-dots {
+            background: white;
+            padding: 14px 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            gap: 5px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #d1d5db;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                background: #d1d5db;
+            }
+
+            30% {
+                transform: translateY(-8px);
+                background: #2563eb;
+            }
+        }
+
+        /* === INPUT AREA === */
+        .input-area {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 18px 24px;
+        }
+
+        .context-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .context-info i {
+            color: #2563eb;
+            font-size: 12px;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #userInput {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            min-height: 46px;
+            max-height: 120px;
+            transition: all 0.2s ease;
+        }
+
+        #userInput:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        #sendBtn {
+            width: 46px;
+            height: 46px;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        #sendBtn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 768px) {
+            .container {
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            header {
+                padding: 16px 20px;
+            }
+
+            .header-text h1 {
+                font-size: 18px;
+            }
+
+            .chat-messages {
+                padding: 20px 14px;
+            }
+
+            .message-content {
+                max-width: 90%;
+            }
+
+            .input-area {
+                padding: 14px 16px;
+            }
+
+            .settings-panel {
+                width: 95vw;
+                right: 2.5vw;
+            }
+
+            .namespace-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .message-text a {
+                color: #2563eb;
+                text-decoration: none;
+                font-weight: 600;
+                border-bottom: 1px solid #2563eb;
+                transition: all 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .message-text a:hover {
+                color: #1e40af;
+                border-bottom-color: #1e40af;
+                background: #eff6ff;
+                padding: 2px 6px;
+                border-radius: 4px;
+                margin: -2px -6px;
+            }
+
+            .user-message .message-text a {
+                color: white;
+                border-bottom-color: rgba(255, 255, 255, 0.6);
+            }
+
+            .user-message .message-text a:hover {
+                background: rgba(255, 255, 255, 0.2);
+                border-bottom-color: white;
+            }
+
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <!--                 <div class="header-icon">
+                    <i class="fas fa-robot"></i>
+                </div> -->
+                <div class="header-text">
+                    <h1>Immolli - KI-Assistent</h1>
+                    <p>Intelligenter DocuWare-Assistent für Immobilienverwaltung</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-header" id="clearChatBtn" title="Chat löschen">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                <button class="btn-header" id="settingsBtn" title="Einstellungen">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Settings Panel -->
+        <div class="settings-panel hidden" id="settingsPanel">
+            <div class="settings-header">
+                <h3>
+                    <i class="fas fa-cog"></i>
+                    Einstellungen
+                </h3>
+                <button class="btn-close" id="closeSettingsBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="settings-content">
+                <div class="input-group">
+                    <label>
+                        <i class="fas fa-key"></i>
+                        OpenAI API Key
+                    </label>
+                    <input type="password" id="openaiKeyInput" placeholder="sk-...">
+                </div>
+
+                <div class="input-group">
+                    <label>
+                        <i class="fas fa-key"></i>
+                        Pinecone API Key
+                    </label>
+                    <input type="password" id="pineconeKeyInput" placeholder="pcsk-...">
+                </div>
+
+                <div class="input-group">
+                    <label>
+                        <i class="fas fa-server"></i>
+                        Pinecone Host
+                    </label>
+                    <input type="text" id="pineconeHostInput" placeholder="xxx-xxx.svc.aped-xxxx-xxx.pinecone.io">
+                </div>
+
+                <div class="namespace-selector">
+                    <label>
+                        <i class="fas fa-database"></i>
+                        Aktive Namespaces
+                    </label>
+                    <div class="namespace-grid">
+                        <div class="namespace-option active">
+                            <input type="checkbox" id="ns-objekthierarchie" checked>
+                            <i class="fas fa-building"></i>
+                            <span>Objekthierarchie</span>
+                        </div>
+                        <div class="namespace-option active">
+                            <input type="checkbox" id="ns-mieter" checked>
+                            <i class="fas fa-user"></i>
+                            <span>Mieter</span>
+                        </div>
+                        <div class="namespace-option active">
+                            <input type="checkbox" id="ns-bauteile" checked>
+                            <i class="fas fa-cogs"></i>
+                            <span>Bauteile</span>
+                        </div>
+                        <div class="namespace-option active">
+                            <input type="checkbox" id="ns-zaehler" checked>
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Zähler</span>
+                        </div>
+                        <div class="namespace-option active">
+                            <input type="checkbox" id="ns-vorgaenge" checked>
+                            <i class="fas fa-tasks"></i>
+                            <span>Vorgänge</span>
+                        </div>
+                        <div class="namespace-option active">
+                            <input type="checkbox" id="ns-belege" checked>
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Belege</span>
+                        </div>
+                        <div class="namespace-option active">
+                            <input type="checkbox" id="ns-dokumente" checked>
+                            <i class="fas fa-file-alt"></i>
+                            <span>Dokumente</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="saveSettingsBtn">
+                    <i class="fas fa-save"></i>
+                    Einstellungen speichern
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <!-- Welcome Message -->
+                <div class="message assistant-message">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-text">
+                            <strong>Willkommen bei Immolli!</strong><br><br>
+                            Ich bin Ihr intelligenter KI-Assistent für die Immobilienverwaltung.
+                            Ich kann Ihnen bei folgenden Aufgaben helfen:<br><br>
+                            <strong><i class="fas fa-building"></i> Objekte & Einheiten:</strong> Informationen zu
+                            Gebäuden, Mieteinheiten<br>
+                            <strong><i class="fas fa-user"></i> Mieter:</strong> Kontaktdaten, Mietflächen,
+                            Vertragsstatus<br>
+                            <strong><i class="fas fa-cogs"></i> Bauteile & Zähler:</strong> Wartungen, Prüfungen,
+                            Zählerstände<br>
+                            <strong><i class="fas fa-tasks"></i> Vorgänge:</strong> Reparaturen, Wartungen, Status<br>
+                            <strong><i class="fas fa-file-invoice-dollar"></i> Belege:</strong> Rechnungen, Kosten,
+                            Zahlungen<br>
+                            <strong><i class="fas fa-file-alt"></i> Dokumente:</strong> Verträge, Angebote,
+                            Berichte<br><br>
+                            <em>Stellen Sie mir einfach Ihre Frage!</em>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="context-info" id="contextInfo">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Bitte erst API-Einstellungen konfigurieren
+                </div>
+                <div class="input-container">
+                    <div class="input-wrapper">
+                        <textarea id="userInput" placeholder="Stellen Sie Ihre Frage..." rows="1"></textarea>
+                    </div>
+                    <button id="sendBtn" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator hidden" id="typingIndicator">
+                <!--                 <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div> -->
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // MULTI-NAMESPACE RAG ENGINE
+        // ========================================
+        class MultiNamespaceRAG {
+            constructor() {
+                this.openaiKey = '';
+                this.pineconeKey = '';
+                this.pineconeHost = '';
+                this.activeNamespaces = [
+                    'objekthierarchie',
+                    'mieter',
+                    'bauteile',
+                    'zaehler',
+                    'vorgaenge',
+                    'belege',
+                    'dokumente'
+                ];
+                this.conversationHistory = [];
+            }
+
+            setOpenAIKey(key) {
+                this.openaiKey = key;
+            }
+
+            setPineconeKey(key) {
+                this.pineconeKey = key;
+            }
+
+            setPineconeHost(host) {
+                this.pineconeHost = host;
+            }
+
+            setActiveNamespaces(namespaces) {
+                this.activeNamespaces = namespaces;
+            }
+
+            validateSettings() {
+                if (!this.openaiKey || !this.pineconeKey || !this.pineconeHost) {
+                    throw new Error('API-Einstellungen unvollständig');
+                }
+            }
+
+            // ÄNDERUNG: Verbesserte Namespace-Erkennung
+            detectRelevantNamespaces(query) {
+                const queryLower = query.toLowerCase();
+                const relevantNamespaces = [];
+
+                // ÄNDERUNG: Priorität 1 - Einheiten-Nummer erkennen (Format: XX###-X-####)
+                const unitMatch = query.match(/[A-Z]{2,}\d{3,}-[A-Z]-\d{4,}/i);
+                if (unitMatch) {
+                    console.log('🏠 Einheiten-Nummer erkannt:', unitMatch[0]);
+
+                    // Welche Daten werden gesucht?
+                    if (queryLower.includes('bauteil')) {
+                        return ['bauteile'];
+                    }
+                    if (queryLower.includes('zähler') || queryLower.includes('zaehler')) {
+                        return ['zaehler'];
+                    }
+                    if (queryLower.includes('mieter')) {
+                        return ['mieter'];
+                    }
+                    if (queryLower.includes('vorgang') || queryLower.includes('reparatur')) {
+                        return ['vorgaenge'];
+                    }
+                    if (queryLower.includes('rechnung') || queryLower.includes('beleg')) {
+                        return ['belege'];
+                    }
+                    if (queryLower.includes('dokument')) {
+                        return ['dokumente'];
+                    }
+
+                    // Standard: Alle einheitsbezogenen Namespaces
+                    return ['bauteile', 'zaehler', 'mieter', 'objekthierarchie'];
+                }
+
+                // ÄNDERUNG: Priorität 2 - VN-Nummer erkennen
+                if (queryLower.match(/vn\d{6,7}/)) {
+                    console.log('🔍 VN-Nummer erkannt, durchsuche Vorgänge UND Belege');
+
+                    // Wenn "Rechnung" im Query → nur Belege
+                    if (queryLower.match(/rechnung|beleg|rg/)) {
+                        return ['belege'];
+                    }
+
+                    // Wenn "Vorgang" im Query → nur Vorgänge
+                    if (queryLower.match(/vorgang/)) {
+                        return ['vorgaenge'];
+                    }
+
+                    // Sonst beide Namespaces + Dokumente
+                    return ['vorgaenge', 'belege', 'dokumente'];
+                }
+
+                // Objekt-Keywords
+                if (queryLower.match(/objekt|gebäude|haus|liegenschaft|adresse|straße|str\.|nürnberg|ort|portfolio/)) {
+                    relevantNamespaces.push('objekthierarchie');
+                }
+
+                // Mieter-Keywords
+                if (queryLower.match(/mieter|bewohner|name|kontakt|mietfläche|vertrag|leerstand/)) {
+                    relevantNamespaces.push('mieter');
+                }
+
+                // Bauteil-Keywords
+                if (queryLower.match(/bauteil|wartung|prüfung|heizung|aufzug|anlage|technik|lüftung|überfällig/)) {
+                    relevantNamespaces.push('bauteile');
+                }
+
+                // Zähler-Keywords
+                if (queryLower.match(/zähler|zaehler|strom|gas|wasser|verbrauch|ablesung|stand|energie/)) {
+                    relevantNamespaces.push('zaehler');
+                }
+
+                // Vorgänge-Keywords
+                if (queryLower.match(/vorgang|reparatur|schaden|auftrag|status|defekt|dach|dachziegel|instandhaltung/)) {
+                    relevantNamespaces.push('vorgaenge');
+                }
+
+                // Belege-Keywords
+                if (queryLower.match(/rechnung|beleg|kosten|zahlung|betrag|euro|€|re\s|re\d|brutto|netto|invoice/)) {
+                    relevantNamespaces.push('belege');
+                }
+
+                // Dokumente-Keywords
+                if (queryLower.match(/dokument|vertrag|angebot|bericht|protokoll|plan|mietvertrag|e-mail/)) {
+                    relevantNamespaces.push('dokumente');
+                }
+
+                // Wenn keine spezifischen Keywords gefunden → alle aktiven Namespaces
+                if (relevantNamespaces.length === 0) {
+                    console.log('⚠️ Keine spezifischen Keywords gefunden, durchsuche alle Namespaces');
+                    return this.activeNamespaces;
+                }
+
+                // Duplikate entfernen und nur aktive Namespaces zurückgeben
+                const uniqueNamespaces = [...new Set(relevantNamespaces)];
+                return uniqueNamespaces.filter(ns => this.activeNamespaces.includes(ns));
+            }
+            
+            // ÄNDERUNG: Embedding generieren mit Fehlerbehandlung
+            async generateEmbedding(text) {
+                console.log('Generiere Embedding für:', text);
+
+                const response = await fetch('https://api.openai.com/v1/embeddings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.openaiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'text-embedding-3-small',
+                        input: text
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('OpenAI Embedding Fehler:', error);
+                    throw new Error('OpenAI Embedding API Fehler: ' + (error.error?.message || 'Unbekannter Fehler'));
+                }
+
+                const data = await response.json();
+                console.log('Embedding erfolgreich generiert, Dimension:', data.data[0].embedding.length);
+                return data.data[0].embedding;
+            }
+
+            // ÄNDERUNG: Pinecone Multi-Namespace Suche mit besserem Error Handling
+            // ÄNDERUNG: cleanHost korrekt definieren
+            async searchPinecone(embedding, namespaces, topK = 10) {
+                console.log('Suche in Namespaces:', namespaces);
+                const allResults = [];
+
+                // ÄNDERUNG: cleanHost hier am Anfang definieren
+                const cleanHost = this.pineconeHost.replace(/^https?:\/\//, '');
+
+                for (const namespace of namespaces) {
+                    try {
+                        console.log(`Suche in Namespace: ${namespace}`);
+
+                        // Für Vorgänge mehr Ergebnisse holen
+                        const namespaceTopK = (namespace === 'vorgaenge' || namespace === 'belege') ? 50 : 5;
+
+                        const response = await fetch(`https://${cleanHost}/query`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Api-Key': this.pineconeKey
+                            },
+                            body: JSON.stringify({
+                                namespace: namespace,
+                                vector: embedding,
+                                topK: namespaceTopK,
+                                includeMetadata: true
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.warn(`Pinecone Fehler für Namespace ${namespace}:`, errorText);
+                            continue;
+                        }
+
+                        const data = await response.json();
+                        console.log(`Namespace ${namespace}: ${data.matches?.length || 0} Treffer`);
+
+                        if (data.matches && data.matches.length > 0) {
+                            data.matches.forEach(match => {
+                                allResults.push({
+                                    ...match,
+                                    namespace: namespace,
+                                    score: match.score || 0
+                                });
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Fehler bei Namespace ${namespace}:`, error);
+                    }
+                }
+
+                allResults.sort((a, b) => b.score - a.score);
+                console.log(`Gesamt: ${allResults.length} Ergebnisse gefunden`);
+
+                return allResults.slice(0, topK);
+            }
+
+
+            // ÄNDERUNG: Exakte VN-Suche mit Query-Scan
+            async searchByVNNumber(vnNumber) {
+                console.log('Suche nach exakter VN-Nummer:', vnNumber);
+                const cleanHost = this.pineconeHost.replace(/^https?:\/\//, '');
+                const results = [];
+                const namespaces = ['vorgaenge', 'belege', 'dokumente'];
+
+                // Dummy-Vektor für Metadaten-Scan
+                const dummyVector = Array(1536).fill(0);
+
+                for (const namespace of namespaces) {
+                    try {
+                        console.log(`Scanne ${namespace} nach VN-Nummer...`);
+
+                        const response = await fetch(`https://${cleanHost}/query`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Api-Key': this.pineconeKey
+                            },
+                            body: JSON.stringify({
+                                namespace: namespace,
+                                vector: dummyVector,
+                                topK: 10000,  // Alle Einträge
+                                includeMetadata: true
+                            })
+                        });
+
+                        if (!response.ok) {
+                            console.warn(`Fehler bei ${namespace}`);
+                            continue;
+                        }
+
+                        const data = await response.json();
+
+                        if (data.matches && data.matches.length > 0) {
+                            // Manuell nach VN-Nummer filtern
+                            const filtered = data.matches.filter(m =>
+                                m.metadata?.vn_nummer === vnNumber
+                            );
+
+                            console.log(`${namespace}: ${filtered.length} exakte VN-Treffer (von ${data.matches.length} gescannt)`);
+
+                            filtered.forEach(match => {
+                                results.push({
+                                    ...match,
+                                    namespace: namespace,
+                                    score: 1.0  // Maximaler Score für exakte Treffer
+                                });
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Fehler bei ${namespace}:`, error);
+                    }
+                }
+
+                // Falls keine exakten Treffer → partielle Suche
+                if (results.length === 0) {
+                    console.log('⚠️ Keine exakten Treffer gefunden, versuche partielle Suche...');
+
+                    for (const namespace of namespaces) {
+                        try {
+                            const response = await fetch(`https://${cleanHost}/query`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Api-Key': this.pineconeKey
+                                },
+                                body: JSON.stringify({
+                                    namespace: namespace,
+                                    vector: dummyVector,
+                                    topK: 10000,
+                                    includeMetadata: true
+                                })
+                            });
+
+                            if (!response.ok) continue;
+
+                            const data = await response.json();
+
+                            if (data.matches) {
+                                // Partielle Übereinstimmung (VN-Nummer ohne "VN" Präfix)
+                                const vnDigits = vnNumber.replace(/^VN/i, '');
+                                const partial = data.matches.filter(m =>
+                                    m.metadata?.vn_nummer &&
+                                    m.metadata.vn_nummer.replace(/^VN/i, '') === vnDigits
+                                );
+
+                                console.log(`${namespace}: ${partial.length} partielle VN-Treffer`);
+
+                                partial.forEach(match => {
+                                    results.push({
+                                        ...match,
+                                        namespace: namespace,
+                                        score: 0.95  // Leicht niedrigerer Score
+                                    });
+                                });
+                            }
+                        } catch (error) {
+                            console.error(`Fehler bei partieller Suche in ${namespace}:`, error);
+                        }
+                    }
+                }
+
+                // Ergebnisse nach Score sortieren
+                if (results.length > 0) {
+                    results.sort((a, b) => b.score - a.score);
+                    console.log(`✅ Insgesamt ${results.length} VN-Treffer gefunden`);
+                    return results;
+                }
+
+                console.log(`❌ Keine Treffer für VN-Nummer ${vnNumber}`);
+                return null;
+            }
+
+
+            // NEU: Exakte Suche nach Objektnummer/Einheitennummer
+            async searchByObjectUnit(unitNumber) {
+                console.log('Suche nach exakter Einheit:', unitNumber);
+
+                const cleanHost = this.pineconeHost.replace(/^https?:\/\//, '');
+                const results = [];
+                const namespaces = ['objekthierarchie', 'mieter', 'bauteile', 'zaehler'];
+
+                const dummyVector = Array(1536).fill(0);
+
+                for (const namespace of namespaces) {
+                    try {
+                        console.log(`Scanne ${namespace} nach Einheit...`);
+
+                        const response = await fetch(`https://${cleanHost}/query`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Api-Key': this.pineconeKey
+                            },
+                            body: JSON.stringify({
+                                namespace: namespace,
+                                vector: dummyVector,
+                                topK: 10000,
+                                includeMetadata: true
+                            })
+                        });
+
+                        if (!response.ok) {
+                            console.warn(`Fehler bei ${namespace}`);
+                            continue;
+                        }
+
+                        const data = await response.json();
+
+                        if (data.matches && data.matches.length > 0) {
+                            // Nach Einheitennummer filtern
+                            const filtered = data.matches.filter(m => {
+                                const meta = m.metadata || {};
+                                return meta.objekt_einheit_nummer === unitNumber ||
+                                    meta.objekt_einheit_miet_nummer === unitNumber ||
+                                    meta.einheit_nummer === unitNumber ||
+                                    meta.einheit_miet_nummer === unitNumber ||
+                                    meta.id === unitNumber;
+                            });
+
+                            console.log(`${namespace}: ${filtered.length} exakte Einheiten-Treffer (von ${data.matches.length} gescannt)`);
+
+                            filtered.forEach(match => {
+                                results.push({
+                                    ...match,
+                                    namespace: namespace,
+                                    score: 1.0
+                                });
+                            });
+                        }
+                    } catch (error) {
+                        console.error(`Fehler bei ${namespace}:`, error);
+                    }
+                }
+
+                if (results.length > 0) {
+                    results.sort((a, b) => b.score - a.score);
+                    console.log(`✅ Insgesamt ${results.length} Einheiten-Treffer gefunden`);
+                    return results;
+                }
+
+                console.log(`❌ Keine Treffer für Einheit ${unitNumber}`);
+                return null;
+            }
+
+            // ÄNDERUNG: Kontext aufbereiten mit besserer Formatierung
+            // ÄNDERUNG: Kontext mit DocuWare-Links
+            buildContext(searchResults) {
+                if (!searchResults || searchResults.length === 0) {
+                    return 'Keine relevanten Informationen in der Datenbank gefunden.';
+                }
+
+                let context = 'RELEVANTE INFORMATIONEN AUS DER DATENBANK:\n\n';
+
+                searchResults.forEach((result, index) => {
+                    const meta = result.metadata || {};
+                    const namespace = result.namespace || 'unbekannt';
+
+                    context += `[Quelle ${index + 1}] NAMESPACE: ${namespace}\n`;
+                    context += `Relevanz-Score: ${result.score.toFixed(3)}\n`;
+
+                    // ÄNDERUNG: DocuWare-Link hinzufügen wenn document_id vorhanden
+                    // ÄNDERUNG: Namespace an generateDocuWareLink() übergeben
+                    if (meta.document_id && (namespace === 'vorgaenge' || namespace === 'dokumente' || namespace === 'belege')) {
+                        const docLink = generateDocuWareLink(meta.document_id, namespace);  // NEU: namespace übergeben
+                        context += `DOCUWARE_LINK: ${docLink}\n`;
+                        context += `DOCUMENT_ID: ${meta.document_id}\n`;
+                    }
+
+                    // Alle Metadaten ausgeben
+                    const excludeFields = ['created_at', 'source', 'docType'];
+
+                    Object.entries(meta).forEach(([key, value]) => {
+                        if (value && !excludeFields.includes(key)) {
+                            const displayValue = String(value).length > 200
+                                ? String(value).substring(0, 200) + '...'
+                                : value;
+                            context += `${key}: ${displayValue}\n`;
+                        }
+                    });
+
+                    // Wichtige Details
+                    const specialInfo = this.formatMetadataForContext(meta, namespace);
+                    if (specialInfo) {
+                        context += '\nWICHTIGE DETAILS:\n' + specialInfo;
+                    }
+
+                    context += '\n---\n\n';
+                });
+
+                return context;
+            }
+            // NEU: Diese Funktion NACH buildContext() einfügen
+            formatMetadataForContext(metadata, namespace) {
+                if (!metadata) return '';
+
+                let formatted = '';
+
+                // Zähler-spezifische Felder hervorheben
+                if (namespace === 'zaehler') {
+                    const important = [
+                        'bauteil', 'seriennummer', 'objekt', 'lage',
+                        'energieversorger', 'kundennummer', 'letzter_zaehlerstand',
+                        'zaehlerstaende', 'naechster_ablesetermin', 'ablesung_durch'
+                    ];
+                    important.forEach(field => {
+                        if (metadata[field]) {
+                            formatted += `${field.toUpperCase()}: ${metadata[field]}\n`;
+                        }
+                    });
+                }
+
+                // Bauteile-spezifische Felder
+                if (namespace === 'bauteile') {
+                    const important = [
+                        'bauteil', 'wartungsfirma', 'naechster_wartungstermin',
+                        'wartung_ueberfaellig', 'pruefung_ueberfaellig', 'betroffene_mieter'
+                    ];
+                    important.forEach(field => {
+                        if (metadata[field]) {
+                            formatted += `${field.toUpperCase()}: ${metadata[field]}\n`;
+                        }
+                    });
+                }
+
+                // Vorgänge-spezifische Felder
+                if (namespace === 'vorgaenge') {
+                    const important = [
+                        'vn_nummer', 'titel', 'status', 'ausfuehrende_firma',
+                        'gesamtkosten', 'mieter_name'
+                    ];
+                    important.forEach(field => {
+                        if (metadata[field]) {
+                            formatted += `${field.toUpperCase()}: ${metadata[field]}\n`;
+                        }
+                    });
+                }
+
+                // Belege-spezifische Felder
+                if (namespace === 'belege') {
+                    const important = [
+                        'rechnungsnummer', 'bruttobetrag', 'nettobetrag',
+                        'absender', 'beguenstigter', 'rechnungsdatum',
+                        'status_rechnung', 'vn_nummer', 'objekt_name',
+                        'verwendungszweck_1', 'zahlungspflichtiger'
+                    ];
+                    important.forEach(field => {
+                        if (metadata[field]) {
+                            formatted += `${field.toUpperCase()}: ${metadata[field]}\n`;
+                        }
+                    });
+                }
+
+                return formatted;
+            }
+
+
+            // OpenAI Chat Completion
+            async generateAnswer(query, context) {
+                const systemPrompt = `Du bist Immolli, ein intelligenter KI-Assistent für Immobilienverwaltung.
+
+DEINE AUFGABE:
+- Beantworte Fragen präzise und VOLLSTÄNDIG basierend auf den bereitgestellten Daten
+- Nutze ALLE verfügbaren Informationen aus den Metadaten
+- Gib strukturierte, detaillierte Antworten
+- Verweise auf spezifische IDs, Seriennummern, Namen und Nummern
+- Bei Zählern: IMMER Seriennummer, Energieversorger, letzten Stand nennen
+- Bei Bauteilen: IMMER Wartungsfirma, nächsten Termin, Status nennen
+- Bei Belegen: IMMER Betrag, Rechnungsnummer, Datum nennen
+- Wenn Daten fehlen, sage das ehrlich
+
+DOCUWARE-LINKS:
+- Wenn ein DOCUWARE_LINK im Kontext vorhanden ist, IMMER als klickbaren Link in die Antwort einbauen
+- Format: "📄 [Dokument in DocuWare öffnen](LINK)"
+- Links IMMER am Ende der Antwort oder direkt nach der Hauptinformation platzieren
+- Bei mehreren Dokumenten: Alle Links auflisten
+
+CROSS-NAMESPACE-VERKNÜPFUNGEN:
+- Eine VN-Nummer kann in VORGÄNGEN und BELEGEN vorkommen
+- Bei Fragen zu Rechnungen: Durchsuche BEIDE Namespaces
+- Zeige ALLE gefundenen Dokumente (Vorgänge + Belege)
+- Verknüpfe Informationen: "Zu Vorgang VN002900 gehören folgende Rechnungen: ..."
+
+WICHTIG FÜR VOLLSTÄNDIGE ANTWORTEN:
+- Nutze ALLE Felder aus den Metadaten
+- Lasse keine wichtigen Informationen weg
+- Bei technischen Daten (Zähler, Bauteile): Alle Details angeben
+
+ANTWORT-STIL:
+- Vollständig und detailliert
+- Strukturiert mit Absätzen
+- Verwende **Fettdruck** für wichtige Begriffe
+- Bei Listen nutze Bullet Points
+- Freundlich und professionell`;
+                const messages = [
+                    { role: 'system', content: systemPrompt },
+                    ...this.conversationHistory.slice(-6),
+                    { role: 'user', content: `KONTEXT:\n${context}\n\nFRAGE: ${query}` }
+                ];
+
+                console.log('Sende Anfrage an OpenAI Chat API');
+
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.openaiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: messages,
+                        temperature: 0.3,
+                        max_tokens: 1500
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    console.error('OpenAI Chat Fehler:', error);
+                    throw new Error('OpenAI Chat API Fehler: ' + (error.error?.message || 'Unbekannter Fehler'));
+                }
+
+                const data = await response.json();
+                const answer = data.choices[0].message.content;
+
+                this.conversationHistory.push(
+                    { role: 'user', content: query },
+                    { role: 'assistant', content: answer }
+                );
+
+                return answer;
+            }
+
+            // HAUPTFUNKTION
+            async answerQuery(query) {
+                this.validateSettings();
+
+                // Einheiten-Nummer extrahieren
+                const unitMatch = query.match(/[A-Z]{2,}\d{3,}-[A-Z]-\d{4,}/i);
+
+                // VN-Nummer extrahieren
+                const vnMatch = query.match(/VN\d{6,7}/i);
+
+                let searchResults = [];
+
+                // ÄNDERUNG: Priorität 1 - Einheiten-Suche
+                if (unitMatch) {
+                    console.log('🏠 Einheiten-Nummer erkannt:', unitMatch[0]);
+                    const exactResults = await this.searchByObjectUnit(unitMatch[0]);
+
+                    if (exactResults && exactResults.length > 0) {
+                        console.log('✅ Exakte Einheit gefunden, überspringe semantische Suche');
+                        searchResults = exactResults;
+                    } else {
+                        console.log('⚠️ Keine exakten Treffer für Einheit, starte semantische Suche...');
+                    }
+                }
+                // ÄNDERUNG: Priorität 2 - VN-Nummern-Suche
+                else if (vnMatch) {
+                    console.log('🔍 VN-Nummer erkannt:', vnMatch[0]);
+                    const exactResults = await this.searchByVNNumber(vnMatch[0]);
+
+                    if (exactResults && exactResults.length > 0) {
+                        console.log('✅ Exakte VN-Nummer gefunden, überspringe semantische Suche');
+                        searchResults = exactResults;
+                    } else {
+                        console.log('⚠️ Keine exakten Treffer, starte semantische Suche...');
+                    }
+                }
+
+                // Falls keine exakten Ergebnisse → semantische Suche
+                if (searchResults.length === 0) {
+                    let enhancedQuery = query;
+
+                    if (unitMatch) {
+                        // Query für Einheiten-Suche optimieren
+                        enhancedQuery = `${unitMatch[0]} ${unitMatch[0]} ${unitMatch[0]} Einheit Objekt ${query}`;
+                    } else if (vnMatch) {
+                        // Query für VN-Suche optimieren
+                        const vnNumber = vnMatch[0];
+
+                        if (query.toLowerCase().includes('rechnung') || query.toLowerCase().includes('beleg')) {
+                            enhancedQuery = `Rechnung Beleg VN ${vnNumber} ${vnNumber} ${vnNumber} VN-Nummer Betrag Rechnungsnummer ${query}`;
+                        } else {
+                            enhancedQuery = `Vorgang ${vnNumber} ${vnNumber} ${vnNumber} VN-Nummer Details Status Auftrag ${query}`;
+                        }
+                    }
+
+                    console.log('Erweiterte Query:', enhancedQuery);
+
+                    const relevantNamespaces = this.detectRelevantNamespaces(query);
+                    console.log('Durchsuche Namespaces:', relevantNamespaces);
+
+                    const embedding = await this.generateEmbedding(enhancedQuery);
+                    searchResults = await this.searchPinecone(embedding, relevantNamespaces, 50);
+                }
+
+                const context = this.buildContext(searchResults);
+                const answer = await this.generateAnswer(query, context);
+
+                return {
+                    answer: answer,
+                    sources: searchResults.map(r => ({
+                        namespace: r.namespace,
+                        score: r.score.toFixed(3),
+                        title: this.formatSourceTitle(r),
+                        text: this.formatSourceText(r.metadata),
+                        documentId: r.metadata?.document_id || null
+                    })),
+                    namespaces: this.detectRelevantNamespaces(query)
+                };
+            }
+            formatSourceTitle(result) {
+                const meta = result.metadata || {};
+                const ns = result.namespace;
+
+                if (ns === 'objekthierarchie') {
+                    return meta.objekt || meta.liegenschaft || 'Objekt';
+                } else if (ns === 'mieter') {
+                    return meta.name || 'Mieter';
+                } else if (ns === 'bauteile') {
+                    return meta.bauteil || 'Bauteil';
+                } else if (ns === 'zaehler') {
+                    return meta.bauteil || 'Zähler';
+                } else if (ns === 'vorgaenge') {
+                    return `VN ${meta.vn_nummer || '?'}`;
+                } else if (ns === 'belege') {
+                    return `Rechnung ${meta.rechnungsnummer || '?'}`;
+                } else if (ns === 'dokumente') {
+                    return meta.dokumententyp || 'Dokument';
+                }
+
+                return 'Quelle';
+            }
+
+            formatMetadataForContext(metadata, namespace) {
+                if (!metadata) return '';
+
+                let formatted = '';
+
+                // Zähler-spezifische Felder hervorheben
+                if (namespace === 'zaehler') {
+                    const important = [
+                        'bauteil', 'seriennummer', 'objekt', 'lage',
+                        'energieversorger', 'kundennummer', 'letzter_zaehlerstand',
+                        'zaehlerstaende', 'naechster_ablesetermin', 'ablesung_durch'
+                    ];
+                    important.forEach(field => {
+                        if (metadata[field]) {
+                            formatted += `${field.toUpperCase()}: ${metadata[field]}\n`;
+                        }
+                    });
+                }
+
+                return formatted;
+            }
+
+            formatSourceText(metadata) {
+                if (!metadata) return '';
+
+                const parts = [];
+                const importantFields = [
+                    'objekt', 'objekt_name', 'name', 'betreff', 'titel',
+                    'bauteil', 'mieter_name', 'status', 'bruttobetrag', 'ort'
+                ];
+
+                importantFields.forEach(field => {
+                    if (metadata[field]) {
+                        parts.push(`${field}: ${metadata[field]}`);
+                    }
+                });
+
+                return parts.join(', ').substring(0, 200) + '...';
+            }
+        }
+
+
+        // NEU: DocuWare-Link generieren
+        // ÄNDERUNG: Unterschiedliche Links für verschiedene Namespaces
+        function generateDocuWareLink(documentId, namespace) {
+            const baseUrl = 'https://sauer-immobilien-gmbh.docuware.cloud/DocuWare/Platform/WebClient';
+            const orgId = 'a57ad001-29a8-442d-8727-a8c70d4b72a3';
+
+            // ÄNDERUNG: Unterschiedliche File Cabinet IDs für verschiedene Namespaces
+            let fileCabinetId;
+
+            if (namespace === 'belege') {
+                // Belege/Rechnungen → separates Archiv
+                fileCabinetId = '80764f41-62ea-4adb-bc55-587cebd4b004';
+            } else {
+                // Vorgänge, Dokumente → Standard-Archiv
+                fileCabinetId = '7a51fb59-b9a5-4997-95d1-10eefdfb6afb';
+            }
+
+            return `${baseUrl}/${orgId}/Integration?fc=${fileCabinetId}&did=${documentId}&p=V`;
+        }
+
+        // ========================================
+        // INITIALISIERUNG
+        // ========================================
+        const ragEngine = new MultiNamespaceRAG();
+        const chatHistory = [];
+
+        // DOM Elemente
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsPanel = document.getElementById('settingsPanel');
+        const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const openaiKeyInput = document.getElementById('openaiKeyInput');
+        const pineconeKeyInput = document.getElementById('pineconeKeyInput');
+        const pineconeHostInput = document.getElementById('pineconeHostInput');
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const contextInfo = document.getElementById('contextInfo');
+
+        // Namespace Checkboxen
+        const namespaceCheckboxes = {
+            'objekthierarchie': document.getElementById('ns-objekthierarchie'),
+            'mieter': document.getElementById('ns-mieter'),
+            'bauteile': document.getElementById('ns-bauteile'),
+            'zaehler': document.getElementById('ns-zaehler'),
+            'vorgaenge': document.getElementById('ns-vorgaenge'),
+            'belege': document.getElementById('ns-belege'),
+            'dokumente': document.getElementById('ns-dokumente')
+        };
+
+        // ÄNDERUNG: LocalStorage laden beim Start
+        function loadSettings() {
+            const savedOpenAI = localStorage.getItem('immolli_openai_key');
+            const savedPinecone = localStorage.getItem('immolli_pinecone_key');
+            const savedHost = localStorage.getItem('immolli_pinecone_host');
+            const savedNamespaces = localStorage.getItem('immolli_active_namespaces');
+
+            if (savedOpenAI) {
+                openaiKeyInput.value = savedOpenAI;
+                ragEngine.setOpenAIKey(savedOpenAI);
+            }
+
+            if (savedPinecone) {
+                pineconeKeyInput.value = savedPinecone;
+                ragEngine.setPineconeKey(savedPinecone);
+            }
+
+            if (savedHost) {
+                // ÄNDERUNG: Host bereinigen
+                const cleanHost = savedHost.replace(/^https?:\/\//, '');
+                pineconeHostInput.value = cleanHost;
+                ragEngine.setPineconeHost(cleanHost);
+            }
+
+            if (savedNamespaces) {
+                const namespaces = JSON.parse(savedNamespaces);
+                ragEngine.setActiveNamespaces(namespaces);
+
+                Object.keys(namespaceCheckboxes).forEach(ns => {
+                    const checkbox = namespaceCheckboxes[ns];
+                    const option = checkbox.closest('.namespace-option');
+
+                    if (namespaces.includes(ns)) {
+                        checkbox.checked = true;
+                        option.classList.add('active');
+                    } else {
+                        checkbox.checked = false;
+                        option.classList.remove('active');
+                    }
+                });
+            }
+
+            updateContextInfo();
+        }
+
+        // NEU: Chat löschen
+        const clearChatBtn = document.getElementById('clearChatBtn');
+
+        clearChatBtn.addEventListener('click', () => {
+            if (confirm('Möchten Sie den gesamten Chat-Verlauf löschen?')) {
+                localStorage.removeItem('immolli_chat_history');
+
+                // Alle Nachrichten außer Willkommensnachricht entfernen
+                const messages = chatMessages.querySelectorAll('.message');
+                messages.forEach((msg, index) => {
+                    if (index > 0) msg.remove();  // Erste (Willkommens-) Nachricht behalten
+                });
+
+                console.log('Chat-Verlauf gelöscht');
+            }
+        });
+
+        // Event: Namespace-Options klickbar machen
+        document.querySelectorAll('.namespace-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                if (e.target.tagName !== 'INPUT') {
+                    const checkbox = option.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                }
+                option.classList.toggle('active', option.querySelector('input').checked);
+            });
+        });
+
+        // ========================================
+        // EVENT LISTENERS
+        // ========================================
+        settingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.toggle('hidden');
+        });
+
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.add('hidden');
+        });
+
+        // ÄNDERUNG: Einstellungen in LocalStorage speichern
+        saveSettingsBtn.addEventListener('click', () => {
+            const openaiKey = openaiKeyInput.value.trim();
+            const pineconeKey = pineconeKeyInput.value.trim();
+            const pineconeHost = pineconeHostInput.value.trim();
+
+            if (openaiKey) {
+                ragEngine.setOpenAIKey(openaiKey);
+                localStorage.setItem('immolli_openai_key', openaiKey);
+            }
+
+            if (pineconeKey) {
+                ragEngine.setPineconeKey(pineconeKey);
+                localStorage.setItem('immolli_pinecone_key', pineconeKey);
+            }
+
+            if (pineconeHost) {
+                // ÄNDERUNG: Host bereinigen
+                const cleanHost = pineconeHost.replace(/^https?:\/\//, '');
+                ragEngine.setPineconeHost(cleanHost);
+                localStorage.setItem('immolli_pinecone_host', cleanHost);
+            }
+
+            const activeNamespaces = [];
+            Object.entries(namespaceCheckboxes).forEach(([ns, checkbox]) => {
+                if (checkbox.checked) {
+                    activeNamespaces.push(ns);
+                }
+            });
+            ragEngine.setActiveNamespaces(activeNamespaces);
+            localStorage.setItem('immolli_active_namespaces', JSON.stringify(activeNamespaces));
+
+            try {
+                ragEngine.validateSettings();
+                alert('✅ Einstellungen gespeichert!\n\nAktive Namespaces: ' + activeNamespaces.join(', '));
+                settingsPanel.classList.add('hidden');
+                updateContextInfo();
+            } catch (error) {
+                alert('❌ ' + error.message);
+            }
+        });
+
+        function updateContextInfo() {
+            try {
+                ragEngine.validateSettings();
+                const nsCount = ragEngine.activeNamespaces.length;
+                contextInfo.innerHTML = `<i class="fas fa-check-circle"></i> RAG-System bereit (${nsCount} Namespaces aktiv)`;
+                sendBtn.disabled = false;
+            } catch (error) {
+                contextInfo.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Bitte erst API-Einstellungen konfigurieren';
+                sendBtn.disabled = true;
+            }
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            await sendMessage();
+        });
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = userInput.scrollHeight + 'px';
+        });
+
+        // ========================================
+        // NACHRICHT SENDEN
+        // ========================================
+        async function sendMessage() {
+            const message = userInput.value.trim();
+
+            if (!message) return;
+
+            try {
+                ragEngine.validateSettings();
+            } catch (error) {
+                alert('⚙️ Bitte erst API-Einstellungen konfigurieren!');
+                settingsPanel.classList.remove('hidden');
+                return;
+            }
+
+            addMessage('user', message);
+            chatHistory.push({ role: 'user', content: message });
+
+            saveChatHistory();
+
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            typingIndicator.classList.remove('hidden');
+            scrollToBottom();
+
+            try {
+                const result = await ragEngine.answerQuery(message);
+
+                typingIndicator.classList.add('hidden');
+
+                addMessage('assistant', result.answer, result.sources, result.namespaces);
+                chatHistory.push({ role: 'assistant', content: result.answer });
+
+                // NEU: Chat-Verlauf speichern
+                saveChatHistory();
+
+            } catch (error) {
+                console.error('❌ RAG Error:', error);
+
+                typingIndicator.classList.add('hidden');
+
+                let errorMessage = '❌ Fehler: ' + error.message;
+
+                addMessage('assistant', errorMessage);
+
+                // NEU: Chat-Verlauf speichern (auch bei Fehlern)
+                saveChatHistory();
+
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+                scrollToBottom();
+            }
+        }
+
+        // ========================================
+        // NACHRICHT HINZUFÜGEN
+        // ========================================
+        function addMessage(role, text, sources = null, namespaces = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}-message`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = role === 'user'
+                ? '<i class="fas fa-user"></i>'
+                : '<i class="fas fa-robott"></i>';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+            textDiv.innerHTML = formatMessageText(text);
+
+            content.appendChild(textDiv);
+
+            if (namespaces && namespaces.length > 0) {
+                const badgesDiv = document.createElement('div');
+                badgesDiv.className = 'namespace-badges';
+
+                namespaces.forEach(ns => {
+                    const badge = document.createElement('span');
+                    badge.className = 'namespace-badge';
+                    badge.innerHTML = `<i class="${getNamespaceIcon(ns)}"></i> ${ns}`;
+                    badgesDiv.appendChild(badge);
+                });
+
+                content.appendChild(badgesDiv);
+            }
+
+            if (sources && sources.length > 0) {
+                const sourcesDiv = document.createElement('div');
+                sourcesDiv.className = 'context-sources collapsed';
+
+                const toggleHeader = document.createElement('div');
+                toggleHeader.className = 'sources-toggle';
+                toggleHeader.innerHTML = `
+                    <span>
+                        <i class="fas fa-chevron-down"></i> 
+                        Verwendete Quellen
+                        <span class="sources-count">${sources.length}</span>
+                    </span>
+                    <span style="font-size: 11px; color: #868e96;">Klicken zum Aufklappen</span>
+                `;
+
+                toggleHeader.addEventListener('click', () => {
+                    sourcesDiv.classList.toggle('collapsed');
+                });
+
+                sourcesDiv.appendChild(toggleHeader);
+
+                const sourcesList = document.createElement('div');
+                sourcesList.className = 'sources-list';
+
+
+
+                sources.forEach((source, index) => {
+                    const sourceItem = document.createElement('div');
+                    sourceItem.className = 'source-item';
+
+                    const namespaceIcon = getNamespaceIcon(source.namespace);
+
+                    // ÄNDERUNG: Namespace an generateDocuWareLink() übergeben
+                    let docLinkHtml = '';
+                    if (source.documentId) {
+                        const docLink = generateDocuWareLink(source.documentId, source.namespace);  // NEU: namespace übergeben
+                        docLinkHtml = `<a href="${docLink}" target="_blank" rel="noopener noreferrer" 
+            style="color: #2563eb; text-decoration: none; font-size: 11px; margin-left: 8px;" 
+            title="Dokument öffnen">
+            <i class="fas fa-external-link-alt"></i> DocuWare
+        </a>`;
+                    }
+
+                    sourceItem.innerHTML = `
+        <div class="source-header">
+            <span class="source-number">${index + 1}</span>
+            <i class="${namespaceIcon}"></i>
+            <strong>${source.title}</strong>
+            ${docLinkHtml}
+            <span class="source-score">Score: ${source.score}</span>
+        </div>
+        <div class="source-text">${source.text}</div>
+    `;
+
+                    sourcesList.appendChild(sourceItem);
+                });
+
+
+                sourcesDiv.appendChild(sourcesList);
+                content.appendChild(sourcesDiv);
+            }
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // NEU: Chat-Verlauf in LocalStorage speichern
+        function saveChatHistory() {
+            const messages = [];
+            document.querySelectorAll('.message').forEach(msg => {
+                const role = msg.classList.contains('user-message') ? 'user' : 'assistant';
+                const textElement = msg.querySelector('.message-text');
+                const namespacesElement = msg.querySelector('.namespace-badges');
+                const sourcesElement = msg.querySelector('.context-sources');
+
+                const messageData = {
+                    role: role,
+                    text: textElement.innerHTML,
+                    namespaces: [],
+                    sources: []
+                };
+
+                // Namespaces extrahieren
+                if (namespacesElement) {
+                    namespacesElement.querySelectorAll('.namespace-badge').forEach(badge => {
+                        const nsText = badge.textContent.trim();
+                        messageData.namespaces.push(nsText);
+                    });
+                }
+
+                // Quellen extrahieren
+                if (sourcesElement) {
+                    const sourcesList = sourcesElement.querySelector('.sources-list');
+                    if (sourcesList) {
+                        sourcesList.querySelectorAll('.source-item').forEach(item => {
+                            const header = item.querySelector('.source-header');
+                            const text = item.querySelector('.source-text');
+                            messageData.sources.push({
+                                header: header ? header.innerHTML : '',
+                                text: text ? text.textContent : ''
+                            });
+                        });
+                    }
+                }
+
+                messages.push(messageData);
+            });
+
+            localStorage.setItem('immolli_chat_history', JSON.stringify(messages));
+            console.log('Chat-Verlauf gespeichert:', messages.length, 'Nachrichten');
+        }
+
+        // NEU: Chat-Verlauf aus LocalStorage laden
+        function loadChatHistory() {
+            const savedHistory = localStorage.getItem('immolli_chat_history');
+
+            if (!savedHistory) {
+                console.log('Kein gespeicherter Chat-Verlauf gefunden');
+                return;
+            }
+
+            try {
+                const messages = JSON.parse(savedHistory);
+                console.log('Lade Chat-Verlauf:', messages.length, 'Nachrichten');
+
+                // Willkommensnachricht entfernen (wird durch gespeicherte ersetzt)
+                const welcomeMsg = chatMessages.querySelector('.message.assistant-message');
+                if (welcomeMsg && messages.length > 1) {
+                    welcomeMsg.remove();
+                }
+
+                messages.forEach(msg => {
+                    if (msg.role === 'user') {
+                        addMessage('user', msg.text);
+                    } else {
+                        // Namespaces zurück in Array umwandeln
+                        const namespaces = msg.namespaces.length > 0
+                            ? msg.namespaces.map(ns => ns.replace(/.*\s/, '').toLowerCase())
+                            : null;
+
+                        // Quellen rekonstruieren
+                        const sources = msg.sources.length > 0
+                            ? msg.sources.map((s, i) => ({
+                                namespace: 'unknown',
+                                score: '0.000',
+                                title: `Quelle ${i + 1}`,
+                                text: s.text
+                            }))
+                            : null;
+
+                        addMessage('assistant', msg.text, sources, namespaces);
+                    }
+                });
+
+                scrollToBottom();
+
+            } catch (error) {
+                console.error('Fehler beim Laden des Chat-Verlaufs:', error);
+            }
+        }
+
+        // ========================================
+        // HILFSFUNKTIONEN
+        // ========================================
+        function getNamespaceIcon(namespace) {
+            const icons = {
+                'objekthierarchie': 'fas fa-building',
+                'mieter': 'fas fa-user',
+                'bauteile': 'fas fa-cogs',
+                'zaehler': 'fas fa-tachometer-alt',
+                'vorgaenge': 'fas fa-tasks',
+                'belege': 'fas fa-file-invoice-dollar',
+                'dokumente': 'fas fa-file-alt'
+            };
+            return icons[namespace] || 'fas fa-file';
+        }
+
+        function formatMessageText(text) {
+            return text
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                // NEU: Markdown-Links in HTML umwandeln
+                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: none; font-weight: 600; border-bottom: 1px solid #2563eb;">$1 <i class="fas fa-external-link-alt" style="font-size: 11px; margin-left: 3px;"></i></a>');
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 100);
+        }
+
+        // ÄNDERUNG: Settings beim Start laden
+        loadSettings();
+        loadChatHistory();
+        userInput.focus();
+    </script>
+</body>
+
+</html>
