@@ -7,12 +7,16 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sternsuche.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tabNamenk%C3%BCrzen.js',
-         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen5.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen5.js',
+        // NEU - Drei neue Scripts hinzugefügt
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Delayf%C3%BCrSubMenuesButtons_001.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/EmojieToSymbol.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js'
     ];
 
     const specialDelayScripts = {
-    'BK_Buttonablegen5': 1000  // 3 Sekunden Verzögerung für dieses Script
-};
+        'BK_Buttonablegen5': 1000
+    };
 
     const scriptNames = {
         'CopyPasteButton': '1_Copy Paste Buttons',
@@ -21,7 +25,11 @@
         'Button_Bestätigen_001': '4_Button Bestätigen',
         'Textareabigger': '5_Textarea vergrößern',
         'sternsuche': '6_Sternsuche',
-        'tabNamenkürzen': '7_Tab-Namen kürzen'
+        'tabNamenkürzen': '7_Tab-Namen kürzen',
+        // NEU - Anzeigenamen für neue Scripts
+        'DelayfürSubMenuesButtons_001': '8_Delay für Submenüs',
+        'EmojieToSymbol': '9_Emojie zu Symbol',
+        'zu Indexfeld springen_02': '10_Zu Indexfeld springen'
     };
 
     // Font Awesome laden falls nicht vorhanden
@@ -380,4 +388,3 @@
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
-
