@@ -493,7 +493,7 @@
                                         element: row,
                                         label: labelSpan,
                                         inputField: inputField,
-                                        labelText: labelSpan.textContent.trim(),
+                                        labelText: labelSpan.textContent.trim(), 
                                         matchType: 'configured',
                                         configKey: key,
                                         displayName: config.displayName
@@ -636,7 +636,7 @@
                 </div>
                 
                 <div class="dw-field-search-shortcut">
-                    Tastenkombination: Strg+Shift+F
+                    Tastenkombination: Strg+Shift+D
                 </div>
                 
                 <div class="dw-field-search-results"></div>
@@ -789,19 +789,20 @@
     };
 
     // ===== TASTENKOMBINATION =====
-    const setupKeyboardShortcut = () => {
-        addTrackedEventListener(document, 'keydown', (e) => {
-            // Strg+Shift+F
-            if (e.ctrlKey && e.shiftKey && e.key === 'F') {
-                e.preventDefault();
-                
-                // Prüfen ob Widget bereits offen ist
-                if (!document.querySelector('.dw-field-search-overlay')) {
-                    createSearchWidget();
-                }
+// ÄNDERUNG - Tastenkombination auf Strg+Shift+D geändert
+const setupKeyboardShortcut = () => {
+    addTrackedEventListener(document, 'keydown', (e) => {
+        // Strg+Shift+D
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            e.preventDefault();
+            
+            // Prüfen ob Widget bereits offen ist
+            if (!document.querySelector('.dw-field-search-overlay')) {
+                createSearchWidget();
             }
-        });
-    };
+        }
+    });
+};
 
     // ===== INITIALISIERUNG =====
     const initializeFieldSearch = () => {
@@ -810,7 +811,7 @@
         setupKeyboardShortcut();
         
         console.log('✅ DocuWare Field Search aktiviert');
-        console.log('⌨️ Tastenkombination: Strg+Shift+F');
+        console.log('⌨️ Tastenkombination: Strg+Shift+D');
         console.log('📋 Verfügbare Feldtypen:', Object.values(SEARCHABLE_FIELDS).map(f => f.displayName).join(', '));
     };
 
@@ -820,5 +821,6 @@
     } else {
         initializeFieldSearch();
     }
+
 
 })();
