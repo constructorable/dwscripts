@@ -10,7 +10,8 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen5.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Delayf%C3%BCrSubMenuesButtons_001.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/EmojieToSymbol.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js'
     ];
 
     const specialDelayScripts = {
@@ -27,7 +28,8 @@
         'tabNamenkürzen': '7_Tab-Namen kürzen',
         'DelayfürSubMenuesButtons_001': '8_Delay für Submenüs',
         'EmojieToSymbol': '9_Emojie zu Symbol',
-        'zu Indexfeld springen_02': '10_Zu Indexfeld springen'
+        'zu Indexfeld springen_02': '10_Zu Indexfeld springen',
+        'buttonbreiter': '11_Button breiter'
     };
 
     // Font Awesome laden falls nicht vorhanden
@@ -121,7 +123,6 @@
         
         const modal = document.createElement('div');
         modal.id = 'dwScriptModal';
-        // ÄNDERUNG - Modal mit max-height und scrollbarem Bereich
         modal.innerHTML = `
             <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(71,85,105,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;padding:15px;">
                 <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);max-width:580px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
@@ -231,7 +232,6 @@
 
     const modal = document.createElement('div');
     modal.id = 'dwScriptModal';
-    // ÄNDERUNG - Modal mit max-height und scrollbarem Bereich
     modal.innerHTML = `
         <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(71,85,105,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;padding:15px;">
             <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.1);max-width:580px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
@@ -372,4 +372,3 @@
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
-
