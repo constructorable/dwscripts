@@ -14,6 +14,7 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js'
     ];
+    
 
     const specialDelayScripts = {
         'BK_Buttonablegen5': 1000
@@ -315,6 +316,24 @@
         settings.loadedScripts = {};
         saveSettings(settings);
 
+        // ÄNDERUNG - Modal nach oben rechts verschieben
+        const modalBackdrop = document.querySelector('#dwScriptModal > div');
+        const modalContainer = modalBackdrop.querySelector('div:nth-child(1)');
+        
+        // Backdrop transparent und nicht blockierend machen
+        modalBackdrop.style.background = 'transparent';
+        modalBackdrop.style.pointerEvents = 'none';
+        modalBackdrop.style.justifyContent = 'flex-end';
+        modalBackdrop.style.alignItems = 'flex-start';
+        modalBackdrop.style.padding = '20px';
+        
+        // Container kompakt machen und nach rechts oben
+        modalContainer.style.maxWidth = '400px';
+        modalContainer.style.width = '400px';
+        modalContainer.style.maxHeight = '500px';
+        modalContainer.style.pointerEvents = 'all';
+        modalContainer.style.transition = 'all 0.3s ease';
+        
         document.getElementById('scriptSelection').style.display = 'none';
         scriptList.style.display = 'block';
         
@@ -331,13 +350,12 @@
             const item = document.createElement('div');
             item.id = `script-${index}`;
             item.innerHTML = `
-                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #f1f5f9;">
-                    <i id="icon-${index}" class="fas fa-hourglass-half" style="font-size:13px;color:#94a3b8;width:16px;text-align:center;margin-right:10px;"></i>
+                <div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;">
+                    <i id="icon-${index}" class="fas fa-hourglass-half" style="font-size:11px;color:#94a3b8;width:14px;text-align:center;margin-right:8px;"></i>
                     <div style="flex:1;">
-                        <div style="font-weight:500;color:#334155;font-size:12px;margin-bottom:2px;">${displayName}</div>
-                        <div style="font-size:10px;color:#64748b;">${fileName}.js</div>
+                        <div style="font-weight:500;color:#334155;font-size:11px;margin-bottom:1px;">${displayName}</div>
                     </div>
-                    <div id="status-${index}" style="font-size:10px;color:#64748b;font-weight:500;padding:3px 7px;background:#f1f5f9;border-radius:10px;">Warten...</div>
+                    <div id="status-${index}" style="font-size:9px;color:#64748b;font-weight:500;padding:2px 6px;background:#f1f5f9;border-radius:8px;">Warten...</div>
                 </div>
             `;
             scriptList.appendChild(item);
@@ -365,10 +383,10 @@
             setTimeout(() => {
                 const modal = document.getElementById('dwScriptModal');
                 modal.style.opacity = '0';
-                modal.style.transform = 'scale(1)';
-                modal.style.transition = 'all 0.2s ease';
-                setTimeout(() => modal.remove(), 100);
-            }, 1000);
+                modal.style.transform = 'scale(0.95)';
+                modal.style.transition = 'all 0.3s ease';
+                setTimeout(() => modal.remove(), 300);
+            }, 2000);
         }, 100);
         
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
