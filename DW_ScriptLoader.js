@@ -372,3 +372,4 @@
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
+
