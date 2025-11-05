@@ -11,7 +11,8 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Delayf%C3%BCrSubMenuesButtons_001.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/EmojieToSymbol.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js'
     ];
 
     const specialDelayScripts = {
@@ -29,7 +30,8 @@
         'DelayfürSubMenuesButtons_001': '8_Delay für Submenüs',
         'EmojieToSymbol': '9_Emojie zu Symbol',
         'zu Indexfeld springen_02': '10_Zu Indexfeld springen',
-        'buttonbreiter': '11_Button breiter'
+        'buttonbreiter': '11_Button breiter',
+        'supersuche': '12_Supersuche'
     };
 
     // Font Awesome laden falls nicht vorhanden
