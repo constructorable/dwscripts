@@ -7,18 +7,18 @@ const DocuWareSearch = (function() {
     // Konfiguration der Suchbereiche
     const SEARCH_AREAS = {
         DOCUMENTS: [
-            { id: 'doc_all', value: 'Dokumente - Alle', label: 'Alle Dokumente', cssClass: 'documentArea', checked: true },
+            { id: 'doc_all', value: 'Alle', label: 'Alle Dokumente', cssClass: 'documentArea', checked: true },
             { id: 'doc_proc', value: 'Vorgänge', label: 'Vorgänge', cssClass: 'documentArea' }
         ],
         PARTS: [
-            { id: 'part_counter', value: 'Bauteile - Zähler', label: 'Zähler', cssClass: 'bauteilArea' },
-            { id: 'part_part', value: 'Bauteile - Bauteil', label: 'Bauteile', cssClass: 'bauteilArea' }
+            { id: 'part_counter', value: 'Zähler', label: 'Zähler', cssClass: 'bauteilArea' },
+            { id: 'part_part', value: 'Bauteil', label: 'Bauteile', cssClass: 'bauteilArea' }
         ],
         INVOICES: [
-            { id: 'docs_invoice', value: 'Belege - Suche - Rechnung', label: 'Rechnungen / Belege', cssClass: 'belegeArea' }
+            { id: 'docs_invoice', value: 'Suche - Rechnung', label: 'Rechnungen / Belege', cssClass: 'belegeArea' }
         ],
         TENANTS: [
-            { id: 'docs_mieter', value: 'MietFirmEtPersKont - Mieter', label: 'Mieter', cssClass: 'mieterArea' }
+            { id: 'docs_mieter', value: 'Mieter', label: 'Mieter', cssClass: 'mieterArea' }
         ]
     };
 
@@ -598,3 +598,4 @@ const DocuWareSearch = (function() {
 
 // Initialisierung
 DocuWareSearch.init();
+
