@@ -622,39 +622,39 @@ function openSearchModal() {
     focusInputField(elements.inputField);
 }
 
-    function addSupersucheButton() {
-        const suchenElement = document.querySelector('li.searchContentArea');
-        
-        if (!suchenElement) {
-            console.log('Suchen-Element nicht gefunden, versuche erneut...');
-            setTimeout(addSupersucheButton, 500);
-            return;
-        }
-        
-        if (document.querySelector('.supersucheContentArea')) {
-            console.log('Supersuche-Button bereits vorhanden');
-            return;
-        }
-        
-        const supersucheElement = document.createElement('li');
-        supersucheElement.tabIndex = 0;
-        supersucheElement.className = 'supersucheContentArea';
-        supersucheElement.setAttribute('tabbable-command', 'true');
-        
-        supersucheElement.innerHTML = `
-            <div class="dw-relativeContainer">
-                <div class="ui-icon icon-auto c-inh m-l-10 dw-icon-supersucheContentArea"></div>
-                <span class="label">Supersuche</span>
-            </div>
-        `;
-        
-        suchenElement.parentNode.insertBefore(supersucheElement, suchenElement.nextSibling);
-        
-        supersucheElement.addEventListener('click', openSearchModal);
-        
-        console.log('✅ Supersuche-Button erfolgreich hinzugefügt');
+function addSupersucheButton() {
+    const suchenElement = document.querySelector('li.searchContentArea');
+    
+    if (!suchenElement) {
+        console.log('Suchen-Element nicht gefunden, versuche erneut...');
+        setTimeout(addSupersucheButton, 500);
+        return;
     }
-
+    
+    if (document.querySelector('.supersucheContentArea')) {
+        console.log('Supersuche-Button bereits vorhanden');
+        return;
+    }
+    
+    const supersucheElement = document.createElement('li');
+    supersucheElement.tabIndex = 0;
+    supersucheElement.className = 'supersucheContentArea';
+    supersucheElement.setAttribute('tabbable-command', 'true');
+    
+    supersucheElement.innerHTML = `
+        <div class="dw-relativeContainer">
+            <div class="ui-icon icon-auto c-inh m-l-10 dw-icon-supersucheContentArea"></div>
+            <span class="label">Supersuche</span>
+        </div>
+    `;
+    
+    // ÄNDERUNG: Einfügen VOR statt NACH dem Suchen-Element
+    suchenElement.parentNode.insertBefore(supersucheElement, suchenElement);
+    
+    supersucheElement.addEventListener('click', openSearchModal);
+    
+    console.log('✅ Supersuche-Button erfolgreich hinzugefügt');
+}
     function init() {
         console.log('🔍 Starte Supersuche-Button mit Modal...');
         loadFontAwesome();
