@@ -4,27 +4,26 @@
 const DocuWareSearch = (function() {
     'use strict';
 
-    // Konfiguration der Suchbereiche
+    // ÄNDERUNG: searchTerm für alle Bereiche - nur Teilstrings für flexible Suche
     const SEARCH_AREAS = {
         DOCUMENTS: [
-            { id: 'doc_all', value: 'Alle', label: 'Alle Dokumente', cssClass: 'documentArea', checked: true },
-            { id: 'doc_proc', value: 'Vorgänge', label: 'Vorgänge', cssClass: 'documentArea' }
+            { id: 'doc_all', label: 'Alle Dokumente', cssClass: 'documentArea', checked: true, searchTerm: 'Alle' },
+            { id: 'doc_proc', label: 'Vorgänge', cssClass: 'documentArea', searchTerm: 'Vorgänge' }
         ],
         PARTS: [
-            { id: 'part_counter', value: 'Zähler', label: 'Zähler', cssClass: 'bauteilArea' },
-            { id: 'part_part', value: 'Bauteil', label: 'Bauteile', cssClass: 'bauteilArea' }
+            { id: 'part_counter', label: 'Zähler', cssClass: 'bauteilArea', searchTerm: 'Zähler' },
+            { id: 'part_part', label: 'Bauteile', cssClass: 'bauteilArea', searchTerm: 'Bauteil' }
         ],
         INVOICES: [
-            { id: 'docs_invoice', value: 'Suche - Rechnung', label: 'Rechnungen / Belege', cssClass: 'belegeArea' }
+            { id: 'docs_invoice', label: 'Rechnungen / Belege', cssClass: 'belegeArea', searchTerm: 'Rechnung' }
         ],
         TENANTS: [
-            { id: 'docs_mieter', value: 'Mieter', label: 'Mieter', cssClass: 'mieterArea' }
+            { id: 'docs_mieter', label: 'Mieter', cssClass: 'mieterArea', searchTerm: 'Mieter' }
         ]
     };
 
     let elements = {};
 
-    // NEU: FontAwesome laden
     function loadFontAwesome() {
         if (!document.querySelector('link[href*="font-awesome"]')) {
             const faLink = document.createElement('link');
@@ -35,7 +34,6 @@ const DocuWareSearch = (function() {
         }
     }
 
-    // NEU: Button-Styles
     function injectButtonStyles() {
         const buttonStyle = document.createElement('style');
         buttonStyle.textContent = `
@@ -266,7 +264,7 @@ const DocuWareSearch = (function() {
 
         const radioButtonsHTML = allAreas.map(area => `
             <div class="radioGroup ${area.cssClass}">
-                <input type="radio" name="tabOption" value="${area.value}" id="${area.id}" ${area.checked ? 'checked' : ''} />
+                <input type="radio" name="tabOption" id="${area.id}" ${area.checked ? 'checked' : ''} data-search-term="${area.searchTerm}" />
                 <label for="${area.id}">${area.label}</label>
             </div>
         `).join('');
@@ -307,11 +305,11 @@ const DocuWareSearch = (function() {
         return { overlay, container };
     }
 
-    function findAndActivateTab(tabName) {
+    function findAndActivateTab(searchTerm) {
         const tabs = document.querySelectorAll('.dw-tabStrip .ui-tabs-tab a');
         
         for (let tab of tabs) {
-            if (tab.textContent.includes(tabName)) {
+            if (tab.textContent.includes(searchTerm)) {
                 if (!tab.closest('.ui-tabs-tab').classList.contains('ui-state-active')) {
                     tab.click();
                 }
@@ -398,8 +396,10 @@ const DocuWareSearch = (function() {
             return;
         }
 
+        const searchTerm = selectedTab.getAttribute('data-search-term');
+        
         localStorage.setItem('lastSearch', inputValue);
-        localStorage.setItem('lastArea', selectedTab.value);
+        localStorage.setItem('lastSearchTerm', searchTerm);
 
         const modifiedValue = inputValue
             .split(' ')
@@ -409,10 +409,10 @@ const DocuWareSearch = (function() {
         setTimeout(() => {
             elements.inputField.value = '';
             
-            const tabId = findAndActivateTab(selectedTab.value);
+            const tabId = findAndActivateTab(searchTerm);
             
             if (!tabId) {
-                alert(`Die Suche "${selectedTab.value}" ist nicht geöffnet. Bitte die Suche öffnen und erneut versuchen.`);
+                alert(`Die Suche "${searchTerm}" ist nicht geöffnet. Bitte die Suche öffnen und erneut versuchen.`);
                 return;
             }
 
@@ -454,17 +454,18 @@ const DocuWareSearch = (function() {
         }, 500);
     }
 
+    // ÄNDERUNG: Restore nutzt searchTerm statt value
     function restoreLastSearch() {
         const lastSearch = localStorage.getItem('lastSearch');
-        const lastArea = localStorage.getItem('lastArea');
+        const lastSearchTerm = localStorage.getItem('lastSearchTerm');
 
         if (lastSearch) {
             elements.inputField.value = lastSearch;
             focusInputField(elements.inputField);
         }
 
-        if (lastArea) {
-            const radio = document.querySelector(`input[name="tabOption"][value="${lastArea}"]`);
+        if (lastSearchTerm) {
+            const radio = document.querySelector(`input[name="tabOption"][data-search-term="${lastSearchTerm}"]`);
             if (radio) {
                 radio.checked = true;
             }
@@ -531,7 +532,6 @@ const DocuWareSearch = (function() {
         elements.closeButton = document.querySelector('.closeButton');
     }
 
-    // NEU: Modal öffnen
     function openSearchModal() {
         console.log('✅ Supersuche geklickt - öffne Modal...');
         elements.modalStyle = injectModalStyles();
@@ -544,7 +544,6 @@ const DocuWareSearch = (function() {
         focusInputField(elements.inputField);
     }
 
-    // NEU: Supersuche-Button hinzufügen
     function addSupersucheButton() {
         const suchenElement = document.querySelector('li.searchContentArea');
         
@@ -578,7 +577,6 @@ const DocuWareSearch = (function() {
         console.log('✅ Supersuche-Button erfolgreich hinzugefügt');
     }
 
-    // NEU: Initialisierung
     function init() {
         console.log('🔍 Starte Supersuche-Button mit Modal...');
         loadFontAwesome();
@@ -596,6 +594,5 @@ const DocuWareSearch = (function() {
     };
 })();
 
-// Initialisierung
-DocuWareSearch.init();
 
+DocuWareSearch.init();
