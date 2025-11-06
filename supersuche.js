@@ -1,4 +1,4 @@
-// DocuWare Suchmodul
+// DocuWare Suchmodul mit Supersuche-Button
 // Ermöglicht erweiterte Suche mit verschiedenen Dokumenttypen und Kopierfunktion
 
 const DocuWareSearch = (function() {
@@ -7,24 +7,56 @@ const DocuWareSearch = (function() {
     // Konfiguration der Suchbereiche
     const SEARCH_AREAS = {
         DOCUMENTS: [
-            { id: 'doc_all', value: 'Alle', label: 'Alle Dokumente', cssClass: 'documentArea' },
+            { id: 'doc_all', value: 'Dokumente - Alle', label: 'Alle Dokumente', cssClass: 'documentArea', checked: true },
             { id: 'doc_proc', value: 'Vorgänge', label: 'Vorgänge', cssClass: 'documentArea' }
         ],
         PARTS: [
-            { id: 'part_counter', value: 'Zähler', label: 'Zähler', cssClass: 'bauteilArea' },
-            { id: 'part_part', value: 'Bauteil', label: 'Bauteile', cssClass: 'bauteilArea' }
+            { id: 'part_counter', value: 'Bauteile - Zähler', label: 'Zähler', cssClass: 'bauteilArea' },
+            { id: 'part_part', value: 'Bauteile - Bauteil', label: 'Bauteile', cssClass: 'bauteilArea' }
         ],
         INVOICES: [
-            { id: 'docs_invoice', value: 'Rechnung', label: 'Belege', cssClass: 'belegeArea' }
+            { id: 'docs_invoice', value: 'Belege - Suche - Rechnung', label: 'Rechnungen / Belege', cssClass: 'belegeArea' }
         ],
         TENANTS: [
-            { id: 'docs_mieter', value: 'Mieter', label: 'Mieter', cssClass: 'mieterArea' }
+            { id: 'docs_mieter', value: 'MietFirmEtPersKont - Mieter', label: 'Mieter', cssClass: 'mieterArea' }
         ]
     };
 
     let elements = {};
 
-    function injectStyles() {
+    // NEU: FontAwesome laden
+    function loadFontAwesome() {
+        if (!document.querySelector('link[href*="font-awesome"]')) {
+            const faLink = document.createElement('link');
+            faLink.rel = 'stylesheet';
+            faLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+            document.head.appendChild(faLink);
+            console.log('✅ FontAwesome geladen');
+        }
+    }
+
+    // NEU: Button-Styles
+    function injectButtonStyles() {
+        const buttonStyle = document.createElement('style');
+        buttonStyle.textContent = `
+            .supersucheContentArea {
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+            .supersucheContentArea:hover {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+            .dw-icon-supersucheContentArea:before {
+                content: "\\f135";
+                font-family: FontAwesome;
+                font-size: 16px;
+            }
+        `;
+        document.head.appendChild(buttonStyle);
+        return buttonStyle;
+    }
+
+    function injectModalStyles() {
         const style = document.createElement('style');
         style.innerHTML = `
             .overlay {
@@ -65,34 +97,33 @@ const DocuWareSearch = (function() {
                 border-radius: 5px;
                 font-size: 14px;
                 transition: border 0.3s ease-in-out;
-                opacity: 0;
-                visibility: hidden;
                 height: 50px;
-            }
-
-            .inputContainer input[type="text"].visible {
                 opacity: 1;
                 visibility: visible;
-                transition: opacity 0.5s ease-in-out;
+            }
+
+            .inputContainer input[type="text"]:focus {
+                border-color: #4b7199;
+                outline: none;
+                box-shadow: 0 0 5px rgba(75, 113, 153, 0.3);
             }
 
             .clearButton {
-                opacity: 0;
-                visibility: hidden;
-                transition: opacity 0.5s ease-in-out;
                 position: absolute;
                 top: 26px;
                 right: 8px;
                 font-size: 25px;
-            }
-
-            .clearButton.visible {
-                opacity: 1;
-                visibility: visible;
                 background: transparent;
                 border: none;
                 color: #8e8e8e;
                 cursor: pointer;
+                opacity: 1;
+                visibility: visible;
+                transition: opacity 0.3s ease-in-out;
+            }
+
+            .clearButton:hover {
+                color: #666;
             }
 
             .radioButtons {
@@ -235,7 +266,7 @@ const DocuWareSearch = (function() {
 
         const radioButtonsHTML = allAreas.map(area => `
             <div class="radioGroup ${area.cssClass}">
-                <input type="radio" name="tabOption" value="${area.value}" id="${area.id}" />
+                <input type="radio" name="tabOption" value="${area.value}" id="${area.id}" ${area.checked ? 'checked' : ''} />
                 <label for="${area.id}">${area.label}</label>
             </div>
         `).join('');
@@ -302,7 +333,10 @@ const DocuWareSearch = (function() {
     function focusInputField(inputField) {
         setTimeout(() => {
             inputField.focus();
-        }, 100);
+            if (inputField.value) {
+                inputField.setSelectionRange(inputField.value.length, inputField.value.length);
+            }
+        }, 150);
     }
 
     function setupCopyTableValues() {
@@ -355,6 +389,7 @@ const DocuWareSearch = (function() {
     function processSearch(inputValue, selectedTab, withCopy = false) {
         if (!inputValue) {
             alert('Bitte einen Suchbegriff eingeben.');
+            focusInputField(elements.inputField);
             return;
         }
 
@@ -425,8 +460,6 @@ const DocuWareSearch = (function() {
 
         if (lastSearch) {
             elements.inputField.value = lastSearch;
-            elements.inputField.classList.add('visible');
-            elements.clearButton.classList.add('visible');
             focusInputField(elements.inputField);
         }
 
@@ -441,7 +474,7 @@ const DocuWareSearch = (function() {
     function cleanup() {
         elements.container.remove();
         elements.overlay.remove();
-        elements.style.remove();
+        elements.modalStyle.remove();
     }
 
     function attachEventListeners() {
@@ -468,6 +501,7 @@ const DocuWareSearch = (function() {
 
         elements.clearButton.addEventListener('click', () => {
             elements.inputField.value = '';
+            focusInputField(elements.inputField);
         });
 
         document.querySelectorAll('.radioGroup').forEach(group => {
@@ -475,8 +509,6 @@ const DocuWareSearch = (function() {
                 const radio = group.querySelector('input[type="radio"]');
                 if (radio) {
                     radio.checked = true;
-                    elements.inputField.classList.add('visible');
-                    elements.clearButton.classList.add('visible');
                     focusInputField(elements.inputField);
                 }
             });
@@ -499,8 +531,10 @@ const DocuWareSearch = (function() {
         elements.closeButton = document.querySelector('.closeButton');
     }
 
-    function init() {
-        elements.style = injectStyles();
+    // NEU: Modal öffnen
+    function openSearchModal() {
+        console.log('✅ Supersuche geklickt - öffne Modal...');
+        elements.modalStyle = injectModalStyles();
         const { overlay, container } = createOverlay();
         elements.overlay = overlay;
         elements.container = container;
@@ -508,6 +542,53 @@ const DocuWareSearch = (function() {
         cacheElements();
         attachEventListeners();
         focusInputField(elements.inputField);
+    }
+
+    // NEU: Supersuche-Button hinzufügen
+    function addSupersucheButton() {
+        const suchenElement = document.querySelector('li.searchContentArea');
+        
+        if (!suchenElement) {
+            console.log('Suchen-Element nicht gefunden, versuche erneut...');
+            setTimeout(addSupersucheButton, 500);
+            return;
+        }
+        
+        if (document.querySelector('.supersucheContentArea')) {
+            console.log('Supersuche-Button bereits vorhanden');
+            return;
+        }
+        
+        const supersucheElement = document.createElement('li');
+        supersucheElement.tabIndex = 0;
+        supersucheElement.className = 'supersucheContentArea';
+        supersucheElement.setAttribute('tabbable-command', 'true');
+        
+        supersucheElement.innerHTML = `
+            <div class="dw-relativeContainer">
+                <div class="ui-icon icon-auto c-inh m-l-10 dw-icon-supersucheContentArea"></div>
+                <span class="label">Supersuche</span>
+            </div>
+        `;
+        
+        suchenElement.parentNode.insertBefore(supersucheElement, suchenElement.nextSibling);
+        
+        supersucheElement.addEventListener('click', openSearchModal);
+        
+        console.log('✅ Supersuche-Button erfolgreich hinzugefügt');
+    }
+
+    // NEU: Initialisierung
+    function init() {
+        console.log('🔍 Starte Supersuche-Button mit Modal...');
+        loadFontAwesome();
+        injectButtonStyles();
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', addSupersucheButton);
+        } else {
+            addSupersucheButton();
+        }
     }
 
     return {
