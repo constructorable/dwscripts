@@ -12,7 +12,8 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/EmojieToSymbol.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Stra%C3%9Fennamenstandardsisieren.js'
     ];
     
 
@@ -32,7 +33,8 @@
         'EmojieToSymbol': '9_Emojie zu Symbol',
         'zu Indexfeld springen_02': '10_Zu Indexfeld springen',
         'buttonbreiter': '11_Button breiter',
-        'supersuche': '12_Supersuche'
+        'supersuche': '12_Supersuche',
+        'Straßennamenstandardsisieren': '13_Straßennamen standardisieren'
     };
 
     // Font Awesome laden falls nicht vorhanden
@@ -139,7 +141,7 @@
                     <div style="padding:15px;background:white;overflow-y:auto;flex:1;">
                         <div style="display:grid;gap:6px;">
                             ${scripts.map((url, index) => {
-                                const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
+                                const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
                                 const displayName = scriptNames[fileName] || fileName;
                                 const loaded = loadedScripts[fileName];
                                 return `
@@ -228,7 +230,7 @@
     // Erstes Laden - Auswahl Modal
     const settings = getSettings();
     const selectedScripts = settings.selectedScripts || scripts.reduce((acc, script) => {
-        const fileName = script.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
+        const fileName = script.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
         acc[fileName] = true;
         return acc;
     }, {});
@@ -248,7 +250,7 @@
                 <div style="padding:15px;background:white;overflow-y:auto;flex:1;">
                     <div id="scriptSelection" style="display:grid;gap:6px;margin-bottom:12px;">
                         ${scripts.map((url, index) => {
-                            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
+                            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
                             const displayName = scriptNames[fileName] || fileName;
                             const isChecked = selectedScripts[fileName];
                             return `
@@ -316,18 +318,15 @@
         settings.loadedScripts = {};
         saveSettings(settings);
 
-        // ÄNDERUNG - Modal nach oben rechts verschieben
         const modalBackdrop = document.querySelector('#dwScriptModal > div');
         const modalContainer = modalBackdrop.querySelector('div:nth-child(1)');
         
-        // Backdrop transparent und nicht blockierend machen
         modalBackdrop.style.background = 'transparent';
         modalBackdrop.style.pointerEvents = 'none';
         modalBackdrop.style.justifyContent = 'flex-end';
         modalBackdrop.style.alignItems = 'flex-start';
         modalBackdrop.style.padding = '20px';
         
-        // Container kompakt machen und nach rechts oben
         modalContainer.style.maxWidth = '400px';
         modalContainer.style.width = '400px';
         modalContainer.style.maxHeight = '500px';
@@ -338,14 +337,14 @@
         scriptList.style.display = 'block';
         
         const scriptsToLoad = scripts.filter(url => {
-            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
+            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
             return selectedScripts.includes(fileName);
         });
 
         console.log(`🚀 Starte sequenzielles Laden von ${scriptsToLoad.length} Scripts...`);
 
         scriptsToLoad.forEach((url, index) => {
-            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
+            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
             const displayName = scriptNames[fileName] || fileName;
             const item = document.createElement('div');
             item.id = `script-${index}`;
@@ -364,7 +363,7 @@
         let successCount = 0;
         for(let i = 0; i < scriptsToLoad.length; i++) {
             const url = scriptsToLoad[i];
-            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
+            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
             
             const iconEl = document.getElementById(`icon-${i}`);
             iconEl.className = 'fas fa-spinner fa-spin';
@@ -392,3 +391,4 @@
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
+
