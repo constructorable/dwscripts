@@ -14,22 +14,21 @@
 function kuerzeStrassenname(text) {
     if (!text || typeof text !== 'string') return text;
     let result = text.trim();
-
-    // Bindestrich Variante
-    result = result.replace(/-straße\b/gi, '-Str.');
-    result = result.replace(/-strasse\b/gi, '-Str.');
-
-    // Leerzeichen Variante
+    
+    // 1. Leerzeichen-Variante: " straße" → " Str." (eigenständiges Wort = Großes S)
     result = result.replace(/\sstraße\b/gi, ' Str.');
     result = result.replace(/\sstrasse\b/gi, ' Str.');
-
-    // Standard Variante
-    result = result.replace(/straße\b/gi, 'Str.');
-    result = result.replace(/strasse\b/gi, 'Str.');
-
+    
+    // 2. Bindestrich-Variante: "-straße" → "-Str." (eigenständiges Wort = Großes S)
+    result = result.replace(/-straße\b/gi, '-Str.');
+    result = result.replace(/-strasse\b/gi, '-Str.');
+    
+    // 3. Direkt angehängt (ohne Leerzeichen/Bindestrich): "straße" → "str." (Kleines s)
+    result = result.replace(/straße\b/gi, 'str.');
+    result = result.replace(/strasse\b/gi, 'str.');
+    
     return result;
 }
-
 
     function attachHandler(inputField) {
         if (inputField.dataset.strassenAbkuerzungAttached) return;
