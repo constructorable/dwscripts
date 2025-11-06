@@ -54,205 +54,273 @@ const DocuWareSearch = (function() {
         return buttonStyle;
     }
 
-    function injectModalStyles() {
-        const style = document.createElement('style');
-        style.innerHTML = `
-            .overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.5);
-                z-index: 999998;
-            }
+function injectModalStyles() {
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999998;
+        }
 
-            .inputContainer {
-                position: fixed;
-                top: 25%;
-                left: 50%;
-                height: 444px;
-                transform: translate(-50%, -50%);
-                background: #fffffffa;
-                padding: 30px;
-                border-radius: 10px;
-                box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-                font-family: Arial, sans-serif;
-                width: 840px;
-                text-align: left;
-                z-index: 999999;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                min-height: 420px;
-            }
+        .inputContainer {
+            position: fixed;
+            /* ÄNDERUNG: Oben links statt zentriert */
+            top: 20px;
+            left: 20px;
+            height: 444px;
+            background: #fffffffa;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            font-family: Arial, sans-serif;
+            width: 840px;
+            text-align: left;
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 420px;
+            /* ÄNDERUNG: Cursor für Verschiebbarkeit */
+            cursor: move;
+        }
 
-            .inputContainer input[type="text"] {
-                width: 100%;
-                padding: 23px 10px;
-                margin-top: 20px;
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                font-size: 14px;
-                transition: border 0.3s ease-in-out;
-                height: 50px;
-                opacity: 1;
-                visibility: visible;
-            }
+        .inputContainer input[type="text"] {
+            width: 100%;
+            padding: 23px 10px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border 0.3s ease-in-out;
+            height: 50px;
+            opacity: 1;
+            visibility: visible;
+            /* ÄNDERUNG: Cursor zurücksetzen für Input */
+            cursor: text;
+        }
 
-            .inputContainer input[type="text"]:focus {
-                border-color: #4b7199;
-                outline: none;
-                box-shadow: 0 0 5px rgba(75, 113, 153, 0.3);
-            }
+        .inputContainer input[type="text"]:focus {
+            border-color: #4b7199;
+            outline: none;
+            box-shadow: 0 0 5px rgba(75, 113, 153, 0.3);
+        }
 
-            .clearButton {
-                position: absolute;
-                top: 26px;
-                right: 8px;
-                font-size: 25px;
-                background: transparent;
-                border: none;
-                color: #8e8e8e;
-                cursor: pointer;
-                opacity: 1;
-                visibility: visible;
-                transition: opacity 0.3s ease-in-out;
-            }
+        .clearButton {
+            position: absolute;
+            top: 26px;
+            right: 8px;
+            font-size: 25px;
+            background: transparent;
+            border: none;
+            color: #8e8e8e;
+            cursor: pointer;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease-in-out;
+        }
 
-            .clearButton:hover {
-                color: #666;
-            }
+        .clearButton:hover {
+            color: #666;
+        }
 
-            .radioButtons {
-                display: flex;
-                flex-direction: row;
-                gap: 9px;
-                margin-bottom: 32px;
-                height: 50px;
-            }
+        .radioButtons {
+            display: flex;
+            flex-direction: row;
+            gap: 9px;
+            margin-bottom: 32px;
+            height: 50px;
+        }
 
-            .radioGroup {
-                display: flex;
-                align-items: center;
-                margin-bottom: 7px;
-                white-space: nowrap;
-                cursor: pointer;
-            }
+        .radioGroup {
+            display: flex;
+            align-items: center;
+            margin-bottom: 7px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
 
-            .radioGroup:hover {
-                filter: brightness(0.95);
-            }
+        .radioGroup:hover {
+            filter: brightness(0.95);
+        }
 
-            .radioGroup input {
-                margin-right: 10px;
-                cursor: pointer;
-            }
+        .radioGroup input {
+            margin-right: 10px;
+            cursor: pointer;
+        }
 
-            .radioGroup label {
-                font-family: Tahoma, Arial, sans-serif;
-                font-size: 14px;
-                cursor: pointer;
-            }
+        .radioGroup label {
+            font-family: Tahoma, Arial, sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+        }
 
-            .radioGroup.documentArea {
-                background-color: #d9e6f6;
-                padding: 11px 19px 11px 11px;
-                border-top: 5px solid #0089cf;
-                border-radius: 3px;
-                box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
-            }
+        .radioGroup.documentArea {
+            background-color: #d9e6f6;
+            padding: 11px 19px 11px 11px;
+            border-top: 5px solid #0089cf;
+            border-radius: 3px;
+            box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
+        }
 
-            .radioGroup.bauteilArea {
-                background-color: #e1f3e2;
-                padding: 11px 19px 11px 11px;
-                border-radius: 3px;
-                box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
-                border-top: 5px solid #368d2e;
-            }
+        .radioGroup.bauteilArea {
+            background-color: #e1f3e2;
+            padding: 11px 19px 11px 11px;
+            border-radius: 3px;
+            box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
+            border-top: 5px solid #368d2e;
+        }
 
-            .radioGroup.belegeArea {
-                background-color: #fcf2ce;
-                padding: 11px 19px 11px 11px;
-                border-radius: 3px;
-                box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
-                border-top: 5px solid #fcb200;
-            }
+        .radioGroup.belegeArea {
+            background-color: #fcf2ce;
+            padding: 11px 19px 11px 11px;
+            border-radius: 3px;
+            box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
+            border-top: 5px solid #fcb200;
+        }
 
-            .radioGroup.mieterArea {
-                background-color: #e1e1e1;
-                padding: 11px 19px 11px 11px;
-                border-radius: 3px;
-                box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
-                border-top: 5px solid #535353;
-            }
+        .radioGroup.mieterArea {
+            background-color: #e1e1e1;
+            padding: 11px 19px 11px 11px;
+            border-radius: 3px;
+            box-shadow: 3px 3px 7px 1px rgba(198, 198, 198, 0.32);
+            border-top: 5px solid #535353;
+        }
 
-            .closeButton {
-                position: absolute;
-                top: 10px;
-                right: 15px;
-                background: none;
-                border: none;
-                color: #919191;
-                font-size: 24px;
-                cursor: pointer;
-            }
+        .closeButton {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #919191;
+            font-size: 24px;
+            cursor: pointer;
+        }
 
-            .title {
-                font-size: 22px;
-                margin-bottom: 20px;
-                color: #333;
-                text-align: center;
-            }
+        .title {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
+            /* ÄNDERUNG: Cursor normal für Titel */
+            cursor: move;
+        }
 
-            .startButton,
-            .startButton2,
-            .restoreButton {
-                margin-top: 1px;
-                padding: 14px;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                align-self: center;
-                font-size: 14px;
-                width: 100%;
-            }
+        .startButton,
+        .startButton2,
+        .restoreButton {
+            margin-top: 1px;
+            padding: 14px;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            align-self: center;
+            font-size: 14px;
+            width: 100%;
+        }
 
-            .startButton,
-            .startButton2 {
-                background-color: #4b7199;
-                font-size: 16px;
-            }
+        .startButton,
+        .startButton2 {
+            background-color: #4b7199;
+            font-size: 16px;
+        }
 
-            .startButton:hover,
-            .startButton2:hover {
-                background-color: #2d5075;
-            }
+        .startButton:hover,
+        .startButton2:hover {
+            background-color: #2d5075;
+        }
 
-            .restoreButton {
-                background-color: #888;
-            }
+        .restoreButton {
+            background-color: #888;
+        }
 
-            .restoreButton:hover {
-                background-color: #a4a4a4;
-            }
+        .restoreButton:hover {
+            background-color: #a4a4a4;
+        }
 
-            .checkbox-container {
-                position: absolute;
-                right: 31px;
-                bottom: 147px;
-            }
+        .checkbox-container {
+            position: absolute;
+            right: 31px;
+            bottom: 147px;
+        }
 
-            .Suchcontainer {
-                display: flex;
-                gap: 10px;
-            }
-        `;
+        .Suchcontainer {
+            display: flex;
+            gap: 10px;
+        }
+    `;
+    
+    document.head.appendChild(style);
+    return style;
+}
+
+// NEU: Drag & Drop für Modal
+function enableDragging() {
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+
+    const title = elements.container.querySelector('.title');
+    
+    title.addEventListener('mousedown', dragStart);
+    
+    function dragStart(e) {
+        // Nur bei Linksklick
+        if (e.button !== 0) return;
         
-        document.head.appendChild(style);
-        return style;
+        isDragging = true;
+        
+        initialX = e.clientX - (parseInt(elements.container.style.left) || 20);
+        initialY = e.clientY - (parseInt(elements.container.style.top) || 20);
+        
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+        
+        elements.container.style.cursor = 'grabbing';
+        e.preventDefault();
     }
+    
+    function drag(e) {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+        
+        // Begrenzen auf Viewport
+        const maxX = window.innerWidth - elements.container.offsetWidth;
+        const maxY = window.innerHeight - elements.container.offsetHeight;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+        
+        elements.container.style.left = currentX + 'px';
+        elements.container.style.top = currentY + 'px';
+    }
+    
+    function dragEnd() {
+        if (!isDragging) return;
+        
+        isDragging = false;
+        elements.container.style.cursor = 'move';
+        
+        // ÄNDERUNG: Position speichern
+        localStorage.setItem('modalPositionX', elements.container.style.left);
+        localStorage.setItem('modalPositionY', elements.container.style.top);
+        
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', dragEnd);
+    }
+}
 
     function createOverlayHTML() {
         const allAreas = [
@@ -532,17 +600,27 @@ const DocuWareSearch = (function() {
         elements.closeButton = document.querySelector('.closeButton');
     }
 
-    function openSearchModal() {
-        console.log('✅ Supersuche geklickt - öffne Modal...');
-        elements.modalStyle = injectModalStyles();
-        const { overlay, container } = createOverlay();
-        elements.overlay = overlay;
-        elements.container = container;
-        
-        cacheElements();
-        attachEventListeners();
-        focusInputField(elements.inputField);
+function openSearchModal() {
+    console.log('✅ Supersuche geklickt - öffne Modal...');
+    elements.modalStyle = injectModalStyles();
+    const { overlay, container } = createOverlay();
+    elements.overlay = overlay;
+    elements.container = container;
+    
+    // ÄNDERUNG: Gespeicherte Position wiederherstellen
+    const savedX = localStorage.getItem('modalPositionX');
+    const savedY = localStorage.getItem('modalPositionY');
+    
+    if (savedX && savedY) {
+        elements.container.style.left = savedX;
+        elements.container.style.top = savedY;
     }
+    
+    cacheElements();
+    attachEventListeners();
+    enableDragging(); // NEU: Drag & Drop aktivieren
+    focusInputField(elements.inputField);
+}
 
     function addSupersucheButton() {
         const suchenElement = document.querySelector('li.searchContentArea');
@@ -593,6 +671,8 @@ const DocuWareSearch = (function() {
         init
     };
 })();
+
+
 
 
 
