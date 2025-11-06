@@ -134,3 +134,4 @@
     obs.observe(document.body, { subtree: true, childList: true });
     scan();
 })();
+
