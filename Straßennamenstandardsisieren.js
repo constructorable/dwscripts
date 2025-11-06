@@ -1,4 +1,4 @@
-(function() {
+(function () {
     // NEU: Straßenkatalog (beliebig erweiterbar)
     const STRASSEN_KATALOG = [
         'Adam-Klein-Str.',
@@ -6,7 +6,69 @@
         'Ammonstr.',
         'Anne-Frank-Str.',
         'Arnulfstr.',
-        'Äußere Großweidenmühlstr.'
+        'Äußere Großweidenmühlstr.',
+        'Badstr.',
+        'Bahnhofstr.',
+        'Bogenstr.',
+        'Emilienstr.',
+        'Flugplatzstr.',
+        'Frauentorgraben',
+        'Friedrichstr.',
+        'Fürther Str.',
+        'Gibitzenhofstr.',
+        'Grenzstr.',
+        'Grünerstr.',
+        'Hallstr.',
+        'Hans-Vogel-Str.',
+        'Hauptstr.',
+        'Hertastr.',
+        'Hirschenstr.',
+        'Hornschuchpromenade',
+        'Im Unteren Grund',
+        'Innerer Kleinreuther Weg',
+        'Ipsheimer Str.',
+        'Johann-Geismann-Str.',
+        'Johannisstr.',
+        'Katharinengasse',
+        'Kirchenweg',
+        'Kneippallee',
+        'Königswarterstr.',
+        'Krugstr.',
+        'Kurgartenstr.',
+        'Landgrabenstr.',
+        'Lilienstr.',
+        'Lorenzer Str.',
+        'Mondstr.',
+        'Nelkenstr.',
+        'Neubleiche',
+        'Neutormauer',
+        'Obere Turnstr.',
+        'Peterstr.',
+        'Pfefferloh',
+        'Prinzregentenufer',
+        'Rankestr.',
+        'Regensburger Str.',
+        'Reitmorstr.',
+        'Saalfelder Str.',
+        'Sauerbruchstr.',
+        'Schlotfegergasse',
+        'Schumannstr.',
+        'Schwabacher Str.',
+        'Sigmund-Nathan-Str.',
+        'Sigmundstr.',
+        'Sonstige',
+        'Spittlertorgraben ',
+        'Spitzwegstr.',
+        'Sprottauer Str.',
+        'Stephanstr.',
+        'Thurn-und-Taxis-Str.',
+        'Vacher Str.',
+        'Volbehrstr.',
+        'Volkacher Str.',
+        'Willy-Brandt-Platz',
+        'Wodanstr.',
+        'Zollhof'
+
     ];
 
     // NEU: Levenshtein-Distanz für Fuzzy Matching
@@ -47,12 +109,12 @@
 
         for (const strasse of STRASSEN_KATALOG) {
             const distance = levenshteinDistance(input, strasse);
-            
+
             const inputOhneNr = input.replace(/\s+\d+.*$/, '').trim();
             const distanceOhneNr = levenshteinDistance(inputOhneNr, strasse);
-            
+
             const minDistance = Math.min(distance, distanceOhneNr);
-            
+
             if (minDistance < bestDistance && minDistance <= threshold) {
                 bestDistance = minDistance;
                 bestMatch = strasse;
@@ -79,14 +141,14 @@
     function kuerzeStrassenname(text) {
         if (!text || typeof text !== 'string') return text;
         let result = text.trim();
-        
+
         result = result.replace(/\sstraße\b/gi, ' Str.');
         result = result.replace(/\sstrasse\b/gi, ' Str.');
         result = result.replace(/-straße\b/gi, '-Str.');
         result = result.replace(/-strasse\b/gi, '-Str.');
         result = result.replace(/straße\b/gi, 'str.');
         result = result.replace(/strasse\b/gi, 'str.');
-        
+
         return result;
     }
 
@@ -119,7 +181,7 @@
         if (inputField.dataset.strassenAbkuerzungAttached) return;
         if (!feldIstObjekt(inputField)) return;
 
-        inputField.addEventListener('blur', function() {
+        inputField.addEventListener('blur', function () {
             verarbeiteEingabe(this);
         });
 
