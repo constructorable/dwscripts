@@ -3,7 +3,7 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/CopyPasteButton.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Schaltflaechen.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/AutocompleteIBANuOEMN.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Button_Best%C3%A4tigen_001.js',
+       /*  'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Button_Best%C3%A4tigen_001.js', */
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sternsuche.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tabNamenk%C3%BCrzen.js',
@@ -13,9 +13,8 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Stra%C3%9Fennamenstandardsisieren.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js'
     ];
-    
 
     const specialDelayScripts = {
         'BK_Buttonablegen5': 1000
@@ -25,16 +24,16 @@
         'CopyPasteButton': '1_Copy Paste Buttons',
         'Schaltflächen': '2_Schaltflächen',
         'AutocompleteIBANuOEMN': '3_Autocomplete IBAN',
-        'Button_Bestätigen_001': '4_Button Bestätigen',
-        'Textareabigger': '5_Textarea vergrößern',
-        'sternsuche': '6_Sternsuche',
-        'tabNamenkürzen': '7_Tab-Namen kürzen',
-        'DelayfürSubMenuesButtons_001': '8_Delay für Submenüs',
-        'EmojieToSymbol': '9_Emojie zu Symbol',
-        'zu Indexfeld springen_02': '10_Zu Indexfeld springen',
-        'buttonbreiter': '11_Button breiter',
-        'supersuche': '12_Supersuche',
-        'Straßennamenstandardsisieren': '13_Straßennamen standardisieren'
+      /*   'Button_Bestätigen_001': '4_Button Bestätigen', */
+        'Textareabigger': '4_Textarea vergrößern',
+        'sternsuche': '5_Sternsuche',
+        'tabNamenkürzen': '6_Tab-Namen kürzen',
+        'DelayfürSubMenuesButtons_001': '7_Delay für Submenüs',
+        'EmojieToSymbol': '8_Emojie zu Symbol',
+        'zu Indexfeld springen_02': '9_Zu Indexfeld springen',
+        'buttonbreiter': '10_Button breiter',
+        'supersuche': '11_Supersuche',
+        'Seitenanzahl' : '12_Seitenanzahl'
     };
 
     // Font Awesome laden falls nicht vorhanden
@@ -67,7 +66,7 @@
         
         statusEl.textContent = 'Lade...';
         statusEl.style.background = '#dbeafe';
-        statusEl.style.color = '#1d4ed8';
+        statusEl.style.color = '#3553a4ff';
         
         try {
             console.log(`🔄 Lade Script ${index + 1}/${total}: ${fileName}`);
@@ -90,7 +89,7 @@
             document.getElementById(`script-${index}`).style.background = '#f0f9ff';
             statusEl.textContent = 'Geladen';
             statusEl.style.background = '#dbeafe';
-            statusEl.style.color = '#1e40af';
+            statusEl.style.color = '#394e94ff';
             
             const settings = getSettings();
             if(!settings.loadedScripts) settings.loadedScripts = {};
@@ -141,7 +140,7 @@
                     <div style="padding:15px;background:white;overflow-y:auto;flex:1;">
                         <div style="display:grid;gap:6px;">
                             ${scripts.map((url, index) => {
-                                const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
+                                const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
                                 const displayName = scriptNames[fileName] || fileName;
                                 const loaded = loadedScripts[fileName];
                                 return `
@@ -230,7 +229,7 @@
     // Erstes Laden - Auswahl Modal
     const settings = getSettings();
     const selectedScripts = settings.selectedScripts || scripts.reduce((acc, script) => {
-        const fileName = script.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
+        const fileName = script.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
         acc[fileName] = true;
         return acc;
     }, {});
@@ -250,7 +249,7 @@
                 <div style="padding:15px;background:white;overflow-y:auto;flex:1;">
                     <div id="scriptSelection" style="display:grid;gap:6px;margin-bottom:12px;">
                         ${scripts.map((url, index) => {
-                            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
+                            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
                             const displayName = scriptNames[fileName] || fileName;
                             const isChecked = selectedScripts[fileName];
                             return `
@@ -318,43 +317,29 @@
         settings.loadedScripts = {};
         saveSettings(settings);
 
-        const modalBackdrop = document.querySelector('#dwScriptModal > div');
-        const modalContainer = modalBackdrop.querySelector('div:nth-child(1)');
-        
-        modalBackdrop.style.background = 'transparent';
-        modalBackdrop.style.pointerEvents = 'none';
-        modalBackdrop.style.justifyContent = 'flex-end';
-        modalBackdrop.style.alignItems = 'flex-start';
-        modalBackdrop.style.padding = '20px';
-        
-        modalContainer.style.maxWidth = '400px';
-        modalContainer.style.width = '400px';
-        modalContainer.style.maxHeight = '500px';
-        modalContainer.style.pointerEvents = 'all';
-        modalContainer.style.transition = 'all 0.3s ease';
-        
         document.getElementById('scriptSelection').style.display = 'none';
         scriptList.style.display = 'block';
         
         const scriptsToLoad = scripts.filter(url => {
-            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
+            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
             return selectedScripts.includes(fileName);
         });
 
         console.log(`🚀 Starte sequenzielles Laden von ${scriptsToLoad.length} Scripts...`);
 
         scriptsToLoad.forEach((url, index) => {
-            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
+            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
             const displayName = scriptNames[fileName] || fileName;
             const item = document.createElement('div');
             item.id = `script-${index}`;
             item.innerHTML = `
-                <div style="display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid #f1f5f9;">
-                    <i id="icon-${index}" class="fas fa-hourglass-half" style="font-size:11px;color:#94a3b8;width:14px;text-align:center;margin-right:8px;"></i>
+                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #f1f5f9;">
+                    <i id="icon-${index}" class="fas fa-hourglass-half" style="font-size:13px;color:#94a3b8;width:16px;text-align:center;margin-right:10px;"></i>
                     <div style="flex:1;">
-                        <div style="font-weight:500;color:#334155;font-size:11px;margin-bottom:1px;">${displayName}</div>
+                        <div style="font-weight:500;color:#334155;font-size:12px;margin-bottom:2px;">${displayName}</div>
+                        <div style="font-size:10px;color:#64748b;">${fileName}.js</div>
                     </div>
-                    <div id="status-${index}" style="font-size:9px;color:#64748b;font-weight:500;padding:2px 6px;background:#f1f5f9;border-radius:8px;">Warten...</div>
+                    <div id="status-${index}" style="font-size:10px;color:#64748b;font-weight:500;padding:3px 7px;background:#f1f5f9;border-radius:10px;">Warten...</div>
                 </div>
             `;
             scriptList.appendChild(item);
@@ -363,7 +348,7 @@
         let successCount = 0;
         for(let i = 0; i < scriptsToLoad.length; i++) {
             const url = scriptsToLoad[i];
-            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace(/%C3%9F/g,'ß').replace('.js','');
+            const fileName = url.split('/').pop().replace(/%C3%A4/g,'ä').replace(/%C3%BC/g,'ü').replace('.js','');
             
             const iconEl = document.getElementById(`icon-${i}`);
             iconEl.className = 'fas fa-spinner fa-spin';
@@ -382,13 +367,12 @@
             setTimeout(() => {
                 const modal = document.getElementById('dwScriptModal');
                 modal.style.opacity = '0';
-                modal.style.transform = 'scale(0.95)';
-                modal.style.transition = 'all 0.3s ease';
-                setTimeout(() => modal.remove(), 300);
-            }, 2000);
+                modal.style.transform = 'scale(1)';
+                modal.style.transition = 'all 0.2s ease';
+                setTimeout(() => modal.remove(), 100);
+            }, 1000);
         }, 100);
         
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
-
