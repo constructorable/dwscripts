@@ -5,7 +5,7 @@
         'Amalienstr. 38',
         'Ammonstr.',
         'Anne-Frank-Str. 43',
-        'Arnulfstr.',
+        'Arnulfstr. 4',
         'Äußere Großweidenmühlstr.',
         'Badstr.',
         'Bahnhofstr.',
@@ -196,6 +196,7 @@
     obs.observe(document.body, { subtree: true, childList: true });
     scan();
 })();
+
 
 
 
