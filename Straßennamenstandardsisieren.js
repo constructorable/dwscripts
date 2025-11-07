@@ -57,7 +57,7 @@
         'Sigmund-Nathan-Str.',
         'Sigmundstr.',
         'Sonstige',
-        'Spittlertorgraben ',
+        'Spittlertorgraben',
         'Spitzwegstr.',
         'Sprottauer Str.',
         'Stephanstr.',
@@ -196,6 +196,7 @@
     obs.observe(document.body, { subtree: true, childList: true });
     scan();
 })();
+
 
 
 
