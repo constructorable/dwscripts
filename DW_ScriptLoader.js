@@ -13,7 +13,8 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/speicherbuttonduplizieren.js'
     ];
 
     const specialDelayScripts = {
@@ -33,7 +34,8 @@
         'zu Indexfeld springen_02': '9_Zu Indexfeld springen',
         'buttonbreiter': '10_Button breiter',
         'supersuche': '11_Supersuche',
-        'Seitenanzahl' : '12_Seitenanzahl'
+        'Seitenanzahl' : '12_Seitenanzahl',
+        'Speicherbutton' : '13_Speicherbutton duplizieren',
     };
 
     // Font Awesome laden falls nicht vorhanden
@@ -376,3 +378,4 @@
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
+
