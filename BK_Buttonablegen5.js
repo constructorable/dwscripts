@@ -1,88 +1,123 @@
-(function() {
-    // Erweiterte Funktion zum Button duplizieren
-    function duplicateButton() {
-        // Original Button finden
-        var originalButton = document.querySelector('button[data-trackerevent="store"]');
-        if (!originalButton) {
-            console.log('Original Button nicht gefunden');
-            return false;
-        }
+// duplicateSaveButton.js
+(function () {
+    'use strict';
 
+    const SAVE_BUTTON_SELECTOR = 'li[data-trackerevent="Save"]';
+    const TARGET_BUTTON_SELECTOR = 'li[data-trackerevent="Annotations_TransparentRectangle"]';
+    const DUPLICATED_BUTTON_CLASS = 'dw-duplicated-save-button';
+
+    let observer = null;
+
+    // ÄNDERUNG: Click-Event manuell hinzufügen
+    function duplicateSaveButton() {
         // Prüfen ob bereits dupliziert
-        if (document.querySelector('#duplicated-btn')) {
-            console.log('Button bereits vorhanden');
-            return true;
+        if (document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`)) {
+            console.log('Save-Button bereits dupliziert');
+            return;
         }
 
-        // Ziel-Element finden (Status_Posteingang ODER Bemerkungen)
-        var allRows = document.querySelectorAll('tr');
-        var targetRow = null;
-        var foundFieldType = '';
-        
-        for (var i = 0; i < allRows.length; i++) {
-            var span = allRows[i].querySelector('.dw-fieldLabel span');
-            if (span) {
-                var text = span.textContent.trim();
-                if (text.indexOf('Status_Posteingang') !== -1) {
-                    targetRow = allRows[i];
-                    foundFieldType = 'Status_Posteingang';
-                    break;
-                } else if (text.indexOf('Bemerkungen') !== -1) {
-                    targetRow = allRows[i];
-                    foundFieldType = 'Bemerkungen';
-                    break;
-                }
-            }
+        const saveButton = document.querySelector(SAVE_BUTTON_SELECTOR);
+        const targetButton = document.querySelector(TARGET_BUTTON_SELECTOR);
+
+        if (!saveButton || !targetButton) {
+            console.warn('Save-Button oder Ziel-Button nicht gefunden');
+            return;
         }
-        
-        if (!targetRow) {
-            console.log('Weder Status_Posteingang noch Bemerkungen gefunden');
-            return false;
-        }
-        
-        console.log('Feld gefunden:', foundFieldType);
-        
+
         // Button klonen
-        var clonedButton = originalButton.cloneNode(true);
-        clonedButton.id = 'duplicated-btn';
-        clonedButton.onclick = function() { 
-            originalButton.click(); 
-        };
-        
-        // Button um 111px nach rechts verschieben
-        clonedButton.style.marginLeft = '169px';
-        
-        // Container erstellen mit linksbündiger Ausrichtung
-        var newRow = document.createElement('tr');
-        var labelText = foundFieldType === 'Status_Posteingang' ? '.' : '.';
-        
-        newRow.innerHTML = '<td colspan="2" style="text-align:left;padding:10px;background:#f5f5f5;border-top:1px solid #ddd;">' +
-                          '<small style="color:#666;margin-right:10px;">' + labelText + ':</small>' +
-                          '</td>';
-        newRow.querySelector('td').appendChild(clonedButton);
-        
-        // Einfügen
-        targetRow.parentNode.insertBefore(newRow, targetRow.nextSibling);
-        
-        console.log('Button erfolgreich dupliziert unter:', foundFieldType);
-        return true;
+        const clonedButton = saveButton.cloneNode(true);
+
+        // Markierung hinzufügen
+        clonedButton.classList.add(DUPLICATED_BUTTON_CLASS);
+
+        // Eindeutige ID für Tracking
+        clonedButton.setAttribute('data-trackerevent', 'Save_Duplicated');
+
+        // NEU: Click-Event hinzufügen, der den Original-Button triggert
+        clonedButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            console.log('Duplizierter Save-Button geklickt - triggere Original');
+
+            // Original-Button klicken
+            const originalSaveButton = document.querySelector(SAVE_BUTTON_SELECTOR);
+            if (originalSaveButton) {
+                originalSaveButton.click();
+            } else {
+                console.warn('Original Save-Button nicht gefunden');
+            }
+        });
+
+        // Nach dem Ziel-Button einfügen
+        targetButton.parentNode.insertBefore(clonedButton, targetButton);
+
+        console.log('Save-Button erfolgreich dupliziert mit Event-Listener');
     }
 
-    // Einfache Überwachung
-    function startWatching() {
-        // Sofort versuchen
-        duplicateButton();
-        
-        // Dann alle 2 Sekunden prüfen
-        setInterval(function() {
-            duplicateButton();
+    // Toolbar-Container überwachen
+    function observeToolbar() {
+        if (observer) {
+            observer.disconnect();
+        }
+
+        // Toolbar-Container finden
+        const toolbarContainer = document.querySelector('.dw-toolbar-li')?.closest('ul, ol');
+
+        if (!toolbarContainer) {
+            console.warn('Toolbar-Container nicht gefunden');
+            setTimeout(observeToolbar, 1000);
+            return;
+        }
+
+        observer = new MutationObserver((mutations) => {
+            // Prüfen ob duplizierter Button noch existiert
+            const duplicatedExists = document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
+            const targetExists = document.querySelector(TARGET_BUTTON_SELECTOR);
+
+            if (targetExists && !duplicatedExists) {
+                console.log('Duplizierter Button fehlt - wird neu eingefügt');
+                duplicateSaveButton();
+            }
+        });
+
+        observer.observe(toolbarContainer, {
+            childList: true,
+            subtree: true
+        });
+
+        console.log('Toolbar-Observer aktiviert');
+    }
+
+    // Initialisierung
+    function init() {
+        console.log('Initialisiere Save-Button Duplikation');
+
+        // Ersten Button duplizieren
+        duplicateSaveButton();
+
+        // Observer für Änderungen starten
+        observeToolbar();
+
+        // Zusätzlich: Bei jedem Dokumentwechsel prüfen
+        setInterval(() => {
+            const duplicatedExists = document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
+            const targetExists = document.querySelector(TARGET_BUTTON_SELECTOR);
+
+            if (targetExists && !duplicatedExists) {
+                duplicateSaveButton();
+            }
         }, 2000);
     }
 
-    // Starten wenn Seite geladen
+    // Warten bis DOM vollständig geladen ist
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', startWatching);
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(init, 500);
+        });
     } else {
-        startWatching();
+        setTimeout(init, 500);
     }
+
 })();
+
