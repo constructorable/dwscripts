@@ -1,120 +1,186 @@
-// duplicateSaveButton.js
-(function() {
+// duplicateStoreButtonUnderZuweisenField.js
+(function () {
     'use strict';
 
-    const SAVE_BUTTON_SELECTOR = 'li[data-trackerevent="Save"]';
-    const TARGET_BUTTON_SELECTOR = 'li[data-trackerevent="Annotations_TransparentRectangle"]';
-    const DUPLICATED_BUTTON_CLASS = 'dw-duplicated-save-button';
-    
+    const STORE_BUTTON_SELECTOR = 'button[data-trackerevent="store"]';
+    const ZUWEISEN_LABEL_SELECTOR = '.dw-fieldLabel span';
+    const DUPLICATED_BUTTON_CLASS = 'dw-store-btn-under-zuweisen';
+
     let observer = null;
 
-    // ÄNDERUNG: Click-Event manuell hinzufügen
-    function duplicateSaveButton() {
-        // Prüfen ob bereits dupliziert
-        if (document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`)) {
-            console.log('Save-Button bereits dupliziert');
-            return;
+    // CSS für Button unter dem Input
+    function injectStyles() {
+        if (document.getElementById('store-button-under-zuweisen-styles')) return;
+
+        const style = document.createElement('style');
+        style.id = 'store-button-under-zuweisen-styles';
+        style.textContent = `
+            .dw-store-btn-under-zuweisen {
+display: inline-block !important;
+  margin-top: 8px !important;
+  padding: 6px 20px !important;
+  background: #5984c9 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 300 !important;
+  transition: all 0.2s ease !important;
+  box-shadow: none !important;
+  text-align: center !important;
+}
+            }
+
+            .dw-store-btn-under-zuweisen:hover {
+                background:  #2b4979ff !important;
+          
+            }
+
+        `;
+        document.head.appendChild(style);
+    }
+
+    // "zuweisen an"-Feld finden
+    function findZuweisenField() {
+        const labels = document.querySelectorAll(ZUWEISEN_LABEL_SELECTOR);
+
+        for (let label of labels) {
+            const labelText = label.textContent.trim().toLowerCase();
+            if (labelText.includes('zuweisen')) {
+                // Zugehörige Zeile finden
+                const row = label.closest('tr');
+                if (row) {
+                    // Input-Feld in der nächsten td finden
+                    const inputCell = row.querySelector('td.table-fields-content');
+                    if (inputCell) {
+                        const container = inputCell.querySelector('.right-inner-addons');
+
+                        if (container) {
+                            return { container, inputCell, row };
+                        }
+                    }
+                }
+            }
         }
 
-        const saveButton = document.querySelector(SAVE_BUTTON_SELECTOR);
-        const targetButton = document.querySelector(TARGET_BUTTON_SELECTOR);
+        return null;
+    }
 
-        if (!saveButton || !targetButton) {
-            console.warn('Save-Button oder Ziel-Button nicht gefunden');
-            return;
+    // Button einfügen
+    function addButtonUnderZuweisenField() {
+        const fieldInfo = findZuweisenField();
+
+        if (!fieldInfo) {
+            console.warn('Zuweisen-Feld nicht gefunden');
+            return false;
         }
 
-        // Button klonen
-        const clonedButton = saveButton.cloneNode(true);
-        
-        // Markierung hinzufügen
-        clonedButton.classList.add(DUPLICATED_BUTTON_CLASS);
-        
-        // Eindeutige ID für Tracking
-        clonedButton.setAttribute('data-trackerevent', 'Save_Duplicated');
-        
-        // NEU: Click-Event hinzufügen, der den Original-Button triggert
-        clonedButton.addEventListener('click', (e) => {
+        const { container, inputCell } = fieldInfo;
+
+        // Prüfen ob bereits ein Button vorhanden ist
+        if (inputCell.querySelector(`.${DUPLICATED_BUTTON_CLASS}`)) {
+            console.log('Ablegen-Button bereits unter Zuweisen-Feld vorhanden');
+            return true;
+        }
+
+        const storeButton = document.querySelector(STORE_BUTTON_SELECTOR);
+        if (!storeButton) {
+            console.warn('Original Store-Button nicht gefunden');
+            return false;
+        }
+
+        // Button erstellen
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = DUPLICATED_BUTTON_CLASS;
+        button.textContent = 'Ablegen';
+        button.setAttribute('title', 'Dokument ablegen (Speichern)');
+
+        // Click-Event
+        button.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
-            console.log('Duplizierter Save-Button geklickt - triggere Original');
-            
-            // Original-Button klicken
-            const originalSaveButton = document.querySelector(SAVE_BUTTON_SELECTOR);
-            if (originalSaveButton) {
-                originalSaveButton.click();
+
+            console.log('Ablegen-Button unter Zuweisen-Feld geklickt');
+
+            // Original-Button triggern
+            const originalButton = document.querySelector(STORE_BUTTON_SELECTOR);
+            if (originalButton) {
+                originalButton.click();
             } else {
-                console.warn('Original Save-Button nicht gefunden');
+                console.warn('Original Store-Button nicht gefunden');
             }
         });
 
-        // Nach dem Ziel-Button einfügen
-        if (targetButton.nextSibling) {
-            targetButton.parentNode.insertBefore(clonedButton, targetButton.nextSibling);
-        } else {
-            targetButton.parentNode.appendChild(clonedButton);
-        }
+        // Button direkt nach dem Container einfügen
+        container.parentNode.insertBefore(button, container.nextSibling);
 
-        console.log('Save-Button erfolgreich dupliziert mit Event-Listener');
+        console.log('Ablegen-Button erfolgreich unter Zuweisen-Feld eingefügt');
+        return true;
     }
 
-    // Toolbar-Container überwachen
-    function observeToolbar() {
+    // DOM überwachen
+    function observeDOM() {
         if (observer) {
             observer.disconnect();
         }
 
-        // Toolbar-Container finden
-        const toolbarContainer = document.querySelector('.dw-toolbar-li')?.closest('ul, ol');
-        
-        if (!toolbarContainer) {
-            console.warn('Toolbar-Container nicht gefunden');
-            setTimeout(observeToolbar, 1000);
-            return;
-        }
-
         observer = new MutationObserver((mutations) => {
-            // Prüfen ob duplizierter Button noch existiert
-            const duplicatedExists = document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
-            const targetExists = document.querySelector(TARGET_BUTTON_SELECTOR);
-            
-            if (targetExists && !duplicatedExists) {
-                console.log('Duplizierter Button fehlt - wird neu eingefügt');
-                duplicateSaveButton();
+            const fieldInfo = findZuweisenField();
+
+            if (fieldInfo) {
+                const hasButton = fieldInfo.inputCell.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
+                if (!hasButton) {
+                    console.log('Button unter Zuweisen-Feld fehlt - wird eingefügt');
+                    addButtonUnderZuweisenField();
+                }
             }
         });
 
-        observer.observe(toolbarContainer, {
+        observer.observe(document.body, {
             childList: true,
             subtree: true
         });
 
-        console.log('Toolbar-Observer aktiviert');
+        console.log('Zuweisen-Field-Observer aktiviert');
     }
 
     // Initialisierung
     function init() {
-        console.log('Initialisiere Save-Button Duplikation');
-        
-        // Ersten Button duplizieren
-        duplicateSaveButton();
-        
-        // Observer für Änderungen starten
-        observeToolbar();
-        
-        // Zusätzlich: Bei jedem Dokumentwechsel prüfen
+        console.log('Initialisiere Store-Button unter Zuweisen-Feld');
+
+        // CSS injizieren
+        injectStyles();
+
+        // Button einfügen
+        const success = addButtonUnderZuweisenField();
+
+        if (success) {
+            // Observer starten
+            observeDOM();
+        } else {
+            // Erneut versuchen nach kurzer Wartezeit
+            setTimeout(() => {
+                if (addButtonUnderZuweisenField()) {
+                    observeDOM();
+                }
+            }, 1000);
+        }
+
+        // Backup: Regelmäßig prüfen
         setInterval(() => {
-            const duplicatedExists = document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
-            const targetExists = document.querySelector(TARGET_BUTTON_SELECTOR);
-            
-            if (targetExists && !duplicatedExists) {
-                duplicateSaveButton();
+            const fieldInfo = findZuweisenField();
+            if (fieldInfo) {
+                const hasButton = fieldInfo.inputCell.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
+                if (!hasButton) {
+                    addButtonUnderZuweisenField();
+                }
             }
-        }, 2000);
+        }, 3000);
     }
 
-    // Warten bis DOM vollständig geladen ist
+    // Start
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(init, 500);
