@@ -2,9 +2,9 @@
     // NEU: Straßenkatalog (beliebig erweiterbar)
     const STRASSEN_KATALOG = [
         'Adam-Klein-Str.',
-        'Amalienstr.',
+        'Amalienstr. 38',
         'Ammonstr.',
-        'Anne-Frank-Str.',
+        'Anne-Frank-Str. 43',
         'Arnulfstr.',
         'Äußere Großweidenmühlstr.',
         'Badstr.',
@@ -196,6 +196,7 @@
     obs.observe(document.body, { subtree: true, childList: true });
     scan();
 })();
+
 
 
 
