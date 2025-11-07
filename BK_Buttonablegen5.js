@@ -1,11 +1,11 @@
 // duplicateSaveButton.js
-(function () {
+(function() {
     'use strict';
 
     const SAVE_BUTTON_SELECTOR = 'li[data-trackerevent="Save"]';
     const TARGET_BUTTON_SELECTOR = 'li[data-trackerevent="Annotations_TransparentRectangle"]';
     const DUPLICATED_BUTTON_CLASS = 'dw-duplicated-save-button';
-
+    
     let observer = null;
 
     // ÄNDERUNG: Click-Event manuell hinzufügen
@@ -26,20 +26,20 @@
 
         // Button klonen
         const clonedButton = saveButton.cloneNode(true);
-
+        
         // Markierung hinzufügen
         clonedButton.classList.add(DUPLICATED_BUTTON_CLASS);
-
+        
         // Eindeutige ID für Tracking
         clonedButton.setAttribute('data-trackerevent', 'Save_Duplicated');
-
+        
         // NEU: Click-Event hinzufügen, der den Original-Button triggert
         clonedButton.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-
+            
             console.log('Duplizierter Save-Button geklickt - triggere Original');
-
+            
             // Original-Button klicken
             const originalSaveButton = document.querySelector(SAVE_BUTTON_SELECTOR);
             if (originalSaveButton) {
@@ -50,7 +50,11 @@
         });
 
         // Nach dem Ziel-Button einfügen
-        targetButton.parentNode.insertBefore(clonedButton, targetButton);
+        if (targetButton.nextSibling) {
+            targetButton.parentNode.insertBefore(clonedButton, targetButton.nextSibling);
+        } else {
+            targetButton.parentNode.appendChild(clonedButton);
+        }
 
         console.log('Save-Button erfolgreich dupliziert mit Event-Listener');
     }
@@ -63,7 +67,7 @@
 
         // Toolbar-Container finden
         const toolbarContainer = document.querySelector('.dw-toolbar-li')?.closest('ul, ol');
-
+        
         if (!toolbarContainer) {
             console.warn('Toolbar-Container nicht gefunden');
             setTimeout(observeToolbar, 1000);
@@ -74,7 +78,7 @@
             // Prüfen ob duplizierter Button noch existiert
             const duplicatedExists = document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
             const targetExists = document.querySelector(TARGET_BUTTON_SELECTOR);
-
+            
             if (targetExists && !duplicatedExists) {
                 console.log('Duplizierter Button fehlt - wird neu eingefügt');
                 duplicateSaveButton();
@@ -92,18 +96,18 @@
     // Initialisierung
     function init() {
         console.log('Initialisiere Save-Button Duplikation');
-
+        
         // Ersten Button duplizieren
         duplicateSaveButton();
-
+        
         // Observer für Änderungen starten
         observeToolbar();
-
+        
         // Zusätzlich: Bei jedem Dokumentwechsel prüfen
         setInterval(() => {
             const duplicatedExists = document.querySelector(`.${DUPLICATED_BUTTON_CLASS}`);
             const targetExists = document.querySelector(TARGET_BUTTON_SELECTOR);
-
+            
             if (targetExists && !duplicatedExists) {
                 duplicateSaveButton();
             }
