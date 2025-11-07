@@ -6,69 +6,66 @@
         'Ammonstr.',
         'Anne-Frank-Str. 43',
         'Arnulfstr. 4',
-        'Äußere Großweidenmühlstr.',
-        'Badstr.',
-        'Bahnhofstr.',
-        'Bogenstr.',
-        'Emilienstr.',
-        'Flugplatzstr.',
-        'Frauentorgraben',
-        'Friedrichstr.',
+        'Äußere Großweidenmühlstr. 10',
+        'Badstr. 52',
+        'Bahnhofstr. 79',
+        'Bogenstr. 42',
+        'Emilienstr. 1',
+        'Flugplatzstr. 80',
+        'Frauentorgraben 3',
+        'Friedrichstr. 9',
         'Fürther Str.',
-        'Gibitzenhofstr.',
-        'Grenzstr.',
-        'Grünerstr.',
-        'Hallstr.',
-        'Hans-Vogel-Str.',
+        'Gibitzenhofstr. 61',
+        'Grenzstr. 13',
+        'Grünerstr. 2',
+        'Hallstr. 6',
+        'Hans-Vogel-Str. 20',
         'Hauptstr.',
-        'Hertastr.',
+        'Hertastr. 21',
         'Hirschenstr.',
-        'Hornschuchpromenade',
-        'Im Unteren Grund',
-        'Innerer Kleinreuther Weg',
-        'Ipsheimer Str.',
+        'Hornschuchpromenade 25',
+        'Im Unteren Grund 1-1e',
+        'Innerer Kleinreuther Weg 5-7',
+        'Ipsheimer Str. 12',
         'Johann-Geismann-Str.',
-        'Johannisstr.',
-        'Katharinengasse',
-        'Kirchenweg',
+        'Johannisstr. 108',
+        'Katharinengasse 24',
+        'Kirchenweg 43',
         'Kneippallee',
-        'Königswarterstr.',
-        'Krugstr.',
-        'Kurgartenstr.',
-        'Landgrabenstr.',
-        'Lilienstr.',
+        'Königswarterstr. 20',
+        'Krugstr. 27',
+        'Kurgartenstr. 19',
+        'Landgrabenstr. 14',
+        'Lilienstr. 57',
         'Lorenzer Str.',
-        'Mondstr.',
+        'Mondstr. 8',
         'Nelkenstr.',
-        'Neubleiche',
-        'Neutormauer',
-        'Obere Turnstr.',
-        'Peterstr.',
-        'Pfefferloh',
-        'Prinzregentenufer',
-        'Rankestr.',
+        'Neubleiche 8',
+        'Neutormauer 2',
+        'Obere Turnstr. 9',
+        'Peterstr. 71',
+        'Pfefferloh 3',
+        'Prinzregentenufer 5',
+        'Rankestr. 60',
         'Regensburger Str.',
-        'Reitmorstr.',
+        'Reitmorstr. 52',
         'Saalfelder Str.',
-        'Sauerbruchstr.',
-        'Schlotfegergasse',
-        'Schumannstr.',
+        'Sauerbruchstr. 10',
+        'Schlotfegergasse 6',
+        'Schumannstr. 13',
         'Schwabacher Str.',
-        'Sigmund-Nathan-Str.',
-        'Sigmundstr.',
-        'Sonstige',
-        'Spittlertorgraben',
-        'Spitzwegstr.',
-        'Sprottauer Str.',
+        'Sigmund-Nathan-Str. 4-4a',
+        'Sigmundstr. 139',
+        'Spittlertorgraben 29',
+        'Spitzwegstr. 27',
+        'Sprottauer Str. 10',
         'Stephanstr.',
-        'Thurn-und-Taxis-Str.',
-        'Vacher Str.',
+        'Thurn-und-Taxis-Str. 18',
+        'Vacher Str. 471',
         'Volbehrstr.',
-        'Volkacher Str.',
-        'Willy-Brandt-Platz',
-        'Wodanstr.',
-        'Zollhof'
-
+        'Willy-Brandt-Platz 10',
+        'Wodanstr. 34',
+        'Zollhof 8'
     ];
 
     // NEU: Levenshtein-Distanz für Fuzzy Matching
@@ -99,29 +96,45 @@
         return matrix[len1][len2];
     }
 
-    // NEU: Besten Match aus Katalog finden
-    function findBestMatch(input) {
+    // ÄNDERUNG: Straßenname ohne Hausnummer extrahieren
+    function extrahiereStrassenname(text) {
+        return text.replace(/\s+\d+.*$/, '').trim();
+    }
+
+    // NEU: Prüfen ob Katalogeintrag Hausnummer enthält
+    function hatHausnummer(text) {
+        return /\s+\d+/.test(text);
+    }
+
+    // ÄNDERUNG: Besten Match aus Katalog finden
+    function findBestMatch(input, userHausnummer) {
         if (!input || input.length < 3) return null;
 
         let bestMatch = null;
         let bestDistance = Infinity;
         const threshold = Math.ceil(input.length * 0.3); // 30% Fehlertoleranz
 
+        const inputOhneNr = extrahiereStrassenname(input);
+
         for (const strasse of STRASSEN_KATALOG) {
-            const distance = levenshteinDistance(input, strasse);
+            const strasseOhneNr = extrahiereStrassenname(strasse);
+            const distance = levenshteinDistance(inputOhneNr, strasseOhneNr);
 
-            const inputOhneNr = input.replace(/\s+\d+.*$/, '').trim();
-            const distanceOhneNr = levenshteinDistance(inputOhneNr, strasse);
-
-            const minDistance = Math.min(distance, distanceOhneNr);
-
-            if (minDistance < bestDistance && minDistance <= threshold) {
-                bestDistance = minDistance;
+            if (distance < bestDistance && distance <= threshold) {
+                bestDistance = distance;
                 bestMatch = strasse;
             }
         }
 
-        return bestMatch;
+        // ÄNDERUNG: Wenn Match gefunden und keine Hausnummer im Katalog, User-Hausnummer anhängen
+        if (bestMatch) {
+            if (!hatHausnummer(bestMatch) && userHausnummer) {
+                return `${bestMatch} ${userHausnummer}`;
+            }
+            return bestMatch; // Katalog-Eintrag komplett mit Hausnummer
+        }
+
+        return null;
     }
 
     // NEU: Hausnummer extrahieren
@@ -152,7 +165,7 @@
         return result;
     }
 
-    // ÄNDERUNG: Direkte Korrektur ohne Popup
+    // ÄNDERUNG: Verarbeitung mit Hausnummer-Logik
     function verarbeiteEingabe(inputField) {
         let value = inputField.value;
         if (!value) return;
@@ -160,14 +173,14 @@
         // 1. Straßenname kürzen
         value = kuerzeStrassenname(value);
 
-        // 2. Fuzzy-Matching gegen Katalog
-        const hausnummer = extraiereHausnummer(value);
-        const strasseOhneNr = value.replace(/\s+\d+.*$/, '').trim();
-        const bestMatch = findBestMatch(strasseOhneNr);
+        // 2. Hausnummer vom User extrahieren
+        const userHausnummer = extraiereHausnummer(value);
 
-        if (bestMatch && bestMatch !== strasseOhneNr) {
-            // ÄNDERUNG: Direkt korrigieren
-            value = hausnummer ? `${bestMatch} ${hausnummer}` : bestMatch;
+        // 3. Fuzzy-Matching gegen Katalog
+        const bestMatch = findBestMatch(value, userHausnummer);
+
+        if (bestMatch && bestMatch !== value) {
+            value = bestMatch;
         }
 
         // Wert setzen wenn geändert
@@ -196,9 +209,4 @@
     obs.observe(document.body, { subtree: true, childList: true });
     scan();
 })();
-
-
-
-
-
 
