@@ -18,7 +18,7 @@
     ];
 
     const specialDelayScripts = {
-        'BK_Buttonablegen5': 1000
+        'BK_Buttonablegen5': 500
     };
 
     const scriptNames = {
@@ -68,7 +68,7 @@
         
         statusEl.textContent = 'Lade...';
         statusEl.style.background = '#dbeafe';
-        statusEl.style.color = '#3553a4ff';
+        statusEl.style.color = '#1d4ed8';
         
         try {
             console.log(`🔄 Lade Script ${index + 1}/${total}: ${fileName}`);
@@ -91,7 +91,7 @@
             document.getElementById(`script-${index}`).style.background = '#f0f9ff';
             statusEl.textContent = 'Geladen';
             statusEl.style.background = '#dbeafe';
-            statusEl.style.color = '#394e94ff';
+            statusEl.style.color = '#1e40af';
             
             const settings = getSettings();
             if(!settings.loadedScripts) settings.loadedScripts = {};
