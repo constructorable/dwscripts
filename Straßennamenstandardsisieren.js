@@ -54,7 +54,7 @@
         'Schlotfegergasse 6',
         'Schumannstr. 13',
         'Schwabacher Str.',
-        'Sigmund-Nathan-Str. 4-4a',
+        'Sigmund-Nathan-Str. 4+4a',
         'Sigmundstr. 139',
         'Spittlertorgraben 29',
         'Spitzwegstr. 27',
@@ -209,4 +209,5 @@
     obs.observe(document.body, { subtree: true, childList: true });
     scan();
 })();
+
 
