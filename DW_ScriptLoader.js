@@ -15,7 +15,8 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/speicherbuttonduplizieren.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autovervollst%C3%A4ndigungdokart.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autovervollst%C3%A4ndigungdokart.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Stra%C3%9Fennamenstandardsisieren.js'
     ];
 
     const specialDelayScripts = {
@@ -37,7 +38,8 @@
         'supersuche': '11_Supersuche',
         'Seitenanzahl' : '12_Seitenanzahl',
         'Speicherbutton' : '13_Speicherbutton duplizieren',
-        'Autovervollständigung Dok-Arten' : '14_Autovervollständigung Dok-Arten'
+        'Autovervollständigung Dok-Arten' : '14_Autovervollständigung Dok-Arten',
+        'Autovervollständigung Objekte' : '15_Autovervollständigung Objekte',
     };
 
     // Font Awesome laden falls nicht vorhanden
