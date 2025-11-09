@@ -102,6 +102,12 @@
     // Präfix-Mappings berechnen
     const STRASSEN_PRAFIX_MAPPING = berechneStrassenPrafixMapping();
 
+    // NEU: Sternchen und Leerzeichen am Anfang entfernen
+    function bereinigeStrassenEingabe(input) {
+        if (!input) return '';
+        return input.replace(/^[\s*]+/, '').trim();
+    }
+
     function berechneStrassenPrafixMapping() {
         const eindeutigMapping = {};
         const mehrfachMapping = {};
@@ -255,8 +261,10 @@
         return result;
     }
 
-    // Intelligente Autovervollständigung
+    // ÄNDERUNG: Intelligente Autovervollständigung mit bereinigter Eingabe
     function findeSchnelleStrassenAutovervollstaendigung(input) {
+        input = bereinigeStrassenEingabe(input);
+        
         if (!input || input.length < 3) return null;
         
         const inputLower = input.toLowerCase().trim();
@@ -327,8 +335,10 @@
         return null;
     }
 
-    // Fuzzy-Matching für Blur
+    // ÄNDERUNG: Fuzzy-Matching mit bereinigter Eingabe
     function findeBesteFuzzyMatches(input) {
+        input = bereinigeStrassenEingabe(input);
+        
         if (!input || input.length < 3) return [];
 
         const inputOhneNr = extrahiereStrassenname(input);
@@ -371,7 +381,7 @@
 
     // Autovervollständigung anzeigen
     function zeigeStrassenAutovervollstaendigung(inputField, vorschlag) {
-        const currentValue = inputField.value;
+        const currentValue = bereinigeStrassenEingabe(inputField.value);
         inputField.value = vorschlag;
         inputField.setSelectionRange(currentValue.length, vorschlag.length);
         strassenAutoVervollstaendigungAktiv = true;
@@ -562,10 +572,17 @@
         }
     }
 
-    // Input-Handler
+    // ÄNDERUNG: Input-Handler mit Sternchen-Entfernung
     function handleStrassenInput(e) {
         const inputField = e.target;
         let value = inputField.value;
+        
+        // ÄNDERUNG: Sternchen entfernen
+        if (value.startsWith('*') || value.startsWith(' *')) {
+            const bereinigtValue = bereinigeStrassenEingabe(value);
+            inputField.value = bereinigtValue;
+            value = bereinigtValue;
+        }
         
         // Blockade nach Lösch-Aktion
         const zeitSeitLetzterLoeschung = Date.now() - letzteStrassenLoeschAktion;
@@ -650,4 +667,5 @@
     strassenObserver.observe(document.body, { subtree: true, childList: true });
     scanStrassen();
 })();
+
 
