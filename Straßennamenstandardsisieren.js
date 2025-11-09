@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-     
+    
     // Straßenkatalog
     const STRASSEN_KATALOG = [
         'Amalienstr. 38',
@@ -98,23 +98,43 @@
     let strassenAutoVervollstaendigungAktiv = false;
     let letzteStrassenLoeschAktion = 0;
     let strassenLoeschBlockadeTimeout = null;
+    let docuWareBlockiert = false; // NEU: Flag für DocuWare-Blockierung
 
     // Präfix-Mappings berechnen
     const STRASSEN_PRAFIX_MAPPING = berechneStrassenPrafixMapping();
 
-    // NEU: DocuWare Autocomplete verstecken
+    // ÄNDERUNG: DocuWare Autocomplete verstecken mit Blockierung
     function versteckeDocuWareAutocomplete() {
         const modals = document.querySelectorAll('.dw-autocompleteColumnContainer, .dw-autocompleteScrollArea');
         modals.forEach(modal => {
             if (modal.style.display !== 'none') {
                 modal.style.display = 'none';
+                modal.style.visibility = 'hidden';
             }
         });
     }
 
-    // NEU: Observer für DocuWare Autocomplete
+    // NEU: DocuWare temporär blockieren
+    function blockiereDocuWareTemporaer(dauer = 500) {
+        docuWareBlockiert = true;
+        versteckeDocuWareAutocomplete();
+        
+        // Mehrfach verstecken über die Zeit
+        const intervals = [50, 100, 150, 200, 300, 400];
+        intervals.forEach(delay => {
+            setTimeout(() => {
+                versteckeDocuWareAutocomplete();
+            }, delay);
+        });
+        
+        setTimeout(() => {
+            docuWareBlockiert = false;
+        }, dauer);
+    }
+
+    // ÄNDERUNG: Observer für DocuWare Autocomplete mit Blockierungs-Check
     const docuWareObserver = new MutationObserver(() => {
-        if (strassenAutoVervollstaendigungAktiv || activeStrassenDropdown) {
+        if (strassenAutoVervollstaendigungAktiv || activeStrassenDropdown || docuWareBlockiert) {
             versteckeDocuWareAutocomplete();
         }
     });
@@ -403,7 +423,7 @@
         return matches.map(m => m.text);
     }
 
-    // ÄNDERUNG: Autovervollständigung anzeigen + DocuWare verstecken
+    // Autovervollständigung anzeigen + DocuWare verstecken
     function zeigeStrassenAutovervollstaendigung(inputField, vorschlag) {
         const currentValue = bereinigeStrassenEingabe(inputField.value);
         inputField.value = vorschlag;
@@ -412,7 +432,7 @@
         versteckeDocuWareAutocomplete();
     }
 
-    // ÄNDERUNG: Dropdown erstellen + DocuWare verstecken
+    // Dropdown erstellen + DocuWare verstecken
     function zeigeStrassenDropdown(inputField, optionen) {
         entferneStrassenDropdown();
         selectedStrassenIndex = 0;
@@ -540,12 +560,12 @@
             return;
         }
 
-        // Tab bei Autovervollständigung
+        // ÄNDERUNG: Tab bei Autovervollständigung mit DocuWare-Blockierung
         if (e.key === 'Tab' && strassenAutoVervollstaendigungAktiv && !activeStrassenDropdown) {
             e.preventDefault();
             strassenAutoVervollstaendigungAktiv = false;
             e.target.setSelectionRange(e.target.value.length, e.target.value.length);
-            versteckeDocuWareAutocomplete();
+            blockiereDocuWareTemporaer(800); // NEU: Längere Blockierung nach Tab
             return;
         }
 
@@ -591,7 +611,7 @@
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
                 entferneStrassenDropdown();
                 fokussiereNaechstesStrassenFeld(inputField);
-                versteckeDocuWareAutocomplete();
+                blockiereDocuWareTemporaer(800); // NEU: Blockierung nach Enter
                 break;
 
             case 'Escape':
