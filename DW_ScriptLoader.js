@@ -16,7 +16,7 @@
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js', name: 'Seitenanzahl Anzeige', category: 'Info' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/speicherbuttonduplizieren.js', name: 'Speicherbutton Duplizieren', category: 'Workflow' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autovervollst%C3%A4ndigungdokart.js', name: 'Dokumentarten Autocomplete', category: 'Autocomplete' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Stra%C3%9Fennamenstandardsisieren.js', name: 'Straßennamen Standardisierung', category: 'Autocomplete' }
+        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autocompletestrassennamen.js', name: 'Straßennamen Standardisierung', category: 'Autocomplete' }
     ];
 
     // ÄNDERUNG: Font Awesome laden
