@@ -14,11 +14,12 @@
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js',
         'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js',
-        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/speicherbuttonduplizieren.js'
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/speicherbuttonduplizieren.js',
+        'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autovervollst%C3%A4ndigungdokart.js'
     ];
 
     const specialDelayScripts = {
-        'BK_Buttonablegen5': 500
+        'BK_Buttonablegen5': 1000
     };
 
     const scriptNames = {
@@ -36,6 +37,7 @@
         'supersuche': '11_Supersuche',
         'Seitenanzahl' : '12_Seitenanzahl',
         'Speicherbutton' : '13_Speicherbutton duplizieren',
+        'Autovervollständigung Dok-Arten' : '14_Autovervollständigung Dok-Arten'
     };
 
     // Font Awesome laden falls nicht vorhanden
@@ -68,7 +70,7 @@
         
         statusEl.textContent = 'Lade...';
         statusEl.style.background = '#dbeafe';
-        statusEl.style.color = '#1d4ed8';
+        statusEl.style.color = '#3553a4ff';
         
         try {
             console.log(`🔄 Lade Script ${index + 1}/${total}: ${fileName}`);
@@ -91,7 +93,7 @@
             document.getElementById(`script-${index}`).style.background = '#f0f9ff';
             statusEl.textContent = 'Geladen';
             statusEl.style.background = '#dbeafe';
-            statusEl.style.color = '#1e40af';
+            statusEl.style.color = '#394e94ff';
             
             const settings = getSettings();
             if(!settings.loadedScripts) settings.loadedScripts = {};
@@ -378,4 +380,3 @@
         console.log(`🎉 Sequenzielles Laden abgeschlossen! ${successCount}/${scriptsToLoad.length} Scripts erfolgreich geladen.`);
     };
 })();
-
