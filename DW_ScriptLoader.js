@@ -150,6 +150,7 @@
         
         // ÄNDERUNG: Modal in obere rechte Ecke verschieben
 // ÄNDERUNG: Modal in obere rechte Ecke verschieben
+// ÄNDERUNG: Modal in obere rechte Ecke verschieben
 moveToCorner() {
     const modal = document.getElementById('dwScriptModal');
     const overlay = modal.firstElementChild;
@@ -176,7 +177,6 @@ moveToCorner() {
     modalBox.style.maxHeight = '85vh';
     modalBox.style.transition = 'all 0.3s ease';
 },
-
 
         getSelectionHTML() {
             const settings = Storage.getSettings();
@@ -426,5 +426,4 @@ moveToCorner() {
         ModalManager.create('selection');
     }
 })();
-
 
