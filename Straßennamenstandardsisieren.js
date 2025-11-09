@@ -90,7 +90,6 @@
         'Zollhof 8'
     ];
 
-
     // Präfix-Mappings beim Start berechnen
     const PRAFIX_MAPPING = strassenBerechnePrafixMapping();
 
@@ -722,4 +721,3 @@
     strassenObs.observe(document.body, { subtree: true, childList: true });
     strassenScan();
 })();
-
