@@ -90,36 +90,240 @@
         'Zollhof 8'
     ];
 
-    // NEU: Globale Variablen
-    let activeDropdown = null;
-    let selectedIndex = 0;
-    let wertDurchDropdownGesetzt = false;
 
-    // NEU: DocuWare Autocomplete-Modal verstecken
-    function versteckeDocuWareAutocomplete() {
+    // Präfix-Mappings beim Start berechnen
+    const PRAFIX_MAPPING = strassenBerechnePrafixMapping();
+
+    // Straßen nach Basisnamen gruppieren
+    const strassenGruppen = strassenAnalysiereStrassen();
+
+    // Globale Variablen mit Namespace
+    let strassenActiveDropdown = null;
+    let strassenSelectedIndex = 0;
+    let strassenWertDurchDropdownGesetzt = false;
+    let strassenAutoVervollstaendigungAktiv = false;
+
+    // Präfix-Mapping mit eindeutigen UND mehrfachen Straßen
+    function strassenBerechnePrafixMapping() {
+        const eindeutigMapping = {};
+        const mehrfachMapping = {};
+        const basisnamenGruppen = {};
+        
+        STRASSEN_KATALOG.forEach(strasse => {
+            const basisname = strassenExtrahiereStrassenname(strasse);
+            const basiKey = basisname.toLowerCase();
+            
+            if (!basisnamenGruppen[basiKey]) {
+                basisnamenGruppen[basiKey] = [];
+            }
+            basisnamenGruppen[basiKey].push(strasse);
+        });
+        
+        const eindeutigeStrassen = [];
+        const mehrfacheStrassen = [];
+        
+        for (const basiKey in basisnamenGruppen) {
+            if (basisnamenGruppen[basiKey].length === 1) {
+                eindeutigeStrassen.push({
+                    basisname: basiKey,
+                    vollstaendig: basisnamenGruppen[basiKey][0]
+                });
+            } else {
+                mehrfacheStrassen.push({
+                    basisname: basiKey,
+                    varianten: basisnamenGruppen[basiKey]
+                });
+            }
+        }
+        
+        eindeutigeStrassen.forEach(strasse => {
+            const basisname = strasse.basisname;
+            let minLength = 3;
+            
+            for (let len = minLength; len <= basisname.length; len++) {
+                const praefix = basisname.substring(0, len);
+                let istEindeutig = true;
+                
+                for (const andere of eindeutigeStrassen) {
+                    if (andere.basisname !== basisname && 
+                        andere.basisname.startsWith(praefix)) {
+                        istEindeutig = false;
+                        break;
+                    }
+                }
+                
+                if (istEindeutig) {
+                    for (const mehrfach of mehrfacheStrassen) {
+                        if (mehrfach.basisname.startsWith(praefix)) {
+                            istEindeutig = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (istEindeutig) {
+                    eindeutigMapping[praefix] = strasse.vollstaendig;
+                    break;
+                }
+            }
+        });
+        
+        mehrfacheStrassen.forEach(strasse => {
+            const basisname = strasse.basisname;
+            let minLength = 3;
+            
+            for (let len = minLength; len <= basisname.length; len++) {
+                const praefix = basisname.substring(0, len);
+                let istEindeutig = true;
+                
+                for (const andere of mehrfacheStrassen) {
+                    if (andere.basisname !== basisname && 
+                        andere.basisname.startsWith(praefix)) {
+                        istEindeutig = false;
+                        break;
+                    }
+                }
+                
+                if (istEindeutig) {
+                    for (const eindeutig of eindeutigeStrassen) {
+                        if (eindeutig.basisname.startsWith(praefix)) {
+                            istEindeutig = false;
+                            break;
+                        }
+                    }
+                }
+                
+                if (istEindeutig) {
+                    mehrfachMapping[praefix] = strasse.varianten;
+                    break;
+                }
+            }
+        });
+        
+        return { eindeutig: eindeutigMapping, mehrfach: mehrfachMapping };
+    }
+
+    // Straßen analysieren und gruppieren
+    function strassenAnalysiereStrassen() {
+        const gruppen = {};
+        
+        STRASSEN_KATALOG.forEach(strasse => {
+            const basisname = strassenExtrahiereStrassenname(strasse);
+            if (!gruppen[basisname.toLowerCase()]) {
+                gruppen[basisname.toLowerCase()] = [];
+            }
+            gruppen[basisname.toLowerCase()].push(strasse);
+        });
+        
+        return gruppen;
+    }
+
+    // Intelligente Suche mit kontinuierlicher Autovervollständigung
+    function strassenFindeSchnelleAutovervollstaendigung(input) {
+        if (!input || input.length < 3) return null;
+        
+        const inputLower = input.toLowerCase().trim();
+        
+        if (PRAFIX_MAPPING.eindeutig[inputLower]) {
+            return {
+                typ: 'eindeutig',
+                wert: PRAFIX_MAPPING.eindeutig[inputLower]
+            };
+        }
+        
+        if (PRAFIX_MAPPING.mehrfach[inputLower]) {
+            return {
+                typ: 'mehrfach',
+                wert: PRAFIX_MAPPING.mehrfach[inputLower]
+            };
+        }
+        
+        for (const praefix in PRAFIX_MAPPING.eindeutig) {
+            if (praefix.startsWith(inputLower) && inputLower.length >= 3) {
+                return {
+                    typ: 'eindeutig',
+                    wert: PRAFIX_MAPPING.eindeutig[praefix]
+                };
+            }
+        }
+        
+        for (const praefix in PRAFIX_MAPPING.mehrfach) {
+            if (praefix.startsWith(inputLower) && inputLower.length >= 3) {
+                return {
+                    typ: 'mehrfach',
+                    wert: PRAFIX_MAPPING.mehrfach[praefix]
+                };
+            }
+        }
+        
+        for (const praefix in PRAFIX_MAPPING.eindeutig) {
+            if (inputLower.startsWith(praefix)) {
+                const strasseVollstaendig = PRAFIX_MAPPING.eindeutig[praefix];
+                const strasseLower = strasseVollstaendig.toLowerCase();
+                
+                if (strasseLower.startsWith(inputLower)) {
+                    return {
+                        typ: 'eindeutig',
+                        wert: strasseVollstaendig
+                    };
+                }
+            }
+        }
+        
+        for (const praefix in PRAFIX_MAPPING.mehrfach) {
+            if (inputLower.startsWith(praefix)) {
+                const varianten = PRAFIX_MAPPING.mehrfach[praefix];
+                
+                const passendeVarianten = varianten.filter(v => 
+                    v.toLowerCase().startsWith(inputLower)
+                );
+                
+                if (passendeVarianten.length > 0) {
+                    return {
+                        typ: 'mehrfach',
+                        wert: passendeVarianten
+                    };
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    // Autovervollständigung anzeigen
+    function strassenZeigeAutovervollstaendigung(inputField, vorschlag) {
+        const currentValue = inputField.value;
+        
+        inputField.value = vorschlag;
+        inputField.setSelectionRange(currentValue.length, vorschlag.length);
+        
+        strassenAutoVervollstaendigungAktiv = true;
+    }
+
+    // DocuWare Autocomplete-Modal verstecken
+    function strassenVersteckeDocuWareAutocomplete() {
         const modals = document.querySelectorAll('.dw-autocompleteColumnContainer');
         modals.forEach(modal => {
             modal.style.display = 'none';
         });
     }
 
-    // NEU: Observer für DocuWare Modals
-    const modalObserver = new MutationObserver(() => {
-        if (wertDurchDropdownGesetzt) {
-            versteckeDocuWareAutocomplete();
+    // Observer für DocuWare Modals
+    const strassenModalObserver = new MutationObserver(() => {
+        if (strassenWertDurchDropdownGesetzt) {
+            strassenVersteckeDocuWareAutocomplete();
         }
     });
 
-    // NEU: Modal-Observer starten
-    modalObserver.observe(document.body, {
+    strassenModalObserver.observe(document.body, {
         childList: true,
         subtree: true,
         attributes: true,
         attributeFilter: ['style', 'class']
     });
 
-    // NEU: Levenshtein-Distanz für Fuzzy Matching
-    function levenshteinDistance(str1, str2) {
+    // Levenshtein-Distanz für Fuzzy Matching
+    function strassenLevenshteinDistance(str1, str2) {
         const len1 = str1.length;
         const len2 = str2.length;
         const matrix = [];
@@ -146,49 +350,85 @@
         return matrix[len1][len2];
     }
 
-    // ÄNDERUNG: Straßenname ohne Hausnummer extrahieren
-    function extrahiereStrassenname(text) {
+    // Straßenname ohne Hausnummer extrahieren
+    function strassenExtrahiereStrassenname(text) {
         return text.replace(/\s+\d+.*$/, '').trim();
     }
 
-    // NEU: Prüfen ob Katalogeintrag Hausnummer enthält
-    function hatHausnummer(text) {
+    // Prüfen ob Katalogeintrag Hausnummer enthält
+    function strassenHatHausnummer(text) {
         return /\s+\d+/.test(text);
     }
 
-    // NEU: Hausnummer extrahieren
-    function extraiereHausnummer(text) {
+    // Hausnummer extrahieren
+    function strassenExtraiereHausnummer(text) {
         const match = text.match(/\s+(\d+.*?)$/);
         return match ? match[1] : '';
     }
 
-    // ÄNDERUNG: Alle Matches finden (statt nur besten)
-    function findAllMatches(input, userHausnummer) {
+    // Exakte Übereinstimmung prüfen
+    function strassenFindeExakteUebereinstimmung(input) {
+        const inputNormalized = input.trim().toLowerCase();
+        
+        for (const strasse of STRASSEN_KATALOG) {
+            if (strasse.toLowerCase() === inputNormalized) {
+                return strasse;
+            }
+        }
+        return null;
+    }
+
+    // Intelligente Match-Suche
+    function strassenFindBestMatches(input) {
         if (!input || input.length < 3) return [];
 
-        const matches = [];
-        const threshold = Math.ceil(input.length * 0.3);
-        const inputOhneNr = extrahiereStrassenname(input);
+        const inputOhneNr = strassenExtrahiereStrassenname(input);
+        const userHausnummer = strassenExtraiereHausnummer(input);
 
-        for (const strasse of STRASSEN_KATALOG) {
-            const strasseOhneNr = extrahiereStrassenname(strasse);
-            const distance = levenshteinDistance(inputOhneNr, strasseOhneNr);
-
-            if (distance <= threshold) {
-                let finalStrasse = strasse;
-                if (!hatHausnummer(strasse) && userHausnummer) {
-                    finalStrasse = `${strasse} ${userHausnummer}`;
-                }
-                matches.push({ text: finalStrasse, distance });
+        if (userHausnummer) {
+            const exakt = strassenFindeExakteUebereinstimmung(input);
+            if (exakt) {
+                return [exakt];
             }
         }
 
+        const matches = [];
+        const threshold = Math.ceil(inputOhneNr.length * 0.3);
+
+        for (const strasse of STRASSEN_KATALOG) {
+            const strasseOhneNr = strassenExtrahiereStrassenname(strasse);
+            const distance = strassenLevenshteinDistance(inputOhneNr, strasseOhneNr);
+
+            if (distance <= threshold) {
+                matches.push({ text: strasse, distance });
+            }
+        }
+
+        if (matches.length === 0) return [];
+
         matches.sort((a, b) => a.distance - b.distance);
+
+        if (userHausnummer) {
+            const uniqueStrassen = new Set(matches.map(m => strassenExtrahiereStrassenname(m.text)));
+            
+            if (uniqueStrassen.size === 1) {
+                const alleVarianten = matches.map(m => m.text);
+                const passendeVariante = alleVarianten.find(v => v.includes(userHausnummer));
+                
+                if (!passendeVariante) {
+                    const basisStrasse = Array.from(uniqueStrassen)[0];
+                    return [`${basisStrasse} ${userHausnummer}`];
+                }
+                
+                return [passendeVariante];
+            }
+        }
+
         return matches.map(m => m.text);
     }
 
-    // NEU: Nächstes Input-Feld finden und fokussieren
-    function fokussiereNaechstesFeld(currentField) {
+    // Nächstes Input-Feld finden und fokussieren
+    function strassenFokussiereNaechstesFeld(currentField) {
         const alleFelder = Array.from(document.querySelectorAll('input.dw-textField'));
         const currentIndex = alleFelder.indexOf(currentField);
         
@@ -201,9 +441,9 @@
         }
     }
 
-    // ÄNDERUNG: Auswahl im Dropdown hervorheben
-    function markiereAuswahl(dropdown, index) {
-        const items = dropdown.querySelectorAll('.dropdown-item');
+    // Auswahl im Dropdown hervorheben
+    function strassenMarkiereAuswahl(dropdown, index) {
+        const items = dropdown.querySelectorAll('.strassen-dropdown-item-' + STRASSEN_NS);
         items.forEach((item, i) => {
             if (i === index) {
                 item.style.background = '#007bff';
@@ -216,13 +456,13 @@
         });
     }
 
-    // ÄNDERUNG: Dropdown erstellen mit Fokus auf Input-Feld
-    function zeigeDropdown(inputField, optionen) {
-        entferneDropdown();
-        selectedIndex = 0;
+    // Dropdown erstellen
+    function strassenZeigeDropdown(inputField, optionen) {
+        strassenEntferneDropdown();
+        strassenSelectedIndex = 0;
 
         const dropdown = document.createElement('div');
-        dropdown.className = 'strassen-dropdown';
+        dropdown.className = 'strassen-dropdown-container-' + STRASSEN_NS;
         dropdown.style.cssText = `
             position: absolute;
             background: white;
@@ -241,7 +481,7 @@
 
         optionen.forEach((option, index) => {
             const item = document.createElement('div');
-            item.className = 'dropdown-item';
+            item.className = 'strassen-dropdown-item-' + STRASSEN_NS;
             item.textContent = option;
             item.style.cssText = `
                 padding: 10px 14px;
@@ -251,31 +491,29 @@
             `;
 
             item.addEventListener('mouseenter', () => {
-                selectedIndex = index;
-                markiereAuswahl(dropdown, selectedIndex);
+                strassenSelectedIndex = index;
+                strassenMarkiereAuswahl(dropdown, strassenSelectedIndex);
             });
 
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                // NEU: Flag setzen und Modal verstecken
-                wertDurchDropdownGesetzt = true;
-                versteckeDocuWareAutocomplete();
+                strassenWertDurchDropdownGesetzt = true;
+                strassenVersteckeDocuWareAutocomplete();
                 
                 inputField.value = option;
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
-                entferneDropdown();
+                strassenEntferneDropdown();
                 
-                // NEU: Modal nochmal verstecken nach kurzer Verzögerung
                 setTimeout(() => {
-                    versteckeDocuWareAutocomplete();
+                    strassenVersteckeDocuWareAutocomplete();
                 }, 50);
                 
-                fokussiereNaechstesFeld(inputField);
+                strassenFokussiereNaechstesFeld(inputField);
                 
                 setTimeout(() => {
-                    wertDurchDropdownGesetzt = false;
+                    strassenWertDurchDropdownGesetzt = false;
                 }, 500);
             });
 
@@ -287,64 +525,71 @@
         });
 
         document.body.appendChild(dropdown);
-        activeDropdown = { dropdown, inputField, optionen };
-        markiereAuswahl(dropdown, selectedIndex);
+        strassenActiveDropdown = { dropdown, inputField, optionen };
+        strassenMarkiereAuswahl(dropdown, strassenSelectedIndex);
 
         setTimeout(() => {
             inputField.focus();
         }, 0);
 
         setTimeout(() => {
-            document.addEventListener('click', handleOutsideClick);
+            document.addEventListener('click', strassenHandleOutsideClick);
         }, 100);
     }
 
-    // NEU: Dropdown entfernen
-    function entferneDropdown() {
-        const existing = document.querySelector('.strassen-dropdown');
+    // Dropdown entfernen
+    function strassenEntferneDropdown() {
+        const existing = document.querySelector('.strassen-dropdown-container-' + STRASSEN_NS);
         if (existing) {
             existing.remove();
-            document.removeEventListener('click', handleOutsideClick);
+            document.removeEventListener('click', strassenHandleOutsideClick);
         }
-        activeDropdown = null;
+        strassenActiveDropdown = null;
     }
 
-    // NEU: Klick außerhalb behandeln
-    function handleOutsideClick(e) {
-        if (!e.target.closest('.strassen-dropdown')) {
-            entferneDropdown();
+    // Klick außerhalb behandeln
+    function strassenHandleOutsideClick(e) {
+        if (!e.target.closest('.strassen-dropdown-container-' + STRASSEN_NS)) {
+            strassenEntferneDropdown();
         }
     }
 
-    // ÄNDERUNG: Tastatursteuerung mit Modal-Unterdrückung
-    function handleKeyDown(e) {
-        if (!activeDropdown) return;
+    // Tastatursteuerung
+    function strassenHandleKeyDown(e) {
+        if (e.key === 'Tab' && strassenAutoVervollstaendigungAktiv && !strassenActiveDropdown) {
+            e.preventDefault();
+            strassenAutoVervollstaendigungAktiv = false;
+            e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+            return;
+        }
 
-        const { dropdown, inputField, optionen } = activeDropdown;
+        if (!strassenActiveDropdown) return;
+
+        const { dropdown, inputField, optionen } = strassenActiveDropdown;
 
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                selectedIndex = (selectedIndex + 1) % optionen.length;
-                markiereAuswahl(dropdown, selectedIndex);
+                strassenSelectedIndex = (strassenSelectedIndex + 1) % optionen.length;
+                strassenMarkiereAuswahl(dropdown, strassenSelectedIndex);
                 break;
 
             case 'ArrowUp':
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                selectedIndex = (selectedIndex - 1 + optionen.length) % optionen.length;
-                markiereAuswahl(dropdown, selectedIndex);
+                strassenSelectedIndex = (strassenSelectedIndex - 1 + optionen.length) % optionen.length;
+                strassenMarkiereAuswahl(dropdown, strassenSelectedIndex);
                 break;
 
             case 'Tab':
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                selectedIndex = (selectedIndex + 1) % optionen.length;
-                markiereAuswahl(dropdown, selectedIndex);
+                strassenSelectedIndex = (strassenSelectedIndex + 1) % optionen.length;
+                strassenMarkiereAuswahl(dropdown, strassenSelectedIndex);
                 break;
 
             case 'Enter':
@@ -352,25 +597,23 @@
                 e.stopPropagation();
                 e.stopImmediatePropagation();
                 
-                // NEU: Flag setzen und Modal verstecken
-                wertDurchDropdownGesetzt = true;
-                versteckeDocuWareAutocomplete();
+                strassenWertDurchDropdownGesetzt = true;
+                strassenVersteckeDocuWareAutocomplete();
                 
-                const selectedValue = optionen[selectedIndex];
+                const selectedValue = optionen[strassenSelectedIndex];
                 inputField.value = selectedValue;
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
                 
-                entferneDropdown();
+                strassenEntferneDropdown();
                 
-                // NEU: Modal nochmal verstecken nach kurzer Verzögerung
                 setTimeout(() => {
-                    versteckeDocuWareAutocomplete();
+                    strassenVersteckeDocuWareAutocomplete();
                 }, 50);
                 
-                fokussiereNaechstesFeld(inputField);
+                strassenFokussiereNaechstesFeld(inputField);
                 
                 setTimeout(() => {
-                    wertDurchDropdownGesetzt = false;
+                    strassenWertDurchDropdownGesetzt = false;
                 }, 500);
                 break;
 
@@ -378,12 +621,12 @@
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                entferneDropdown();
+                strassenEntferneDropdown();
                 break;
         }
     }
 
-    function feldIstObjekt(inputField) {
+    function strassenFeldIstObjekt(inputField) {
         const tr = inputField.closest('tr');
         if (!tr) return false;
         const label = tr.querySelector('.dw-fieldLabel span');
@@ -391,7 +634,7 @@
         return /^objekt\b/i.test(label.textContent.trim());
     }
 
-    function kuerzeStrassenname(text) {
+    function strassenKuerzeStrassenname(text) {
         if (!text || typeof text !== 'string') return text;
         let result = text.trim();
 
@@ -405,48 +648,78 @@
         return result;
     }
 
-    // ÄNDERUNG: Verarbeitung mit Flag-Prüfung
-    function verarbeiteEingabe(inputField) {
-        if (wertDurchDropdownGesetzt) return;
+    // Live-Autovervollständigung mit kontinuierlicher Unterstützung
+    function strassenHandleInput(e) {
+        const inputField = e.target;
+        let value = inputField.value;
+        
+        if (!value || value.length < 3) {
+            strassenAutoVervollstaendigungAktiv = false;
+            strassenEntferneDropdown();
+            return;
+        }
+
+        const schnellerMatch = strassenFindeSchnelleAutovervollstaendigung(value);
+        
+        if (schnellerMatch) {
+            if (schnellerMatch.typ === 'eindeutig') {
+                strassenEntferneDropdown();
+                strassenZeigeAutovervollstaendigung(inputField, schnellerMatch.wert);
+            } else if (schnellerMatch.typ === 'mehrfach') {
+                strassenAutoVervollstaendigungAktiv = false;
+                strassenZeigeDropdown(inputField, schnellerMatch.wert);
+            }
+        } else {
+            strassenAutoVervollstaendigungAktiv = false;
+            strassenEntferneDropdown();
+        }
+    }
+
+    // Intelligente Verarbeitung bei Blur
+    function strassenVerarbeiteEingabe(inputField) {
+        if (strassenWertDurchDropdownGesetzt) return;
+        
+        strassenAutoVervollstaendigungAktiv = false;
         
         let value = inputField.value;
         if (!value) return;
 
-        value = kuerzeStrassenname(value);
-        const userHausnummer = extraiereHausnummer(value);
-        const alleMatches = findAllMatches(value, userHausnummer);
+        value = strassenKuerzeStrassenname(value);
+        const alleMatches = strassenFindBestMatches(value);
 
         if (alleMatches.length > 1) {
-            zeigeDropdown(inputField, alleMatches);
+            strassenZeigeDropdown(inputField, alleMatches);
         } else if (alleMatches.length === 1 && alleMatches[0] !== value) {
             inputField.value = alleMatches[0];
             inputField.dispatchEvent(new Event('input', { bubbles: true }));
         }
     }
 
-    function attachHandler(inputField) {
-        if (inputField.dataset.strassenAbkuerzungAttached) return;
-        if (!feldIstObjekt(inputField)) return;
+    function strassenAttachHandler(inputField) {
+        if (inputField.dataset['strassenAbkuerzungAttached' + STRASSEN_NS]) return;
+        if (!strassenFeldIstObjekt(inputField)) return;
+
+        inputField.addEventListener('input', strassenHandleInput);
 
         inputField.addEventListener('blur', function (e) {
             setTimeout(() => {
-                if (!activeDropdown && !wertDurchDropdownGesetzt) {
-                    verarbeiteEingabe(this);
+                if (!strassenActiveDropdown && !strassenWertDurchDropdownGesetzt) {
+                    strassenVerarbeiteEingabe(this);
                 }
             }, 200);
         });
 
-        inputField.addEventListener('keydown', handleKeyDown, true);
+        inputField.addEventListener('keydown', strassenHandleKeyDown, true);
 
-        inputField.dataset.strassenAbkuerzungAttached = 'true';
+        inputField.dataset['strassenAbkuerzungAttached' + STRASSEN_NS] = 'true';
     }
 
-    function scan() {
-        document.querySelectorAll('input.dw-textField').forEach(attachHandler);
+    function strassenScan() {
+        document.querySelectorAll('input.dw-textField').forEach(strassenAttachHandler);
     }
 
-    const obs = new MutationObserver(scan);
-    obs.observe(document.body, { subtree: true, childList: true });
-    scan();
+    const strassenObs = new MutationObserver(strassenScan);
+    strassenObs.observe(document.body, { subtree: true, childList: true });
+    strassenScan();
 })();
 
