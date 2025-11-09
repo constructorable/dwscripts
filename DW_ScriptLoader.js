@@ -149,25 +149,35 @@
         },
         
         // ÄNDERUNG: Modal in obere rechte Ecke verschieben
+// ÄNDERUNG: Modal in obere rechte Ecke verschieben
 moveToCorner() {
     const modal = document.getElementById('dwScriptModal');
+    const overlay = modal.firstElementChild;
+    const modalBox = overlay.firstElementChild;
     
-    // Direktes Styling des ersten Child-Elements (Overlay-Container)
-    const overlay = modal.querySelector('div[style*="position:fixed"]');
-    if(overlay) {
-        overlay.style.cssText = overlay.style.cssText
-            .replace('align-items:center', 'align-items:flex-start')
-            .replace('justify-content:center', 'justify-content:flex-end');
-    }
+    // Overlay komplett neu stylen für rechts-oben
+    overlay.style.cssText = `
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(71,85,105,0.75);
+        z-index:999999;
+        display:flex;
+        align-items:flex-start;
+        justify-content:flex-end;
+        font-family:system-ui,sans-serif;
+        padding:15px;
+    `;
     
     // Modal-Box anpassen
-    const modalBox = overlay?.querySelector('div[style*="background:#f8fafc"]');
-    if(modalBox) {
-        modalBox.style.maxWidth = '420px';
-        modalBox.style.maxHeight = '85vh';
-        modalBox.style.transition = 'all 0.3s ease';
-    }
-},    
+    modalBox.style.maxWidth = '420px';
+    modalBox.style.maxHeight = '85vh';
+    modalBox.style.transition = 'all 0.3s ease';
+},
+
+
         getSelectionHTML() {
             const settings = Storage.getSettings();
             const selectedScripts = settings.selectedScripts || SCRIPTS.reduce((acc, script) => {
@@ -416,4 +426,5 @@ moveToCorner() {
         ModalManager.create('selection');
     }
 })();
+
 
