@@ -98,12 +98,12 @@
     let strassenAutoVervollstaendigungAktiv = false;
     let letzteStrassenLoeschAktion = 0;
     let strassenLoeschBlockadeTimeout = null;
-    let docuWareBlockiert = false; // NEU: Flag für DocuWare-Blockierung
+    let docuWareBlockiert = false;
 
     // Präfix-Mappings berechnen
     const STRASSEN_PRAFIX_MAPPING = berechneStrassenPrafixMapping();
 
-    // ÄNDERUNG: DocuWare Autocomplete verstecken mit Blockierung
+    // DocuWare Autocomplete verstecken mit Blockierung
     function versteckeDocuWareAutocomplete() {
         const modals = document.querySelectorAll('.dw-autocompleteColumnContainer, .dw-autocompleteScrollArea');
         modals.forEach(modal => {
@@ -114,12 +114,11 @@
         });
     }
 
-    // NEU: DocuWare temporär blockieren
+    // DocuWare temporär blockieren
     function blockiereDocuWareTemporaer(dauer = 500) {
         docuWareBlockiert = true;
         versteckeDocuWareAutocomplete();
         
-        // Mehrfach verstecken über die Zeit
         const intervals = [50, 100, 150, 200, 300, 400];
         intervals.forEach(delay => {
             setTimeout(() => {
@@ -132,7 +131,7 @@
         }, dauer);
     }
 
-    // ÄNDERUNG: Observer für DocuWare Autocomplete mit Blockierungs-Check
+    // Observer für DocuWare Autocomplete mit Blockierungs-Check
     const docuWareObserver = new MutationObserver(() => {
         if (strassenAutoVervollstaendigungAktiv || activeStrassenDropdown || docuWareBlockiert) {
             versteckeDocuWareAutocomplete();
@@ -303,6 +302,19 @@
         result = result.replace(/strasse\b/gi, 'str.');
 
         return result;
+    }
+
+    // NEU: Prüfen ob Wert exakt im Katalog existiert
+    function istExakterKatalogEintrag(input) {
+        input = bereinigeStrassenEingabe(input);
+        const inputLower = input.toLowerCase().trim();
+        
+        for (const strasse of STRASSEN_KATALOG) {
+            if (strasse.toLowerCase() === inputLower) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Intelligente Autovervollständigung mit bereinigter Eingabe
@@ -560,12 +572,12 @@
             return;
         }
 
-        // ÄNDERUNG: Tab bei Autovervollständigung mit DocuWare-Blockierung
+        // Tab bei Autovervollständigung mit DocuWare-Blockierung
         if (e.key === 'Tab' && strassenAutoVervollstaendigungAktiv && !activeStrassenDropdown) {
             e.preventDefault();
             strassenAutoVervollstaendigungAktiv = false;
             e.target.setSelectionRange(e.target.value.length, e.target.value.length);
-            blockiereDocuWareTemporaer(800); // NEU: Längere Blockierung nach Tab
+            blockiereDocuWareTemporaer(800);
             return;
         }
 
@@ -611,7 +623,7 @@
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
                 entferneStrassenDropdown();
                 fokussiereNaechstesStrassenFeld(inputField);
-                blockiereDocuWareTemporaer(800); // NEU: Blockierung nach Enter
+                blockiereDocuWareTemporaer(800);
                 break;
 
             case 'Escape':
@@ -665,7 +677,7 @@
         }
     }
 
-    // Blur-Handler mit Fuzzy-Matching
+    // ÄNDERUNG: Blur-Handler mit Exakt-Check
     function handleStrassenBlur(e) {
         const inputField = e.target;
         
@@ -676,6 +688,11 @@
             
             let value = inputField.value;
             if (!value) return;
+
+            // NEU: Wenn bereits exakter Katalogeintrag, nichts tun
+            if (istExakterKatalogEintrag(value)) {
+                return;
+            }
 
             value = kuerzeStrassenname(value);
             const alleMatches = findeBesteFuzzyMatches(value);
@@ -718,5 +735,4 @@
     strassenObserver.observe(document.body, { subtree: true, childList: true });
     scanStrassen();
 })();
-
 
