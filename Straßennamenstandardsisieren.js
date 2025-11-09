@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    
+     
     // Straßenkatalog
     const STRASSEN_KATALOG = [
         'Amalienstr. 38',
@@ -102,7 +102,31 @@
     // Präfix-Mappings berechnen
     const STRASSEN_PRAFIX_MAPPING = berechneStrassenPrafixMapping();
 
-    // NEU: Sternchen und Leerzeichen am Anfang entfernen
+    // NEU: DocuWare Autocomplete verstecken
+    function versteckeDocuWareAutocomplete() {
+        const modals = document.querySelectorAll('.dw-autocompleteColumnContainer, .dw-autocompleteScrollArea');
+        modals.forEach(modal => {
+            if (modal.style.display !== 'none') {
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    // NEU: Observer für DocuWare Autocomplete
+    const docuWareObserver = new MutationObserver(() => {
+        if (strassenAutoVervollstaendigungAktiv || activeStrassenDropdown) {
+            versteckeDocuWareAutocomplete();
+        }
+    });
+
+    docuWareObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+
+    // Sternchen und Leerzeichen am Anfang entfernen
     function bereinigeStrassenEingabe(input) {
         if (!input) return '';
         return input.replace(/^[\s*]+/, '').trim();
@@ -261,7 +285,7 @@
         return result;
     }
 
-    // ÄNDERUNG: Intelligente Autovervollständigung mit bereinigter Eingabe
+    // Intelligente Autovervollständigung mit bereinigter Eingabe
     function findeSchnelleStrassenAutovervollstaendigung(input) {
         input = bereinigeStrassenEingabe(input);
         
@@ -335,7 +359,7 @@
         return null;
     }
 
-    // ÄNDERUNG: Fuzzy-Matching mit bereinigter Eingabe
+    // Fuzzy-Matching mit bereinigter Eingabe
     function findeBesteFuzzyMatches(input) {
         input = bereinigeStrassenEingabe(input);
         
@@ -379,18 +403,20 @@
         return matches.map(m => m.text);
     }
 
-    // Autovervollständigung anzeigen
+    // ÄNDERUNG: Autovervollständigung anzeigen + DocuWare verstecken
     function zeigeStrassenAutovervollstaendigung(inputField, vorschlag) {
         const currentValue = bereinigeStrassenEingabe(inputField.value);
         inputField.value = vorschlag;
         inputField.setSelectionRange(currentValue.length, vorschlag.length);
         strassenAutoVervollstaendigungAktiv = true;
+        versteckeDocuWareAutocomplete();
     }
 
-    // Dropdown erstellen
+    // ÄNDERUNG: Dropdown erstellen + DocuWare verstecken
     function zeigeStrassenDropdown(inputField, optionen) {
         entferneStrassenDropdown();
         selectedStrassenIndex = 0;
+        versteckeDocuWareAutocomplete();
 
         const dropdown = document.createElement('div');
         dropdown.className = 'strassen-autocomplete-dropdown';
@@ -519,6 +545,7 @@
             e.preventDefault();
             strassenAutoVervollstaendigungAktiv = false;
             e.target.setSelectionRange(e.target.value.length, e.target.value.length);
+            versteckeDocuWareAutocomplete();
             return;
         }
 
@@ -533,6 +560,7 @@
                 e.stopImmediatePropagation();
                 selectedStrassenIndex = (selectedStrassenIndex + 1) % optionen.length;
                 markiereStrassenAuswahl(dropdown, selectedStrassenIndex);
+                versteckeDocuWareAutocomplete();
                 break;
 
             case 'ArrowUp':
@@ -541,6 +569,7 @@
                 e.stopImmediatePropagation();
                 selectedStrassenIndex = (selectedStrassenIndex - 1 + optionen.length) % optionen.length;
                 markiereStrassenAuswahl(dropdown, selectedStrassenIndex);
+                versteckeDocuWareAutocomplete();
                 break;
 
             case 'Tab':
@@ -549,6 +578,7 @@
                 e.stopImmediatePropagation();
                 selectedStrassenIndex = (selectedStrassenIndex + 1) % optionen.length;
                 markiereStrassenAuswahl(dropdown, selectedStrassenIndex);
+                versteckeDocuWareAutocomplete();
                 break;
 
             case 'Enter':
@@ -561,6 +591,7 @@
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
                 entferneStrassenDropdown();
                 fokussiereNaechstesStrassenFeld(inputField);
+                versteckeDocuWareAutocomplete();
                 break;
 
             case 'Escape':
@@ -572,12 +603,12 @@
         }
     }
 
-    // ÄNDERUNG: Input-Handler mit Sternchen-Entfernung
+    // Input-Handler mit Sternchen-Entfernung
     function handleStrassenInput(e) {
         const inputField = e.target;
         let value = inputField.value;
         
-        // ÄNDERUNG: Sternchen entfernen
+        // Sternchen entfernen
         if (value.startsWith('*') || value.startsWith(' *')) {
             const bereinigtValue = bereinigeStrassenEingabe(value);
             inputField.value = bereinigtValue;
