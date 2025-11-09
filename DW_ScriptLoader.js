@@ -151,31 +151,38 @@
         // ÄNDERUNG: Modal in obere rechte Ecke verschieben
 // ÄNDERUNG: Modal in obere rechte Ecke verschieben
 // ÄNDERUNG: Modal in obere rechte Ecke verschieben
+// ÄNDERUNG: Modal in obere rechte Ecke mit transparentem Hintergrund
 moveToCorner() {
     const modal = document.getElementById('dwScriptModal');
     const overlay = modal.firstElementChild;
     const modalBox = overlay.firstElementChild;
     
-    // Overlay komplett neu stylen für rechts-oben
+    // ÄNDERUNG: Overlay transparent und durchklickbar für Arbeit im Hintergrund
     overlay.style.cssText = `
         position:fixed;
         top:0;
         left:0;
         width:100%;
         height:100%;
-        background:rgba(71,85,105,0.75);
+        background:transparent;
         z-index:999999;
         display:flex;
         align-items:flex-start;
         justify-content:flex-end;
         font-family:system-ui,sans-serif;
         padding:15px;
+        pointer-events:none;
     `;
     
-    // Modal-Box anpassen
-    modalBox.style.maxWidth = '420px';
-    modalBox.style.maxHeight = '85vh';
-    modalBox.style.transition = 'all 0.3s ease';
+    // ÄNDERUNG: Modal-Box interaktiv mit verstärktem Schatten
+    modalBox.style.cssText = `
+        ${modalBox.style.cssText}
+        max-width:420px;
+        max-height:85vh;
+        transition:all 0.3s ease;
+        pointer-events:auto;
+        box-shadow:0 10px 40px -5px rgba(0,0,0,0.35), 0 4px 15px rgba(0,0,0,0.2);
+    `;
 },
 
         getSelectionHTML() {
