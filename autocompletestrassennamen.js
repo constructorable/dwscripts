@@ -41,9 +41,10 @@
         'Johannisstr. 108',
         'Katharinengasse 24',
         'Kirchenweg 43',
-        'Kneippallee 5-7',
+        'Kneippallee 5-7a',
         'Kneippallee 5',
         'Kneippallee 7',
+        'Kneippallee 7a',
         'Königswarterstr. 20',
         'Krugstr. 27',
         'Kurgartenstr. 19',
@@ -734,4 +735,5 @@
     const strassenObserver = new MutationObserver(scanStrassen);
     strassenObserver.observe(document.body, { subtree: true, childList: true });
     scanStrassen();
+
 })(); 
