@@ -48,7 +48,7 @@
         'Krugstr. 27',
         'Kurgartenstr. 19',
         'Landgrabenstr. 14',
-    
+        'Lilienstr. 57, Nelkenstr. 3+5, Nelkenstr. 11',
         'Lorenzer Str. 11+25',
         'Lorenzer Str. 11',
         'Lorenzer Str. 25',
@@ -64,7 +64,7 @@
         'Regensburger Str.',
         'Reitmorstr. 52',
         'Saalfelder Str. 5',
-          'Saalfelder Str. 6',
+        'Saalfelder Str. 6',
         'Sauerbruchstr. 10',
         'Schlotfegergasse 6',
         'Schumannstr. 13',
@@ -735,5 +735,6 @@
     scanStrassen();
 
 })(); 
+
 
 
