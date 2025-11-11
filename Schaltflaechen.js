@@ -5,6 +5,24 @@
         nebenkosten: { txt: 'für Nebenkosten relevant', type: 'includes', pre: 'dw-nk', gap: '5px', opts: [{ v: 'j', l: 'Ja' }, { v: 'n', l: 'Nein' }], map: { 'j': 'j', 'ja': 'j', 'n': 'n', 'nein': 'n' } },
         wirtschaftsjahr: { txt: 'wirtschaftsjahr', type: 'includes_lower', pre: 'dw-wj', gap: '20px', opts: [{ v: '2025', l: '2025' }, { v: '2024 / 2025', l: '2024 / 2025' }, { v: '2024', l: '2024' }, { v: '2025 / 2026', l: '2025 / 2026' }] },
         datumsfelder: { txt: '', type: 'date_field', pre: 'dw-datum', gap: '8px', wrap: true, isDate: true, exc: ['Eingangsdatum', 'Rechnungsdatum', 'Fälligkeitsdatum', 'Erstellungsdatum', 'Ausgangsdatum', 'Ausführungsdatum (Bericht)', 'Abgelegt am', 'nächster Ablesetermin'], opts: [{ v: 'heute', l: 'Heute', a: 'setToday' }, { v: 'morgen', l: 'Morgen', a: 'setTomorrow' }, { v: 'woche', l: '+1 Woche', a: 'setNextWeek' }, { v: '2wochen', l: '+2 Wochen', a: 'setTwoWeeks' }, { v: '3wochen', l: '+3 Wochen', a: 'setThreeWeeks' }, { v: '4wochen', l: '+4 Wochen', a: 'setFourWeeks' }, { v: 'jahresanfang', l: '01.01', a: 'setYearStart' }, { v: 'jahresende', l: '31.12', a: 'setYearEnd' }] },
+        datumsfelderpast: {
+            txt: '',
+            type: 'date_field_past',
+            pre: 'dw-datum-past',
+            gap: '8px',
+            wrap: true,
+            isDate: true,
+            inc: ['Eingangsdatum', 'Erstellungsdatum'],
+            opts: [
+                { v: 'heute', l: 'Heute', a: 'setToday' },
+                { v: 'gestern', l: 'Gestern', a: 'setYesterday' },
+                { v: 'vorgestern', l: 'Vorgestern', a: 'setDayBeforeYesterday' },
+                { v: '-1woche', l: '-1 Woche', a: 'setLastWeek' },
+                { v: '-2wochen', l: '-2 Wochen', a: 'setTwoWeeksAgo' },
+                { v: '-3wochen', l: '-3 Wochen', a: 'setThreeWeeksAgo' },
+                { v: '-4wochen', l: '-4 Wochen', a: 'setFourWeeksAgo' }
+            ]
+        },
         skonto: { txt: 'skonto in', type: 'includes_lower', pre: 'dw-sk', gap: '20px', opts: [{ v: '0', l: '0' }, { v: '2', l: '2' }, { v: '3', l: '3' }] },
         zuweisen: { txt: 'zuweisen', type: 'includes_lower', pre: 'dw-zuw', gap: '20px', opts: [{ v: 'oa', l: 'oa' }, { v: 'ca', l: 'ca' }, { v: 'ms', l: 'ms' }, { v: 'sm', l: 'sm' }, { v: 'da', l: 'da' }, { v: 'hp', l: 'hp' }, { v: 'ml', l: 'ml' }, { v: 'cz', l: 'cz' }] },
         objbestaet: { txt: 'objekt best', type: 'includes_lower', pre: 'dw-ob', gap: '20px', opts: [{ v: 'j', l: 'j' }] },
@@ -12,27 +30,27 @@
         renrbestaet: { txt: 'RE-Nr.', type: 'includes_lower', pre: 'dw-rnrb', gap: '20px', opts: [{ v: 'j', l: 'j' }] },
         restbestaet: { txt: 'RE-Steller', type: 'includes_lower', pre: 'dw-rst', gap: '20px', opts: [{ v: 'j', l: 'j' }] },
         vnnr: { txt: 'vn-nummer', type: 'includes_lower', pre: 'dw-vnnr', gap: '20px', opts: [{ v: '0', l: '0' }] },
-        vwz: { 
-  txt: 'verwendungszweck 4', 
-  type: 'includes_lower', 
-  pre: 'dw-vwz', 
-  gap: '20px', 
-  opts: [
-    { v: 'Repa ', l: 'Repa ' },
-    { v: 'Repa Fenster ', l: 'Repa Fenster ' },
-    { v: 'Repa Tür ', l: 'Repa Tür ' },
-    { v: 'Repa Sanitär', l: 'Repa Sanitär ' },
-    { v: 'Repa Heizung', l: 'Repa Heizung ' },
-    { v: 'Wartung ', l: 'Wartung ' },
-    { v: 'Prüfung ', l: 'Prüfung ' },
-    { v: 'Energieversorgung ', l: 'Energieversorgung ' },
-    { v: 'Strom Leerstand ', l: 'Strom Leerstand ' },
-    { v: 'Grundabgaben ', l: 'Grundabgaben ' },
-    { v: 'Versicherung ', l: 'Versicherung ' },
-    { v: 'Kaminkehrer ', l: 'Kaminkehrer ' },
-    { v: 'Sonstige Instandhaltung ', l: 'Sonstige Instandhaltung ' }
-  ] 
-},
+        vwz: {
+            txt: 'verwendungszweck 4',
+            type: 'includes_lower',
+            pre: 'dw-vwz',
+            gap: '20px',
+            opts: [
+                { v: 'Repa ', l: 'Repa ' },
+                { v: 'Repa Fenster ', l: 'Repa Fenster ' },
+                { v: 'Repa Tür ', l: 'Repa Tür ' },
+                { v: 'Repa Sanitär', l: 'Repa Sanitär ' },
+                { v: 'Repa Heizung', l: 'Repa Heizung ' },
+                { v: 'Wartung ', l: 'Wartung ' },
+                { v: 'Prüfung ', l: 'Prüfung ' },
+                { v: 'Energieversorgung ', l: 'Energieversorgung ' },
+                { v: 'Strom Leerstand ', l: 'Strom Leerstand ' },
+                { v: 'Grundabgaben ', l: 'Grundabgaben ' },
+                { v: 'Versicherung ', l: 'Versicherung ' },
+                { v: 'Kaminkehrer ', l: 'Kaminkehrer ' },
+                { v: 'Sonstige Instandhaltung ', l: 'Sonstige Instandhaltung ' }
+            ]
+        },
         leistungszeitraumbis: { txt: 'Rechnungsnummer *', type: 'exact', pre: 'dw-lzb', gap: '12px', isNav: true, btnCfg: { l: '→ Nächstes leeres Pflichtfeld', a: 'scrollToNext' } },
         bauteile: {
             txt: 'bauteil', type: 'exact_bauteil_only', pre: 'dw-bauteile', gap: '8px',
@@ -60,7 +78,7 @@
             }
         }
     };
-    let S = { init: false, reg: new Map(), obs: null, timeouts: new Set(), dialogs: new Set(), subs: [], last: 0, processed: new Set() }; 
+    let S = { init: false, reg: new Map(), obs: null, timeouts: new Set(), dialogs: new Set(), subs: [], last: 0, processed: new Set() };
     if (window[ID]) cleanup();
     window[ID] = { v: V, s: S, cleanup };
     const log = (m, d) => D && console.log(`[DW-KO] ${m}`, d || '');
@@ -147,7 +165,7 @@
                 if (!S.processed.has(f.fid)) {
                     requestAnimationFrame(() => {
                         if (injectWithDelay(f, cfg, di)) {
-                            S.processed.add(f.fid); 
+                            S.processed.add(f.fid);
                             added++;
                         }
                     });
@@ -223,31 +241,44 @@
         } catch (e) { log(`Err find ${k}:`, e); }
         return found;
     }
-    function findDateInCont(cfg, k, c, di = null) {
-        const found = [];
-        const dates = c.querySelectorAll('input.dw-dateField');
-        for (const inp of dates) {
-            if (!isProc(inp)) continue;
-            const row = inp.closest('tr');
-            if (!row) continue;
-            const lbl = row.querySelector('.dw-fieldLabel span');
-            const txt = lbl && lbl.textContent ? lbl.textContent.trim() : 'Datumsfeld';
-            if (cfg.exc && cfg.exc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()))) continue;
-            const fid = mkId(inp, txt, k, di);
 
-            const hasExistingButtons = row.nextElementSibling &&
-                row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
-            const alreadyProcessed = S.processed.has(fid);
-            const hasButtonsInDOM = document.querySelector(`[data-field-id="${fid}"]`);
 
-            if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) {
-                continue;
-            }
-
-            found.push({ inp, txt, row, k, fid });
+// ÄNDERUNG: findDateInCont erweitert um Vergangenheits-Datumsfelder
+function findDateInCont(cfg, k, c, di = null) {
+    const found = [];
+    const dates = c.querySelectorAll('input.dw-dateField');
+    for (const inp of dates) {
+        if (!isProc(inp)) continue;
+        const row = inp.closest('tr');
+        if (!row) continue;
+        const lbl = row.querySelector('.dw-fieldLabel span');
+        const txt = lbl && lbl.textContent ? lbl.textContent.trim() : 'Datumsfeld';
+        
+        // NEU: Prüfung für Vergangenheits-Datumsfelder
+        if (cfg.inc) {
+            const isIncluded = cfg.inc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()));
+            if (!isIncluded) continue;
+        } else if (cfg.exc && cfg.exc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()))) {
+            continue;
         }
-        return found;
+        
+        const fid = mkId(inp, txt, k, di);
+
+        const hasExistingButtons = row.nextElementSibling &&
+            row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
+        const alreadyProcessed = S.processed.has(fid);
+        const hasButtonsInDOM = document.querySelector(`[data-field-id="${fid}"]`);
+
+        if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) {
+            continue;
+        }
+
+        found.push({ inp, txt, row, k, fid });
     }
+    return found;
+}
+
+
     function inject(f, cfg, di = null) {
         const { inp, row, k, fid } = f;
 
@@ -265,7 +296,7 @@
         br.setAttribute('data-field-id', fid);
         br.setAttribute('data-config-key', k);
         br.setAttribute('data-ko-injected', 'true');
-        br.setAttribute('data-injection-time', Date.now()); 
+        br.setAttribute('data-injection-time', Date.now());
         di && br.setAttribute('data-dialog-id', di);
         br.style.cssText = 'position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;background:inherit!important;';
         const lc = document.createElement('td');
@@ -423,30 +454,42 @@
         }
         return dateCache.get(k);
     }
-    function getDate(a) {
-        const ck = `date_${a}`;
-        if (dateCache.has(ck)) return dateCache.get(ck);
-        const today = new Date();
-        const dates = {
-            setToday: today,
-            setTomorrow: new Date(today.getTime() + 86400000),
-            setNextWeek: new Date(today.getTime() + 604800000),
-            setTwoWeeks: new Date(today.getTime() + 1209600000),
-            setThreeWeeks: new Date(today.getTime() + 1814400000),
-            setFourWeeks: new Date(today.getTime() + 2419200000),
-            setYearStart: new Date(today.getFullYear(), 0, 1),
-            setYearEnd: new Date(today.getFullYear(), 11, 31)
-        };
-        const res = getFmt(dates[a] || today);
-        dateCache.set(ck, res);
-        return res;
-    }
+
+
+// ÄNDERUNG: getDate-Funktion erweitert um Vergangenheits-Aktionen
+function getDate(a) {
+    const ck = `date_${a}`;
+    if (dateCache.has(ck)) return dateCache.get(ck);
+    const today = new Date();
+    const dates = {
+        setToday: today,
+        setTomorrow: new Date(today.getTime() + 86400000),
+        setNextWeek: new Date(today.getTime() + 604800000),
+        setTwoWeeks: new Date(today.getTime() + 1209600000),
+        setThreeWeeks: new Date(today.getTime() + 1814400000),
+        setFourWeeks: new Date(today.getTime() + 2419200000),
+        setYearStart: new Date(today.getFullYear(), 0, 1),
+        setYearEnd: new Date(today.getFullYear(), 11, 31),
+        // NEU: Vergangenheits-Datumswerte
+        setYesterday: new Date(today.getTime() - 86400000),
+        setDayBeforeYesterday: new Date(today.getTime() - 172800000),
+        setLastWeek: new Date(today.getTime() - 604800000),
+        setTwoWeeksAgo: new Date(today.getTime() - 1209600000),
+        setThreeWeeksAgo: new Date(today.getTime() - 1814400000),
+        setFourWeeksAgo: new Date(today.getTime() - 2419200000)
+    };
+    const res = getFmt(dates[a] || today);
+    dateCache.set(ck, res);
+    return res;
+}
+
+
     function saveState() {
         try {
             const data = {
                 reg: Array.from(S.reg.entries()),
                 dlgs: Array.from(S.dialogs),
-                processed: Array.from(S.processed), 
+                processed: Array.from(S.processed),
                 ts: Date.now()
             };
             sessionStorage.setItem(SK, JSON.stringify(data));
@@ -460,7 +503,7 @@
                 if (Date.now() - data.ts < 1800000) {
                     S.reg = new Map(data.reg || []);
                     S.dialogs = new Set(data.dlgs || []);
-                    S.processed = new Set(data.processed || []); 
+                    S.processed = new Set(data.processed || []);
                     return true;
                 }
             }
@@ -481,9 +524,9 @@
         });
     }
 
-function injectCSS() {
-    if (document.querySelector('style[data-dw-ko-btns]')) return;
-    const css = `.dw-ko-btn-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;background:inherit!important;z-index:10!important}[class*="-button-container"]{display:flex!important;align-items:center!important;justify-content:flex-start!important;padding:4px 1px 8px 29px!important;gap:6px!important;flex-wrap:wrap!important}[class*="-action-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:20px!important;font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}[class*="-nav-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:4px!important;border:1px solid #3b82f6!important;background:#dbeafe!important;color:#1e40af!important;padding:1px 12px!important;min-height:24px!important;font-size:12px!important;font-weight:500!important;white-space:nowrap!important}.ui-dialog .dw-ko-btn-row{display:table-row!important;opacity:1!important;visibility:visible!important}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}.ui-dialog [class*="-nav-button"]{font-size:11px!important;padding:4px 10px!important;min-height:22px!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+    function injectCSS() {
+        if (document.querySelector('style[data-dw-ko-btns]')) return;
+        const css = `.dw-ko-btn-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;background:inherit!important;z-index:10!important}[class*="-button-container"]{display:flex!important;align-items:center!important;justify-content:flex-start!important;padding:4px 1px 8px 29px!important;gap:6px!important;flex-wrap:wrap!important}[class*="-action-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:20px!important;font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}[class*="-nav-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:4px!important;border:1px solid #3b82f6!important;background:#dbeafe!important;color:#1e40af!important;padding:1px 12px!important;min-height:24px!important;font-size:12px!important;font-weight:500!important;white-space:nowrap!important}.ui-dialog .dw-ko-btn-row{display:table-row!important;opacity:1!important;visibility:visible!important}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}.ui-dialog [class*="-nav-button"]{font-size:11px!important;padding:4px 10px!important;min-height:22px!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
 
     .ui-dialog.dw-dialogs:has(.dw-datum-button-row) {
         min-width: 500px !important;
@@ -516,11 +559,11 @@ function injectCSS() {
         white-space: nowrap !important;
     }`;
 
-    const style = document.createElement('style');
-    style.textContent = css;
-    style.setAttribute('data-dw-ko-btns', 'true');
-    document.head.appendChild(style);
-}
+        const style = document.createElement('style');
+        style.textContent = css;
+        style.setAttribute('data-dw-ko-btns', 'true');
+        document.head.appendChild(style);
+    }
     function mkObs() {
         let timeout = null;
         const proc = () => {
@@ -605,7 +648,7 @@ function injectCSS() {
 
             Object.keys(CFG).forEach(k => {
                 const fields = findWithoutBtns(k);
-                if (fields.length > 0 && fields.length < 5) { 
+                if (fields.length > 0 && fields.length < 5) {
                     log(`🔧 Backup: ${fields.length} fehlende Buttons für ${k}`);
                     fields.forEach(f => {
                         if (!S.processed.has(f.di)) {
@@ -614,7 +657,7 @@ function injectCSS() {
                     });
                 }
             });
-        }, 30000); 
+        }, 30000);
         S.timeouts.add(backup);
     }
     function findWithoutBtns(k) {
@@ -702,7 +745,7 @@ function injectCSS() {
     window[ID].api = {
         refresh: () => {
             S.dialogs.clear();
-            S.processed.clear(); 
+            S.processed.clear();
             const std = procStd(document.body);
             let dlgCnt = 0;
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
@@ -720,7 +763,7 @@ function injectCSS() {
             dlgs: document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])').length,
             proc: S.dialogs.size,
             reg: S.reg.size,
-            processed: S.processed.size 
+            processed: S.processed.size
         }),
         debug: () => {
 
@@ -764,7 +807,7 @@ function injectCSS() {
             S.timeouts.forEach(clearTimeout);
             S.subs.forEach(s => { try { s.dispose() } catch (e) { } });
             sessionStorage.removeItem(SK);
-            S.processed.clear(); 
+            S.processed.clear();
         }
     };
     function main() {
@@ -786,5 +829,5 @@ function injectCSS() {
         }, 5000);
     }
     main();
-
 })();
+
