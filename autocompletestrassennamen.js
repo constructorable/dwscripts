@@ -15,7 +15,6 @@
         'Bogenstr. 42',
         'Emilienstr. 1',
         'Flugplatzstr. 80',
-        'Frauentorgraben 3',
         'Friedrichstr. 9',
         'Fürther Str. 54-56',
         'Fürther Str. 54',
@@ -736,4 +735,5 @@
     scanStrassen();
 
 })(); 
+
 
