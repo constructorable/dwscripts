@@ -31,7 +31,8 @@
             { value: 'Nass / Nässe', label: 'Nass / Nässe' },
             { value: 'Schädlingsbekämpfung (Ratten, Mäuse, Schaben)', label: 'Schädlingsbekämpfung' },
             { value: 'Wasserschaden', label: 'Wasserschaden' },
-            { value: 'Versicherung', label: 'Versicherung' }
+            { value: 'Versicherung', label: 'Versicherung' },
+            { value: 'Zähler', label: 'Zähler' }
 
         ]
     };
@@ -593,3 +594,4 @@
 
     main();
 })();
+
