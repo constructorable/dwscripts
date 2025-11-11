@@ -49,13 +49,12 @@
         'Krugstr. 27',
         'Kurgartenstr. 19',
         'Landgrabenstr. 14',
-        'Lilienstr. 57',
+    
         'Lorenzer Str. 11+25',
         'Lorenzer Str. 11',
         'Lorenzer Str. 25',
         'Mondstr. 8',
-        'Nelkenstr. 3',
-        'Nelkenstr. 5',
+    
         'Neubleiche 8',
         'Neutormauer 2',
         'Obere Turnstr. 9',
@@ -737,3 +736,4 @@
     scanStrassen();
 
 })(); 
+
