@@ -20,7 +20,7 @@
             { value: 'Kündigung', label: 'Kündigung' },
             { value: 'Mieterhöhung / Mietanpassung', label: 'Mieterhöhung' },
             { value: 'Anwalt / Klage', label: 'Anwalt / Klage' },
-            { value: 'Anwalt / Klage', label: 'Abrechnung' },
+            { value: 'Abrechnung', label: 'Abrechnung' },
             { value: 'Betriebskostenabrechnung / Nebenkostenabrechnung', label: 'BK-Abrechnung' },
 
             { value: 'Heizung', label: 'Heizung' },
@@ -595,5 +595,3 @@
 
     main();
 })();
-
-
