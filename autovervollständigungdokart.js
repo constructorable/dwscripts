@@ -271,43 +271,43 @@
     }
 
     // ÄNDERUNG: verbessertes Fokusverhalten in DocuWare-Feldern
-document.addEventListener('keydown', function (e) {
-    const dropdown = document.querySelector('.custom-autocomplete-list');
-    const activeItem = dropdown?.querySelector('.active');
+    document.addEventListener('keydown', function (e) {
+        const dropdown = document.querySelector('.custom-autocomplete-list');
+        const activeItem = dropdown?.querySelector('.active');
 
-    // Innerhalb Dropdown navigieren
-    if (dropdown && dropdown.style.display !== 'none') {
-        const items = Array.from(dropdown.querySelectorAll('li'));
-        const currentIndex = items.indexOf(activeItem);
+        // Innerhalb Dropdown navigieren
+        if (dropdown && dropdown.style.display !== 'none') {
+            const items = Array.from(dropdown.querySelectorAll('li'));
+            const currentIndex = items.indexOf(activeItem);
 
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const nextIndex = (currentIndex + 1) % items.length;
-            items.forEach(li => li.classList.remove('active'));
-            items[nextIndex].classList.add('active');
-            items[nextIndex].scrollIntoView({ block: 'nearest' });
-        }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const nextIndex = (currentIndex + 1) % items.length;
+                items.forEach(li => li.classList.remove('active'));
+                items[nextIndex].classList.add('active');
+                items[nextIndex].scrollIntoView({ block: 'nearest' });
+            }
 
-        // Enter = Auswahl + nächstes Eingabefeld
-        else if (e.key === 'Enter' && activeItem) {
-            e.preventDefault();
-            activeItem.click();
+            // Enter = Auswahl + nächstes Eingabefeld
+            else if (e.key === 'Enter' && activeItem) {
+                e.preventDefault();
+                activeItem.click();
 
-            const currentInput = document.activeElement.closest('input.dw-textField, input.dw-dateField');
-            if (!currentInput) return;
+                const currentInput = document.activeElement.closest('input.dw-textField, input.dw-dateField');
+                if (!currentInput) return;
 
-            // Nächstes sichtbares, aktivierbares Feld finden
-            const allInputs = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField'))
-                .filter(inp => inp.offsetParent !== null && !inp.readOnly && !inp.disabled);
+                // Nächstes sichtbares, aktivierbares Feld finden
+                const allInputs = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField'))
+                    .filter(inp => inp.offsetParent !== null && !inp.readOnly && !inp.disabled);
 
-            const currentIndex = allInputs.indexOf(currentInput);
-            const next = allInputs[currentIndex + 1];
-            if (next) {
-                setTimeout(() => next.focus(), 150); // kleine Verzögerung, damit DW-Skript fertig ist
+                const currentIndex = allInputs.indexOf(currentInput);
+                const next = allInputs[currentIndex + 1];
+                if (next) {
+                    setTimeout(() => next.focus(), 150); // kleine Verzögerung, damit DW-Skript fertig ist
+                }
             }
         }
-    }
-});
+    });
 
 
     // NEU: Auswahl markieren
@@ -339,155 +339,169 @@ document.addEventListener('keydown', function (e) {
 
     // NEU: Tastatursteuerung
     // ÄNDERUNG: Tastatursteuerung erweitert (Tab navigiert, Enter springt weiter)
-function handleKeyDown(e) {
-    // Wenn kein eigenes Dropdown offen -> nichts tun
-    if (!activeDokTypDropdown) return;
+    function handleKeyDown(e) {
+        // Wenn kein eigenes Dropdown offen -> nichts tun
+        if (!activeDokTypDropdown) return;
 
-    // verhindern, dass DocuWare eigene Handler dazwischenfunken
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+        // verhindern, dass DocuWare eigene Handler dazwischenfunken
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
 
-    const { dropdown, inputField, optionen } = activeDokTypDropdown;
-    const items = dropdown.querySelectorAll('.dropdown-item');
-    if (!items || items.length === 0) return;
+        const { dropdown, inputField, optionen } = activeDokTypDropdown;
+        const items = dropdown.querySelectorAll('.dropdown-item');
+        if (!items || items.length === 0) return;
 
-    // Hilfsfunktionen
-    const gotoIndex = (idx) => {
-        selectedDokTypIndex = (idx + items.length) % items.length;
-        markiereAuswahl(dropdown, selectedDokTypIndex);
-    };
+        // Hilfsfunktionen
+        const gotoIndex = (idx) => {
+            selectedDokTypIndex = (idx + items.length) % items.length;
+            markiereAuswahl(dropdown, selectedDokTypIndex);
+        };
 
-    // Navigation
-    if (e.key === 'ArrowDown') {
-        gotoIndex(selectedDokTypIndex + 1);
-        return;
-    }
-    if (e.key === 'ArrowUp') {
-        gotoIndex(selectedDokTypIndex - 1);
-        return;
-    }
-
-    // Tab / Shift+Tab im Dropdown: wie ArrowDown / ArrowUp
-    if (e.key === 'Tab') {
-        if (e.shiftKey) gotoIndex(selectedDokTypIndex - 1);
-        else gotoIndex(selectedDokTypIndex + 1);
-        return;
-    }
-
-    // Enter: Auswahl übernehmen + zum nächsten logischen DocuWare-Feld springen
-if (e.key === 'Enter') {
-    const chosen = optionen[selectedDokTypIndex];
-    if (chosen) {
-        inputField.value = chosen;
-        inputField.dispatchEvent(new Event('input', { bubbles: true }));
-
-        // Eigenes Dropdown entfernen
-        entferneDropdown();
-
-        // DocuWare Dropdown unterdrücken
-        const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer');
-        if (dwDropdown) {
-            dwDropdown.style.display = 'none';
-            dwDropdown.setAttribute('data-suppressed', 'true');
-
-            // Optional: knockout viewModel auf hidden setzen
-            const koData = ko.dataFor(dwDropdown);
-            if (koData && koData.visible) {
-                koData.visible(false);
-            }
+        // Navigation
+        if (e.key === 'ArrowDown') {
+            gotoIndex(selectedDokTypIndex + 1);
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            gotoIndex(selectedDokTypIndex - 1);
+            return;
         }
 
-        // Fokus auf nächstes Feld
-        fokussiereNaechstesFeldDocuWare(inputField);
-    }
-}
-
-    // Escape wie vorher
-    if (e.key === 'Escape') {
-        entferneDropdown();
-        return;
-    }
-}
-
-function fokussiereNaechstesFeldDocuWare(currentField) {
-    // 1) Versuche innerhalb des gleichen <tbody> / Tabelle / Dialogs vorwärts zu gehen
-    const currentTr = currentField.closest('tr');
-    const rootTable = currentTr ? currentTr.closest('tbody, table, .dw-dialog, form, .dw-section') : null;
-
-    const isValid = (el) => {
-        if (!el) return false;
-        if (el.readOnly) return false;
-        if (el.disabled) return false;
-        // visible: offsetParent oder getClientRects
-        const rects = el.getClientRects();
-        if (!rects || rects.length === 0) return false;
-        // ignore small hidden controls like icon-only buttons
-        return true;
-    };
-
-    const findInSiblingTrs = () => {
-        if (!currentTr) return null;
-        let tr = currentTr.nextElementSibling;
-        while (tr) {
-            // skip Knockout comment nodes - nextElementSibling already does
-            // Suche nach Eingabefeld im TR (bevorzugt .dw-textField / .dw-dateField)
-            const candidate = tr.querySelector('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]');
-            if (candidate && isValid(candidate)) return candidate;
-            tr = tr.nextElementSibling;
+        // Tab / Shift+Tab im Dropdown: wie ArrowDown / ArrowUp
+        if (e.key === 'Tab') {
+            if (e.shiftKey) gotoIndex(selectedDokTypIndex - 1);
+            else gotoIndex(selectedDokTypIndex + 1);
+            return;
         }
-        return null;
-    };
 
-    const findInRoot = () => {
-        if (!rootTable) return null;
-        // alle Inputs in rootTable in DOM-Reihenfolge
-        const candidates = Array.from(rootTable.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
-        const idx = candidates.indexOf(currentField);
-        if (idx >= 0) {
-            for (let i = idx + 1; i < candidates.length; i++) {
-                if (isValid(candidates[i])) return candidates[i];
-            }
-        }
-        return null;
-    };
+        // Enter: Auswahl übernehmen + zum nächsten logischen DocuWare-Feld springen
+        if (e.key === 'Enter') {
+            const chosen = optionen[selectedDokTypIndex];
+            if (chosen) {
+                inputField.value = chosen;
+                inputField.dispatchEvent(new Event('input', { bubbles: true }));
 
-    const findGlobally = () => {
-        const all = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
-        const idx = all.indexOf(currentField);
-        if (idx >= 0) {
-            for (let i = idx + 1; i < all.length; i++) {
-                if (isValid(all[i])) return all[i];
-            }
-        }
-        return null;
-    };
+                // Eigenes Dropdown entfernen
+                entferneDropdown();
 
-    // Reihenfolge: siblings -> rootTable -> global
-    let next = findInSiblingTrs() || findInRoot() || findGlobally();
+                // DocuWare Dropdown unterdrücken
+                const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer');
+                if (dwDropdown) {
+                    dwDropdown.style.display = 'none';
+                    dwDropdown.setAttribute('data-suppressed', 'true');
 
-    if (next) {
-        // Kleiner Delay, damit DocuWare eigene asynchrone Fokus-Mechanismen abgeschlossen sind.
-        setTimeout(() => {
-            try {
-                next.focus();
-                // wenn text, select zum schnellen Weitertippen
-                if (typeof next.select === 'function') {
-                    next.select();
+                    // Optional: knockout viewModel auf hidden setzen
+                    const koData = ko.dataFor(dwDropdown);
+                    if (koData && koData.visible) {
+                        koData.visible(false);
+                    }
                 }
-                // manuell ein focus-Event feuern (falls DW darauf hört)
-                next.dispatchEvent(new Event('focus', { bubbles: true }));
-            } catch (err) {
-                // Fallback: nichts tun
+
+                // Fokus auf nächstes Feld
+                fokussiereNaechstesFeldDocuWare(inputField);
             }
-        }, 60);
+        }
+
+        // Escape wie vorher
+        if (e.key === 'Escape') {
+            entferneDropdown();
+            return;
+        }
     }
-}
+
+    function fokussiereNaechstesFeldDocuWare(currentField) {
+        // 1) Versuche innerhalb des gleichen <tbody> / Tabelle / Dialogs vorwärts zu gehen
+        const currentTr = currentField.closest('tr');
+        const rootTable = currentTr ? currentTr.closest('tbody, table, .dw-dialog, form, .dw-section') : null;
+
+        const isValid = (el) => {
+            if (!el) return false;
+            if (el.readOnly) return false;
+            if (el.disabled) return false;
+            // visible: offsetParent oder getClientRects
+            const rects = el.getClientRects();
+            if (!rects || rects.length === 0) return false;
+            // ignore small hidden controls like icon-only buttons
+            return true;
+        };
+
+        const findInSiblingTrs = () => {
+            if (!currentTr) return null;
+            let tr = currentTr.nextElementSibling;
+            while (tr) {
+                // skip Knockout comment nodes - nextElementSibling already does
+                // Suche nach Eingabefeld im TR (bevorzugt .dw-textField / .dw-dateField)
+                const candidate = tr.querySelector('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]');
+                if (candidate && isValid(candidate)) return candidate;
+                tr = tr.nextElementSibling;
+            }
+            return null;
+        };
+
+        const findInRoot = () => {
+            if (!rootTable) return null;
+            // alle Inputs in rootTable in DOM-Reihenfolge
+            const candidates = Array.from(rootTable.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
+            const idx = candidates.indexOf(currentField);
+            if (idx >= 0) {
+                for (let i = idx + 1; i < candidates.length; i++) {
+                    if (isValid(candidates[i])) return candidates[i];
+                }
+            }
+            return null;
+        };
+
+        const findGlobally = () => {
+            const all = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
+            const idx = all.indexOf(currentField);
+            if (idx >= 0) {
+                for (let i = idx + 1; i < all.length; i++) {
+                    if (isValid(all[i])) return all[i];
+                }
+            }
+            return null;
+        };
+
+        // Reihenfolge: siblings -> rootTable -> global
+        let next = findInSiblingTrs() || findInRoot() || findGlobally();
+
+        if (next) {
+            // Kleiner Delay, damit DocuWare eigene asynchrone Fokus-Mechanismen abgeschlossen sind.
+            setTimeout(() => {
+                try {
+                    next.focus();
+                    // wenn text, select zum schnellen Weitertippen
+                    if (typeof next.select === 'function') {
+                        next.select();
+                    }
+                    // manuell ein focus-Event feuern (falls DW darauf hört)
+                    next.dispatchEvent(new Event('focus', { bubbles: true }));
+                } catch (err) {
+                    // Fallback: nichts tun
+                }
+            }, 60);
+        }
+    }
 
 
     // NEU: Input-Handler
+    // ÄNDERUNG: Input-Handler mit korrekter Delete-Behandlung
     function handleInput(e) {
         const inputField = e.target;
+
+        // Spezialbehandlung für Delete/Backspace direkt nach Autovervollständigung
+        if (e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
+            letzteLoeschAktion = Date.now();
+            entferneDropdown();
+
+            // Sicherstellen, dass das Feld wirklich leer ist
+            if (inputField.value.trim() === '') {
+                inputField.value = '';
+                return;
+            }
+        }
+
         let value = bereinigeEingabe(inputField.value);
         inputField.value = value;
 
@@ -501,6 +515,10 @@ function fokussiereNaechstesFeldDocuWare(currentField) {
         if (match) {
             if (match.typ === 'eindeutig') {
                 inputField.value = match.wert;
+                // NEU: Fokus setzen, damit nächste Eingabe erkannt wird
+                setTimeout(() => {
+                    inputField.setSelectionRange(match.wert.length, match.wert.length);
+                }, 10);
                 entferneDropdown();
             } else if (match.typ === 'mehrfach') {
                 zeigeDropdown(inputField, match.wert);
@@ -565,24 +583,25 @@ function fokussiereNaechstesFeldDocuWare(currentField) {
         document.querySelectorAll('input.dw-textField').forEach(attachHandler);
     }
 
-const observer = new MutationObserver(() => {
-    const dwDropdown = document.querySelector('.dw-scroll-content.scroll-content');
-    const customDropdown = document.querySelector('.dokumententyp-dropdown');
+    const observer = new MutationObserver(() => {
+        const dwDropdown = document.querySelector('.dw-scroll-content.scroll-content');
+        const customDropdown = document.querySelector('.dokumententyp-dropdown');
 
-    if (dwDropdown && customDropdown && customDropdown.style.display !== 'none') {
-        // DocuWare Dropdown ausblenden
-        dwDropdown.style.display = 'none';
-        dwDropdown.setAttribute('data-suppressed', 'true');
-    } else if (dwDropdown && dwDropdown.getAttribute('data-suppressed')) {
-        // Wieder einblenden, wenn dein Dropdown geschlossen wird
-        dwDropdown.style.display = '';
-        dwDropdown.removeAttribute('data-suppressed');
-    }
+        if (dwDropdown && customDropdown && customDropdown.style.display !== 'none') {
+            // DocuWare Dropdown ausblenden
+            dwDropdown.style.display = 'none';
+            dwDropdown.setAttribute('data-suppressed', 'true');
+        } else if (dwDropdown && dwDropdown.getAttribute('data-suppressed')) {
+            // Wieder einblenden, wenn dein Dropdown geschlossen wird
+            dwDropdown.style.display = '';
+            dwDropdown.removeAttribute('data-suppressed');
+        }
 
-    // Zusätzlich: scanne neue Input-Felder
-    scan();
-});
+        // Zusätzlich: scanne neue Input-Felder
+        scan();
+    });
 
-observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
 
 })();
+
