@@ -39,7 +39,7 @@
             font-size: 11px;
             font-weight: 600;
             transition: all 0.2s;
-            min-width: 70px;
+            min-width: 15px;
             
             white-space: nowrap;
         }
@@ -154,4 +154,5 @@
     
     console.log('✅ Splitter-Buttons in Splitter-Bar integriert (900px, 1200px, 1400px)');
 })();
+
 
