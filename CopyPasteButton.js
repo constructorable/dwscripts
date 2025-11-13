@@ -2,9 +2,9 @@
     'use strict';
     const SCRIPT_ID = 'docuware-enhancement-script';
 
-    // Reset bei erneuter Ausführung
+    // Reset bei erneuter AusfÃ¼hrung
     if (window[SCRIPT_ID]) {
-        console.log('🔄 DocuWare Enhancement wird zurückgesetzt...');
+        console.log('ðŸ”„ DocuWare Enhancement wird zurÃ¼ckgesetzt...');
         document.querySelectorAll('.dw-field-wrapper').forEach(w => {
             const f = w.querySelector('input, textarea, span');
             if (f) {
@@ -33,13 +33,27 @@
         const e = document.querySelector('style[data-dw-enhancement]');
         if (e) e.remove();
         if (window[SCRIPT_ID].observer) window[SCRIPT_ID].observer.disconnect();
-        if (window[SCRIPT_ID].listeners) window[SCRIPT_ID].listeners.forEach(({ element, event, handler }) => element.removeEventListener(event, handler));
+        // ÄNDERUNG: Sichere Listener-Entfernung
+        if (window[SCRIPT_ID].listeners) {
+            window[SCRIPT_ID].listeners.forEach(({ element, event, handler }) => {
+                if (element && element.removeEventListener) {
+                    element.removeEventListener(event, handler);
+                }
+            });
+            window[SCRIPT_ID].listeners = [];
+        }
         delete window[SCRIPT_ID];
-        console.log('✅ DocuWare Enhancement komplett zurückgesetzt');
+        console.log('âœ… DocuWare Enhancement komplett zurÃ¼ckgesetzt');
     }
 
-    window[SCRIPT_ID] = { observer: null, listeners: [] };
-    console.log('🚀 DocuWare Enhancement wird neu initialisiert...');
+    // ÄNDERUNG: Erweitertes State-Management mit Limits
+    window[SCRIPT_ID] = { 
+        observer: null, 
+        listeners: [],
+        maxListeners: 1000, // NEU: Maximale Anzahl Listener
+        processedElements: new WeakSet() // NEU: Verhindert doppelte Verarbeitung
+    };
+    console.log('ðŸš€ DocuWare Enhancement wird neu initialisiert...');
 
     // Font Awesome laden
     if (!document.querySelector('link[href*="font-awesome"]')) {
@@ -59,11 +73,42 @@
     let clipboardStorage = '', currentCellButton = null, currentHoveredCell = null, buttonVisible = false;
     const supportedFieldTypes = { textField: '.dw-textField', numericField: '.dw-numericField', memoField: '.dw-memoField', dateField: '.dw-dateField', dateEntry: '.is-dateEntry', calendarPicker: '.hasCalendarsPicker', keywordSpan: 'span[data-bind*="text: value"]' };
 
-    // Hilfsfunktionen
+    // ÄNDERUNG: Listener-Management mit automatischer Bereinigung
     const addTrackedEventListener = (element, event, handler) => {
+        // NEU: Prüfe ob Element bereits verarbeitet wurde
+        if (!element || !element.isConnected) return;
+        
+        // NEU: Listener-Limit prüfen und alte entfernen
+        if (window[SCRIPT_ID].listeners.length >= window[SCRIPT_ID].maxListeners) {
+            const removed = window[SCRIPT_ID].listeners.splice(0, 100); // Älteste 100 entfernen
+            removed.forEach(({ element: el, event: ev, handler: h }) => {
+                if (el && el.removeEventListener) {
+                    el.removeEventListener(ev, h);
+                }
+            });
+        }
+        
         element.addEventListener(event, handler);
         window[SCRIPT_ID].listeners.push({ element, event, handler });
     };
+    
+    // NEU: Periodische Bereinigung toter Listener
+    const cleanupDeadListeners = () => {
+        const before = window[SCRIPT_ID].listeners.length;
+        window[SCRIPT_ID].listeners = window[SCRIPT_ID].listeners.filter(({ element }) => {
+            if (!element || !element.isConnected) {
+                return false; // Element aus DOM entfernt
+            }
+            return true;
+        });
+        const removed = before - window[SCRIPT_ID].listeners.length;
+        if (removed > 0) {
+            console.log(`🧹 ${removed} tote Listener entfernt`);
+        }
+    };
+    
+    // NEU: Cleanup alle 30 Sekunden
+    setInterval(cleanupDeadListeners, 30000);
 
     const isSupportedField = (element) => {
         for (const fieldType in supportedFieldTypes) {
@@ -137,8 +182,8 @@
         const rect = cell.getBoundingClientRect();
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        // Zurück zu rechtsbündiger Positionierung für Zellen-Copy-Button
-        button.style.left = (rect.right - 25 + scrollLeft) + 'px'; // Rechtsbündig wie vorher
+        // ZurÃ¼ck zu rechtsbÃ¼ndiger Positionierung fÃ¼r Zellen-Copy-Button
+        button.style.left = (rect.right - 25 + scrollLeft) + 'px'; // RechtsbÃ¼ndig wie vorher
         button.style.top = (rect.top + (rect.height / 2) - 9 + scrollTop) + 'px';
         button.style.opacity = 0.6;
         button.classList.add('show');
@@ -268,7 +313,7 @@
 
         if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
             const pasteButton = document.createElement('button');
-            Object.assign(pasteButton, { className: 'dw-field-btn paste-btn', innerHTML: '<i class="fas fa-paste"></i>', title: 'Aus Zwischenablage einfügen', type: 'button', tabIndex: -1 });
+            Object.assign(pasteButton, { className: 'dw-field-btn paste-btn', innerHTML: '<i class="fas fa-paste"></i>', title: 'Aus Zwischenablage einfÃ¼gen', type: 'button', tabIndex: -1 });
             pasteButton.style.cssText = copyButton.style.cssText;
 
             const clearButton = document.createElement('button');
@@ -348,7 +393,7 @@
         enhanceResultListCells();
     };
 
-    // Observer für dynamische Inhalte
+    // Observer fÃ¼r dynamische Inhalte
     const fieldObserver = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
@@ -398,7 +443,7 @@
     setTimeout(enhanceAllElements, 1000);
     setTimeout(enhanceAllElements, 3000);
 
-    console.log('✅ DocuWare Enhancement: Buttons innerhalb der Inputfelder positioniert');
-    console.log('🔧 Unterstützte Feldtypen:', Object.keys(supportedFieldTypes));
-    console.log('🔄 Script kann durch erneute Ausführung zurückgesetzt werden');
+    console.log('âœ… DocuWare Enhancement: Buttons innerhalb der Inputfelder positioniert');
+    console.log('ðŸ”§ UnterstÃ¼tzte Feldtypen:', Object.keys(supportedFieldTypes));
+    console.log('ðŸ”„ Script kann durch erneute AusfÃ¼hrung zurÃ¼ckgesetzt werden');
 })();
