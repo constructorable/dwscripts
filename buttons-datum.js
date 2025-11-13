@@ -16,8 +16,8 @@
             wrap: true,
             isDate: true,
             exc: [
-                'Eingangsdatum', 'Rechnungsdatum', 'FÃ¤lligkeitsdatum',
-                'Erstellungsdatum', 'Ausgangsdatum', 'AusfÃ¼hrungsdatum (Bericht)',
+                'Eingangsdatum', 'Rechnungsdatum', 'Fälligkeitsdatum',
+                'Erstellungsdatum', 'Ausgangsdatum', 'Ausführungsdatum (Bericht)',
                 'Abgelegt am', 'nÃ¤chster Ablesetermin'
             ],
             opts: [
@@ -645,3 +645,4 @@
 
     main();
 })();
+
