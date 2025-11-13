@@ -9,7 +9,7 @@
     const BETREFF_CONFIG = {
         fieldLabel: 'Betreff',
         prefix: 'dw-betreff',
-        gap: '6px',
+        gap: '2px',
         keywords: [
             { value: '(tags: ', label: '(tags: ' },
             { value: ')', label: ')' },
@@ -595,3 +595,4 @@
 
     main();
 })();
+
