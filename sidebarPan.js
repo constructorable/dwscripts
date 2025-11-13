@@ -1,4 +1,4 @@
-// TEMPORÄRER CODE: Splitter-Buttons integriert in Splitter-Bar (900px, 1100px, 1400px)
+// TEMPORÄRER CODE: Splitter-Buttons integriert in Splitter-Bar (900px, 1200px, 1400px)
 // Erstellt drei Buttons direkt in der Splitter-Bar zur schnellen Positionierung
 
 (function() {
@@ -25,15 +25,15 @@
             transform: translate(-50%, -50%);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             z-index: 10;
             pointer-events: auto;
         }
         #${ID} button {
-            padding: 6px 12px;
-            border: 1px solid #3b82f6;
+            padding: 1px 2px;
+            border: 1px solid #2e4975ff;
             background: #fff;
-            color: #3b82f6;
+            color: #31476bff;
             border-radius: 4px;
             cursor: pointer;
             font-size: 11px;
@@ -49,10 +49,10 @@
             box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
         }
         #${ID} button.active {
-            background: #3b82f6;
+            background: #36588fff;
             color: #fff;
             box-shadow: 0 3px 10px rgba(59, 130, 246, 0.4);
-            border-color: #2563eb;
+            border-color: #2a437aff;
         }
         .splitter-bar.splitter-bar-vertical {
             position: relative;
@@ -72,9 +72,9 @@
     const container = document.createElement('div');
     container.id = ID;
     container.innerHTML = `
-        <button data-position="900" title="Linke Seite: 900px">900</button>
-        <button data-position="1100" title="Linke Seite: 1100px">1100</button>
-        <button data-position="1400" title="Linke Seite: 1400px">1400</button>
+        <button data-position="900" title="Linke Seite: 900px">.</button>
+        <button data-position="1200" title="Linke Seite: 1200px">.</button>
+        <button data-position="1400" title="Linke Seite: 1400px">.</button>
     `;
     splitterBar.appendChild(container);
     
@@ -153,6 +153,6 @@
         });
     });
     
-    console.log('✅ Splitter-Buttons in Splitter-Bar integriert (900px, 1100px, 1400px)');
+    console.log('✅ Splitter-Buttons in Splitter-Bar integriert (900px, 1200px, 1400px)');
 })();
 
