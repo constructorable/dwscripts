@@ -23,7 +23,7 @@
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-bestaetigung.js', name: 'Button Bestätigung', category: 'Buttons' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-verwaltung.js', name: 'Button Verwaltung', category: 'Buttons' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-navigation.js', name: 'Button Navigation', category: 'Buttons' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sidebarPan.js', name: 'Button Navigation', category: 'Buttons' },
+        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sidebarPan.js', name: 'Splitter Bar', category: 'splitting' },
 
       
         
