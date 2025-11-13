@@ -18,12 +18,14 @@
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autovervollst%C3%A4ndigungdokart.js', name: 'Autocomplete Dokumentarten', category: 'Autocomplete' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autocompletestrassennamen.js', name: 'Autocomplete Straßennamen', category: 'Autocomplete' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tagsfuerbetreffbuttonhinzufuegen.js', name: 'Tags für Betreffzeile', category: 'Tags' },
-
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-datum.js', name: 'Buttons Datum', category: 'Buttons' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-basis.js', name: 'Buttons Basis', category: 'Buttons' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-bestaetigung.js', name: 'Button Bestätigung', category: 'Buttons' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-verwaltung.js', name: 'Button Verwaltung', category: 'Buttons' },
         { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-navigation.js', name: 'Button Navigation', category: 'Buttons' },
+        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sidebarPan.js', name: 'Button Navigation', category: 'Buttons' },
+
+      
         
     ];
 
