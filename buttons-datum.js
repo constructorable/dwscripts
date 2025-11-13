@@ -82,6 +82,8 @@
             window[ID].s.timeouts && window[ID].s.timeouts.clear();
             // NEU: Date-Cache leeren
             dateCache.clear();
+            // NEU: Query-Cache leeren
+            queryCache.cache.clear();
             log('🧹 Cleanup abgeschlossen - alle Caches geleert');
         }
     }
@@ -487,7 +489,51 @@
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Hochoptimierter Observer mit gezieltem Scope
+    // NEU: Interner Query-Cache für diese Datei
+    const queryCache = {
+        cache: new Map(),
+        maxSize: 50,
+        ttl: 3000,
+        
+        get(selector) {
+            const cached = this.cache.get(selector);
+            if (cached && Date.now() - cached.timestamp < this.ttl) {
+                // Validiere dass Elemente noch im DOM sind
+                if (cached.elements[0]?.isConnected) {
+                    return cached.elements;
+                }
+            }
+            this.cache.delete(selector);
+            return null;
+        },
+        
+        set(selector, elements) {
+            if (this.cache.size >= this.maxSize) {
+                const firstKey = this.cache.keys().next().value;
+                this.cache.delete(firstKey);
+            }
+            this.cache.set(selector, {
+                elements: Array.from(elements),
+                timestamp: Date.now()
+            });
+        },
+        
+        invalidate(selector = null) {
+            selector ? this.cache.delete(selector) : this.cache.clear();
+        }
+    };
+    
+    // NEU: Optimierte Query-Funktion mit Cache
+    function queryWithCache(selector) {
+        let cached = queryCache.get(selector);
+        if (cached) return cached;
+        
+        const elements = document.querySelectorAll(selector);
+        queryCache.set(selector, elements);
+        return Array.from(elements);
+    }
+
+    // ÄNDERUNG: Hochoptimierter Observer mit internem Cache
     function mkObs() {
         let timeout = null;
         let mutationCount = 0;
@@ -507,6 +553,9 @@
             });
             
             if (!relevantMutation) return;
+            
+            // NEU: Cache bei relevanten Mutationen invalidieren
+            queryCache.invalidate('.ui-dialog.dw-dialogs:not([style*="display: none"])');
             
             // NEU: Aggressiveres Throttling bei vielen Mutationen
             const delay = mutationCount > 10 ? 300 : 100;
@@ -533,8 +582,7 @@
         
         // NEU: Gezielter Scope statt document.body
         const observeTargets = () => {
-            // Nur sichtbare Dialoge beobachten
-            const dialogs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            const dialogs = queryWithCache('.ui-dialog.dw-dialogs:not([style*="display: none"])');
             dialogs.forEach(d => {
                 obs.observe(d, { childList: true, subtree: true });
             });
@@ -542,15 +590,16 @@
             // Fallback: Body nur für neue Dialoge
             obs.observe(document.body, { 
                 childList: true, 
-                subtree: false, // NEU: Kein subtree für body
+                subtree: false,
                 attributes: false,
                 characterData: false
             });
         };
         
-        // NEU: Separate Prozessierungs-Funktion
+        // NEU: Separate Prozessierungs-Funktion mit Cache
         function processDialogs() {
-            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            const dlgs = queryWithCache('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            
             dlgs.forEach(d => {
                 const di = getDlgId(d);
                 const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
@@ -569,12 +618,15 @@
 
     function init() {
         injectCSS();
-        preRenderButtons(); // NEU: Buttons sofort vorrendern
+        preRenderButtons();
         
         waitKO(() => {
             setTimeout(() => {
                 procStd(document.body);
-                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                
+                // NEU: Mit internem Query-Cache
+                const dlgs = queryWithCache('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                
                 dlgs.forEach(d => {
                     const di = getDlgId(d);
                     waitKOBind(d, () => addToDlg(d, di));
@@ -593,4 +645,3 @@
 
     main();
 })();
-
