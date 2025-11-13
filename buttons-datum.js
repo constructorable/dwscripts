@@ -1,12 +1,11 @@
 // buttons-datum.js
-// ÄNDERUNG: Pre-Rendering der Buttons für sofortige Verfügbarkeit + optimierte Performance
-// Separate Datei für Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
+// ÄNDERUNG: Kompaktere Buttons mit reduziertem Abstand zum Datumsfeld
 
 (function () {
     'use strict';
-    
-    const ID = 'dw-ko-buttons-datum', V = '1.3', SK = 'dw-ko-datum-state', D = true;
-    
+
+    const ID = 'dw-ko-buttons-datum', V = '1.0', SK = 'dw-ko-datum-state', D = true;
+
     const CFG = {
         datumsfelder: {
             txt: '',
@@ -31,7 +30,7 @@
                 { v: 'jahresende', l: '31.12', a: 'setYearEnd' }
             ]
         },
-        
+
         datumsfelderpast: {
             txt: '',
             type: 'date_field_past',
@@ -57,9 +56,7 @@
         obs: null,
         timeouts: new Set(),
         dialogs: new Set(),
-        processed: new Set(),
-        koReady: false,
-        preRenderedButtons: new Map() // NEU: Cache für vorgerenderte Buttons
+        processed: new Set()
     };
 
     if (window[ID]) cleanup();
@@ -71,12 +68,11 @@
         if (window[ID] && window[ID].s) {
             window[ID].s.obs && window[ID].s.obs.disconnect();
             window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
-            window[ID].s.preRenderedButtons && window[ID].s.preRenderedButtons.clear();
         }
     }
 
     const dateCache = new Map();
-    
+
     function getFmt(d) {
         const k = d.getTime();
         if (!dateCache.has(k)) {
@@ -110,90 +106,15 @@
         return res;
     }
 
-    // NEU: Pre-Rendering von Button-Templates
-    function preRenderButtons() {
-        Object.keys(CFG).forEach(k => {
-            const cfg = CFG[k];
-            const template = document.createDocumentFragment();
-            
-            cfg.opts.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = `${cfg.pre}-action-button`;
-                btn.type = 'button';
-                btn.textContent = opt.l;
-                btn.title = opt.l;
-                btn.setAttribute('data-value', opt.v);
-                btn.setAttribute('data-action', opt.a || '');
-                template.appendChild(btn);
-            });
-            
-            S.preRenderedButtons.set(k, template);
-        });
-        log('✅ Button-Templates vorgerendert');
-    }
-
-    function adjustDialogHeight(dialog) {
-        if (!dialog) return;
-        
-        try {
-            const content = dialog.querySelector('.ui-dialog-content');
-            if (content) {
-                content.style.maxHeight = 'none';
-                content.style.height = 'auto';
-                content.style.overflow = 'visible';
-            }
-            
-            const dialogContent = dialog.querySelector('.dw-dialogContent.fields');
-            if (dialogContent) {
-                dialogContent.style.maxHeight = 'none';
-                dialogContent.style.height = 'auto';
-                dialogContent.style.overflowY = 'visible';
-                dialogContent.style.minHeight = '200px';
-            }
-            
-            const scrollWrapper = dialog.querySelector('.scroll-wrapper');
-            if (scrollWrapper) {
-                scrollWrapper.style.overflowY = 'visible';
-                scrollWrapper.style.maxHeight = 'none';
-                scrollWrapper.style.height = 'auto';
-            }
-            
-            dialog.style.height = 'auto';
-            
-            if (typeof $ !== 'undefined' && $(dialog).data('ui-dialog')) {
-                setTimeout(() => {
-                    try {
-                        const $dialog = $(dialog);
-                        const dialogInstance = $dialog.data('ui-dialog');
-                        if (dialogInstance) {
-                            dialogInstance.option('position', dialogInstance.option('position'));
-                        }
-                    } catch (e) { }
-                }, 50);
-            }
-        } catch (e) { }
-    }
-
     function waitKO(cb, i = 0) {
-        if (typeof ko !== 'undefined' && ko.version) {
-            S.koReady = true;
-            cb();
-        } else if (i < 100) {
-            setTimeout(() => waitKO(cb, i + 1), 50);
-        } else {
-            cb();
-        }
+        typeof ko !== 'undefined' && ko.version ? cb() : i < 50 ? setTimeout(() => waitKO(cb, i + 1), 100) : cb();
     }
 
-    // ÄNDERUNG: Noch aggressivere KO-Bind-Prüfung
     function waitKOBind(e, cb, i = 0) {
-        if (i >= 10) { 
-            cb(); 
-            return; 
-        }
+        if (i >= 30) { cb(); return; }
         const inp = e.querySelectorAll('input.dw-dateField');
         const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
-        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 50) : cb();
+        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 150) : cb();
     }
 
     function isProc(f) {
@@ -223,21 +144,21 @@
     function findDateInCont(cfg, k, c, di = null) {
         const found = [];
         const dates = c.querySelectorAll('input.dw-dateField');
-        
+
         for (const inp of dates) {
             if (!isProc(inp)) continue;
             const row = inp.closest('tr');
             if (!row) continue;
             const lbl = row.querySelector('.dw-fieldLabel span');
             const txt = lbl && lbl.textContent ? lbl.textContent.trim() : 'Datumsfeld';
-            
+
             if (cfg.inc) {
                 const isIncluded = cfg.inc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()));
                 if (!isIncluded) continue;
             } else if (cfg.exc && cfg.exc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()))) {
                 continue;
             }
-            
+
             const fid = mkId(inp, txt, k, di);
             const hasExistingButtons = row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
             const alreadyProcessed = S.processed.has(fid);
@@ -266,29 +187,31 @@
         setVal(inp, val);
     }
 
-    // ÄNDERUNG: Verwende vorgerenderte Buttons
+    function mkBtn(opt, cfg, inp, fid) {
+        const btn = document.createElement('button');
+        btn.className = `${cfg.pre}-action-button`;
+        btn.type = 'button';
+        btn.textContent = opt.l;
+        btn.title = opt.l;
+        btn.setAttribute('data-value', opt.v);
+        btn.setAttribute('data-field-id', fid);
+        btn.setAttribute('data-action', opt.a || '');
+        btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
+        return btn;
+    }
+
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
         const cont = document.createElement('div');
         cont.className = `${cfg.pre}-button-container`;
         cont.setAttribute('data-field-id', fid);
 
-        // NEU: Clone vorgerenderte Buttons
-        const template = S.preRenderedButtons.get(k);
-        if (template) {
-            const clone = template.cloneNode(true);
-            const buttons = clone.querySelectorAll('button');
-            
-            // Event-Listener und Field-ID hinzufügen
-            buttons.forEach((btn, idx) => {
-                const opt = cfg.opts[idx];
-                btn.setAttribute('data-field-id', fid);
-                btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
-            });
-            
-            cont.appendChild(clone);
-        }
-        
+        const frag = document.createDocumentFragment();
+        cfg.opts.forEach(opt => {
+            const btn = mkBtn(opt, cfg, inp, fid);
+            frag.appendChild(btn);
+        });
+        cont.appendChild(frag);
         return cont;
     }
 
@@ -296,9 +219,11 @@
         const { inp, row, k, fid } = f;
 
         if (row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`)) {
+            log(`⚠️ Button-Reihe bereits vorhanden: ${fid}`);
             return false;
         }
         if (document.querySelector(`[data-field-id="${fid}"]`)) {
+            log(`⚠️ Button bereits im DOM: ${fid}`);
             return false;
         }
 
@@ -308,7 +233,7 @@
         br.setAttribute('data-config-key', k);
         di && br.setAttribute('data-dialog-id', di);
         br.style.cssText = 'position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;';
-        
+
         const lc = document.createElement('td');
         lc.className = 'dw-fieldLabel';
         const cc = document.createElement('td');
@@ -318,19 +243,14 @@
         br.appendChild(lc);
         br.appendChild(cc);
         br.classList.add('dw-btn-fade');
-        
+
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
-            requestAnimationFrame(() => {
+            setTimeout(() => {
                 br.style.display = 'table-row';
                 br.style.opacity = '1';
                 br.style.visibility = 'visible';
-                
-                const dialog = br.closest('.ui-dialog.dw-dialogs');
-                if (dialog) {
-                    setTimeout(() => adjustDialogHeight(dialog), 50);
-                }
-            });
+            }, 50);
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -339,9 +259,8 @@
         }
     }
 
-    // ÄNDERUNG: Noch schnellere Injection
     function injectWithDelay(f, cfg, di) {
-        const delays = [0, 20, 50];
+        const delays = [50, 150, 300];
         function attempt(i = 0) {
             if (i >= delays.length) return false;
             setTimeout(() => {
@@ -359,14 +278,16 @@
         const cfg = CFG[k];
         const fields = findDateInCont(cfg, k, c, di);
         if (!fields.length) return 0;
-        
+
         let added = 0;
         fields.forEach(f => {
             if (!S.processed.has(f.fid)) {
-                if (injectWithDelay(f, cfg, di)) {
-                    S.processed.add(f.fid);
-                    added++;
-                }
+                requestAnimationFrame(() => {
+                    if (injectWithDelay(f, cfg, di)) {
+                        S.processed.add(f.fid);
+                        added++;
+                    }
+                });
             }
         });
         return added;
@@ -388,88 +309,29 @@
 
     function procAfterKO(e) {
         const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 20) : setTimeout(() => procStd(e), 20);
+        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 100) : setTimeout(() => procStd(e), 100);
     }
 
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
-        const css = `
-            .dw-datum-button-row,.dw-datum-past-button-row{
-                position:relative!important;
-                display:table-row!important;
-                opacity:1!important;
-                visibility:visible!important
-            }
-            [class*="dw-datum"][class*="-button-container"]{
-                display:flex!important;
-                align-items:center!important;
-                gap:4px!important;
-                padding:4px 1px 8px 29px!important;
-                flex-wrap:wrap!important
-            }
-            [class*="dw-datum"][class*="-action-button"]{
-                display:inline-flex!important;
-                cursor:pointer!important;
-                border-radius:3px!important;
-                border:1px solid #d1d5db!important;
-                background:#fff!important;
-                color:#374151!important;
-                padding:2px 4px!important;
-                min-height:18px!important;
-                font-size:10px!important;
-                margin:1px!important
-            }
-            .ui-dialog.dw-dialogs:has(.dw-datum-button-row){
-                min-width:500px!important;
-                height:auto!important
-            }
-            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialogContent.fields{
-                min-height:200px!important;
-                max-height:none!important;
-                height:auto!important;
-                overflow-y:visible!important
-            }
-            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .ui-dialog-content{
-                min-height:200px!important;
-                max-height:none!important;
-                height:auto!important;
-                overflow:visible!important
-            }
-            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .scroll-wrapper{
-                overflow-y:visible!important;
-                max-height:none!important;
-                height:auto!important
-            }
-            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialog.scroll-content{
-                height:auto!important
-            }
-            .dw-datum-button-container{
-                max-width:470px!important;
-                margin-top:-5px!important
-            }
-        `;
-        
+        // ÄNDERUNG: Reduzierte Button-Größe, kompakteres Padding, verringerter Abstand zum Datumsfeld
+        const css = `.dw-datum-button-row,.dw-datum-past-button-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="dw-datum"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:3px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-8px!important}[class*="dw-datum"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:1px 3px!important;min-height:16px!important;font-size:10px!important;margin:0!important;line-height:1.2!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row){min-width:500px!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialogContent.fields{max-height:400px!important;overflow-y:auto!important}.dw-datum-button-container{max-width:470px!important}`;
+
         const style = document.createElement('style');
         style.textContent = css;
         style.setAttribute('data-dw-datum-btns', 'true');
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Schnellerer Observer
     function mkObs() {
-        let timeout = null;
         const obs = new MutationObserver(() => {
-            if (timeout) clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-                dlgs.forEach(d => {
-                    const di = getDlgId(d);
-                    const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
-                    !hasBtns && waitKOBind(d, () => addToDlg(d, di));
-                });
-                procStd(document.body);
-            }, 100);
-            S.timeouts.add(timeout);
+            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            dlgs.forEach(d => {
+                const di = getDlgId(d);
+                const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
+                !hasBtns && waitKOBind(d, () => addToDlg(d, di));
+            });
+            procStd(document.body);
         });
         obs.observe(document.body, { childList: true, subtree: true });
         return obs;
@@ -477,8 +339,6 @@
 
     function init() {
         injectCSS();
-        preRenderButtons(); // NEU: Buttons sofort vorrendern
-        
         waitKO(() => {
             setTimeout(() => {
                 procStd(document.body);
@@ -487,17 +347,18 @@
                     const di = getDlgId(d);
                     waitKOBind(d, () => addToDlg(d, di));
                 });
-            }, 100);
+            }, 500);
         });
         S.obs = mkObs();
         S.init = true;
     }
 
     function main() {
-        document.readyState === 'loading' ? 
-            document.addEventListener('DOMContentLoaded', init, { once: true }) : 
-            setTimeout(init, 50);
+        document.readyState === 'loading' ?
+            document.addEventListener('DOMContentLoaded', init, { once: true }) :
+            setTimeout(init, 300);
     }
 
     main();
 })();
+
