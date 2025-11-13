@@ -19,7 +19,7 @@
         'Bericht - Leckageortung',
         'Bericht - Prüfung',
         'Bericht - Regiebericht',
-        'Bericht - Schadenaufnahme',
+        
         'Bericht - Übergabeprotokoll',
         'Bericht - Wartung',
         'Bericht (Sonstige)',
@@ -462,4 +462,5 @@
     const observer = new MutationObserver(scan);
     observer.observe(document.body, { subtree: true, childList: true });
     scan();
+
 })();
