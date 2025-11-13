@@ -1,11 +1,11 @@
 // buttons-datum.js
-// ÄNDERUNG: Dialog-Höhe wird automatisch angepasst + optimierte Performance
+// ÄNDERUNG: Pre-Rendering der Buttons für sofortige Verfügbarkeit + optimierte Performance
 // Separate Datei für Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
 
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-datum', V = '1.2', SK = 'dw-ko-datum-state', D = true;
+    const ID = 'dw-ko-buttons-datum', V = '1.3', SK = 'dw-ko-datum-state', D = true;
     
     const CFG = {
         datumsfelder: {
@@ -58,7 +58,8 @@
         timeouts: new Set(),
         dialogs: new Set(),
         processed: new Set(),
-        koReady: false
+        koReady: false,
+        preRenderedButtons: new Map() // NEU: Cache für vorgerenderte Buttons
     };
 
     if (window[ID]) cleanup();
@@ -70,6 +71,7 @@
         if (window[ID] && window[ID].s) {
             window[ID].s.obs && window[ID].s.obs.disconnect();
             window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
+            window[ID].s.preRenderedButtons && window[ID].s.preRenderedButtons.clear();
         }
     }
 
@@ -108,12 +110,32 @@
         return res;
     }
 
-    // NEU: Dialog-Höhe automatisch anpassen
+    // NEU: Pre-Rendering von Button-Templates
+    function preRenderButtons() {
+        Object.keys(CFG).forEach(k => {
+            const cfg = CFG[k];
+            const template = document.createDocumentFragment();
+            
+            cfg.opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = `${cfg.pre}-action-button`;
+                btn.type = 'button';
+                btn.textContent = opt.l;
+                btn.title = opt.l;
+                btn.setAttribute('data-value', opt.v);
+                btn.setAttribute('data-action', opt.a || '');
+                template.appendChild(btn);
+            });
+            
+            S.preRenderedButtons.set(k, template);
+        });
+        log('✅ Button-Templates vorgerendert');
+    }
+
     function adjustDialogHeight(dialog) {
         if (!dialog) return;
         
         try {
-            // Content-Bereiche anpassen
             const content = dialog.querySelector('.ui-dialog-content');
             if (content) {
                 content.style.maxHeight = 'none';
@@ -138,7 +160,6 @@
             
             dialog.style.height = 'auto';
             
-            // jQuery UI Dialog neu positionieren
             if (typeof $ !== 'undefined' && $(dialog).data('ui-dialog')) {
                 setTimeout(() => {
                     try {
@@ -148,13 +169,9 @@
                             dialogInstance.option('position', dialogInstance.option('position'));
                         }
                     } catch (e) { }
-                }, 100);
+                }, 50);
             }
-            
-            log(`📏 Dialog-Höhe angepasst`);
-        } catch (e) {
-            log(`⚠️ Dialog-Höhe Anpassung fehlgeschlagen:`, e);
-        }
+        } catch (e) { }
     }
 
     function waitKO(cb, i = 0) {
@@ -168,14 +185,15 @@
         }
     }
 
+    // ÄNDERUNG: Noch aggressivere KO-Bind-Prüfung
     function waitKOBind(e, cb, i = 0) {
-        if (i >= 15) { 
+        if (i >= 10) { 
             cb(); 
             return; 
         }
         const inp = e.querySelectorAll('input.dw-dateField');
         const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
-        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 80) : cb();
+        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 50) : cb();
     }
 
     function isProc(f) {
@@ -248,31 +266,29 @@
         setVal(inp, val);
     }
 
-    function mkBtn(opt, cfg, inp, fid) {
-        const btn = document.createElement('button');
-        btn.className = `${cfg.pre}-action-button`;
-        btn.type = 'button';
-        btn.textContent = opt.l;
-        btn.title = opt.l;
-        btn.setAttribute('data-value', opt.v);
-        btn.setAttribute('data-field-id', fid);
-        btn.setAttribute('data-action', opt.a || '');
-        btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
-        return btn;
-    }
-
+    // ÄNDERUNG: Verwende vorgerenderte Buttons
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
         const cont = document.createElement('div');
         cont.className = `${cfg.pre}-button-container`;
         cont.setAttribute('data-field-id', fid);
 
-        const frag = document.createDocumentFragment();
-        cfg.opts.forEach(opt => {
-            const btn = mkBtn(opt, cfg, inp, fid);
-            frag.appendChild(btn);
-        });
-        cont.appendChild(frag);
+        // NEU: Clone vorgerenderte Buttons
+        const template = S.preRenderedButtons.get(k);
+        if (template) {
+            const clone = template.cloneNode(true);
+            const buttons = clone.querySelectorAll('button');
+            
+            // Event-Listener und Field-ID hinzufügen
+            buttons.forEach((btn, idx) => {
+                const opt = cfg.opts[idx];
+                btn.setAttribute('data-field-id', fid);
+                btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
+            });
+            
+            cont.appendChild(clone);
+        }
+        
         return cont;
     }
 
@@ -310,10 +326,9 @@
                 br.style.opacity = '1';
                 br.style.visibility = 'visible';
                 
-                // NEU: Dialog-Höhe nach Button-Injection anpassen
                 const dialog = br.closest('.ui-dialog.dw-dialogs');
                 if (dialog) {
-                    setTimeout(() => adjustDialogHeight(dialog), 100);
+                    setTimeout(() => adjustDialogHeight(dialog), 50);
                 }
             });
             log(`✅ Buttons eingefügt: ${fid}`);
@@ -324,8 +339,9 @@
         }
     }
 
+    // ÄNDERUNG: Noch schnellere Injection
     function injectWithDelay(f, cfg, di) {
-        const delays = [10, 50, 100];
+        const delays = [0, 20, 50];
         function attempt(i = 0) {
             if (i >= delays.length) return false;
             setTimeout(() => {
@@ -372,10 +388,9 @@
 
     function procAfterKO(e) {
         const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 50) : setTimeout(() => procStd(e), 50);
+        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 20) : setTimeout(() => procStd(e), 20);
     }
 
-    // ÄNDERUNG: CSS erweitert für automatische Dialog-Höhenanpassung
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
         const css = `
@@ -440,6 +455,7 @@
         document.head.appendChild(style);
     }
 
+    // ÄNDERUNG: Schnellerer Observer
     function mkObs() {
         let timeout = null;
         const obs = new MutationObserver(() => {
@@ -452,7 +468,7 @@
                     !hasBtns && waitKOBind(d, () => addToDlg(d, di));
                 });
                 procStd(document.body);
-            }, 200);
+            }, 100);
             S.timeouts.add(timeout);
         });
         obs.observe(document.body, { childList: true, subtree: true });
@@ -461,6 +477,8 @@
 
     function init() {
         injectCSS();
+        preRenderButtons(); // NEU: Buttons sofort vorrendern
+        
         waitKO(() => {
             setTimeout(() => {
                 procStd(document.body);
@@ -469,7 +487,7 @@
                     const di = getDlgId(d);
                     waitKOBind(d, () => addToDlg(d, di));
                 });
-            }, 200);
+            }, 100);
         });
         S.obs = mkObs();
         S.init = true;
@@ -478,10 +496,8 @@
     function main() {
         document.readyState === 'loading' ? 
             document.addEventListener('DOMContentLoaded', init, { once: true }) : 
-            setTimeout(init, 100);
+            setTimeout(init, 50);
     }
 
     main();
 })();
-
-
