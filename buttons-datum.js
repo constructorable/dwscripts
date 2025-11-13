@@ -52,6 +52,7 @@
         }
     };
 
+    // ÄNDERUNG: State mit Größenlimits für Memory-Management
     let S = {
         init: false,
         obs: null,
@@ -59,7 +60,10 @@
         dialogs: new Set(),
         processed: new Set(),
         koReady: false,
-        preRenderedButtons: new Map() // NEU: Cache fÃ¼r vorgerenderte Buttons
+        preRenderedButtons: new Map(),
+        // NEU: Maximale Set-Größen
+        maxProcessed: 500,
+        maxDialogs: 50
     };
 
     if (window[ID]) cleanup();
@@ -72,6 +76,10 @@
             window[ID].s.obs && window[ID].s.obs.disconnect();
             window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
             window[ID].s.preRenderedButtons && window[ID].s.preRenderedButtons.clear();
+            // NEU: Alle Sets leeren
+            window[ID].s.processed && window[ID].s.processed.clear();
+            window[ID].s.dialogs && window[ID].s.dialogs.clear();
+            window[ID].s.timeouts && window[ID].s.timeouts.clear();
             // NEU: Date-Cache leeren
             dateCache.clear();
             log('🧹 Cleanup abgeschlossen - alle Caches geleert');
@@ -365,6 +373,14 @@
         return true;
     }
 
+    // NEU: Set-Größe begrenzen (FIFO-Prinzip)
+    function limitSetSize(set, maxSize) {
+        if (set.size >= maxSize) {
+            const firstItem = set.values().next().value;
+            set.delete(firstItem);
+        }
+    }
+
     function procCfgInEl(k, c, di = null) {
         const cfg = CFG[k];
         const fields = findDateInCont(cfg, k, c, di);
@@ -374,6 +390,8 @@
         fields.forEach(f => {
             if (!S.processed.has(f.fid)) {
                 if (injectWithDelay(f, cfg, di)) {
+                    // NEU: Set-Größe vor Hinzufügen prüfen
+                    limitSetSize(S.processed, S.maxProcessed);
                     S.processed.add(f.fid);
                     added++;
                 }
@@ -392,7 +410,11 @@
         if (S.dialogs.has(di)) return 0;
         let total = 0;
         Object.keys(CFG).forEach(k => { total += procCfgInEl(k, d, di); });
-        if (total > 0) S.dialogs.add(di);
+        if (total > 0) {
+            // NEU: Set-Größe vor Hinzufügen prüfen
+            limitSetSize(S.dialogs, S.maxDialogs);
+            S.dialogs.add(di);
+        }
         return total;
     }
 
@@ -465,23 +487,83 @@
         document.head.appendChild(style);
     }
 
-    // Ã„NDERUNG: Schnellerer Observer
+    // ÄNDERUNG: Hochoptimierter Observer mit gezieltem Scope
     function mkObs() {
         let timeout = null;
-        const obs = new MutationObserver(() => {
+        let mutationCount = 0;
+        let lastRun = Date.now();
+        
+        const obs = new MutationObserver((mutations) => {
+            mutationCount++;
+            const now = Date.now();
+            
+            // NEU: Ignoriere Mutationen außerhalb relevanter Container
+            const relevantMutation = mutations.some(m => {
+                const target = m.target;
+                return target.classList?.contains('ui-dialog') ||
+                       target.classList?.contains('dw-dialogs') ||
+                       target.closest?.('.ui-dialog.dw-dialogs') ||
+                       target.classList?.contains('dw-dialogContent');
+            });
+            
+            if (!relevantMutation) return;
+            
+            // NEU: Aggressiveres Throttling bei vielen Mutationen
+            const delay = mutationCount > 10 ? 300 : 100;
+            
+            // NEU: Mindestabstand zwischen Runs (Rate Limiting)
+            if (now - lastRun < 50) {
+                if (timeout) clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    processDialogs();
+                    mutationCount = 0;
+                }, delay);
+                S.timeouts.add(timeout);
+                return;
+            }
+            
             if (timeout) clearTimeout(timeout);
             timeout = setTimeout(() => {
-                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-                dlgs.forEach(d => {
-                    const di = getDlgId(d);
-                    const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
-                    !hasBtns && waitKOBind(d, () => addToDlg(d, di));
-                });
-                procStd(document.body);
-            }, 100);
+                processDialogs();
+                mutationCount = 0;
+                lastRun = Date.now();
+            }, delay);
             S.timeouts.add(timeout);
         });
-        obs.observe(document.body, { childList: true, subtree: true });
+        
+        // NEU: Gezielter Scope statt document.body
+        const observeTargets = () => {
+            // Nur sichtbare Dialoge beobachten
+            const dialogs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            dialogs.forEach(d => {
+                obs.observe(d, { childList: true, subtree: true });
+            });
+            
+            // Fallback: Body nur für neue Dialoge
+            obs.observe(document.body, { 
+                childList: true, 
+                subtree: false, // NEU: Kein subtree für body
+                attributes: false,
+                characterData: false
+            });
+        };
+        
+        // NEU: Separate Prozessierungs-Funktion
+        function processDialogs() {
+            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            dlgs.forEach(d => {
+                const di = getDlgId(d);
+                const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
+                !hasBtns && waitKOBind(d, () => addToDlg(d, di));
+            });
+            
+            // NEU: Nur prozessieren wenn keine Dialoge offen
+            if (dlgs.length === 0) {
+                procStd(document.body);
+            }
+        }
+        
+        observeTargets();
         return obs;
     }
 
