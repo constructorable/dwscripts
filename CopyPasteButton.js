@@ -2,9 +2,9 @@
     'use strict';
     const SCRIPT_ID = 'docuware-enhancement-script';
 
-    // Reset bei erneuter AusfÃ¼hrung
+    // Reset bei erneuter Ausführung
     if (window[SCRIPT_ID]) {
-        console.log('ðŸ”„ DocuWare Enhancement wird zurÃ¼ckgesetzt...');
+        console.log('ðŸ”„ DocuWare Enhancement wird zurückgesetzt...');
         document.querySelectorAll('.dw-field-wrapper').forEach(w => {
             const f = w.querySelector('input, textarea, span');
             if (f) {
@@ -42,8 +42,11 @@
             });
             window[SCRIPT_ID].listeners = [];
         }
+        // NEU: Caches und Pools leeren
+        queryCache.clear();
+        buttonPool.clear();
         delete window[SCRIPT_ID];
-        console.log('âœ… DocuWare Enhancement komplett zurÃ¼ckgesetzt');
+        console.log('âœ… DocuWare Enhancement komplett zurückgesetzt');
     }
 
     // ÄNDERUNG: Erweitertes State-Management mit Limits
@@ -68,6 +71,63 @@
     s.setAttribute('data-dw-enhancement', 'true');
     s.textContent = `.dw-field-buttons{position:absolute;left:30px!important;top:2px!important;bottom:2px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:2px!important;z-index:1000;background:rgba(137, 250, 106, 0);border-radius:4px;padding:1px 3px!important;width:auto!important;height:auto!important;min-height:16px!important;max-height:calc(100% - 4px)!important}.dw-field-wrapper .dw-dateField+.dw-field-buttons,.dw-field-wrapper .is-dateEntry+.dw-field-buttons,.dw-field-wrapper .hasCalendarsPicker+.dw-field-buttons{left:30px!important}.keyword-row.dw-field-wrapper{position:relative!important;display:table-row!important;width:100%!important}.keyword-row .dw-field-buttons{position:absolute!important;left:15px!important;top:50%!important;transform:translateY(-50%)!important;bottom:auto!important;display:flex!important;background:rgba(255,255,255,0.9)!important;border-radius:3px!important;padding:2px!important}.keyword-value-span{position:relative!important;padding-left:65px!important;display:inline-block!important;min-width:200px!important}.dw-cell-copy-btn{position:fixed!important;width:18px!important;height:18px!important;border:1px solid rgb(255,255,255)!important;background:rgba(255,255,255,0.95)!important;border-radius:3px!important;cursor:pointer!important;display:none!important;align-items:center!important;justify-content:center!important;font-size:11px!important;color:rgb(81,81,81)!important;z-index:9999!important;transition:all 0.15s ease!important;margin:0!important;padding:0!important;pointer-events:auto!important;opacity:0.7}.dw-cell-copy-btn:hover{background:#d4edda!important;color:rgb(62,62,62)!important;border-color:rgb(255,255,255)!important;transform:scale(1.3)!important;box-shadow:0 3px 12px rgba(0,0,0,0.25)!important;opacity:.7}.dw-cell-copy-btn.show{display:flex!important}.dw-cell-copy-btn.success{background:#d4edda!important;color:rgb(64,64,64)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-cell-copy-btn.error{background:#f8d7da!important;color:#721c24!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;max-width:16px!important;max-height:16px!important;border:1px solid rgb(255,255,255)!important;background:#ffffff!important;border-radius:2px!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;color:#6c757d!important;transition:all 0.15s ease!important;flex-shrink:0!important;margin:0!important;padding:0!important;position:relative!important;float:none!important;opacity:0.3}.dw-field-btn:hover{border-color:rgb(255,255,255)!important;transform:scale(1.3)!important;z-index:1001!important;opacity:.7}.dw-field-btn.copy-btn:hover{background:#d4edda!important;color:rgba(91,91,91,0.8)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn.paste-btn:hover{background:#cce5ff!important;color:rgba(110,110,110,0.83)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn.clear-btn:hover{background:#f5c6cb!important;color:rgba(113,113,113,0.71)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-wrapper{position:relative!important;display:inline-block!important;width:100%!important}.dw-field-wrapper .dw-textField,.dw-field-wrapper .dw-numericField,.dw-field-wrapper .dw-memoField{padding-left:65px!important}.dw-field-wrapper .dw-dateField,.dw-field-wrapper .is-dateEntry,.dw-field-wrapper .hasCalendarsPicker{padding-left:65px!important}.dw-field-wrapper textarea.dw-memoField+.dw-field-buttons{top:5px!important;bottom:auto!important;left:30px!important}`;
     document.head.appendChild(s);
+
+    // NEU: Interner Query-Cache
+    const queryCache = {
+        cache: new Map(),
+        maxSize: 30,
+        ttl: 2000,
+        
+        get(selector) {
+            const cached = this.cache.get(selector);
+            if (cached && Date.now() - cached.timestamp < this.ttl) {
+                if (cached.elements[0]?.isConnected) {
+                    return cached.elements;
+                }
+            }
+            this.cache.delete(selector);
+            return null;
+        },
+        
+        set(selector, elements) {
+            if (this.cache.size >= this.maxSize) {
+                const firstKey = this.cache.keys().next().value;
+                this.cache.delete(firstKey);
+            }
+            this.cache.set(selector, {
+                elements: Array.from(elements),
+                timestamp: Date.now()
+            });
+        },
+        
+        clear() {
+            this.cache.clear();
+        }
+    };
+    
+    // NEU: Button-Element-Pool zur Wiederverwendung
+    const buttonPool = {
+        pool: [],
+        maxPoolSize: 50,
+        
+        get() {
+            return this.pool.pop() || null;
+        },
+        
+        release(button) {
+            if (this.pool.length < this.maxPoolSize && button.isConnected) {
+                // Reset button state
+                button.className = 'dw-field-btn';
+                button.innerHTML = '';
+                button.onclick = null;
+                this.pool.push(button);
+            }
+        },
+        
+        clear() {
+            this.pool = [];
+        }
+    };
 
     // Variablen
     let clipboardStorage = '', currentCellButton = null, currentHoveredCell = null, buttonVisible = false;
@@ -182,8 +242,8 @@
         const rect = cell.getBoundingClientRect();
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        // ZurÃ¼ck zu rechtsbÃ¼ndiger Positionierung fÃ¼r Zellen-Copy-Button
-        button.style.left = (rect.right - 25 + scrollLeft) + 'px'; // RechtsbÃ¼ndig wie vorher
+        // Zurück zu rechtsbündiger Positionierung für Zellen-Copy-Button
+        button.style.left = (rect.right - 25 + scrollLeft) + 'px'; // Rechtsbündig wie vorher
         button.style.top = (rect.top + (rect.height / 2) - 9 + scrollTop) + 'px';
         button.style.opacity = 0.6;
         button.classList.add('show');
@@ -221,13 +281,28 @@
     };
 
     const enhanceResultListCells = () => {
-        const cells = document.querySelectorAll('.slick-cell:not(.dw-cell-enhanced)');
+        // NEU: Mit Query-Cache
+        let cells = queryCache.get('.slick-cell:not(.dw-cell-enhanced)');
+        if (!cells) {
+            cells = document.querySelectorAll('.slick-cell:not(.dw-cell-enhanced)');
+            queryCache.set('.slick-cell:not(.dw-cell-enhanced)', cells);
+        }
+        
+        // NEU: Limitiere gleichzeitige Verarbeitung
+        const maxCellsPerRun = 50;
+        const cellsToProcess = Array.from(cells).slice(0, maxCellsPerRun);
+        
         const copyButton = createGlobalCellCopyButton();
-        cells.forEach(cell => {
+        cellsToProcess.forEach(cell => {
+            // NEU: Prüfe ob Element bereits verarbeitet wurde
+            if (window[SCRIPT_ID].processedElements.has(cell)) return;
+            
             const cellText = getElementText(cell);
             const hasIcon = cell.querySelector('.ui-icon, .dw-icon');
             if (cellText.trim() && cellText.length > 0 && !hasIcon) {
                 cell.classList.add('dw-cell-enhanced');
+                window[SCRIPT_ID].processedElements.add(cell);
+                
                 let hoverTimeout;
                 const mouseEnterHandler = (e) => {
                     hoverTimeout = setTimeout(() => {
@@ -313,7 +388,7 @@
 
         if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
             const pasteButton = document.createElement('button');
-            Object.assign(pasteButton, { className: 'dw-field-btn paste-btn', innerHTML: '<i class="fas fa-paste"></i>', title: 'Aus Zwischenablage einfÃ¼gen', type: 'button', tabIndex: -1 });
+            Object.assign(pasteButton, { className: 'dw-field-btn paste-btn', innerHTML: '<i class="fas fa-paste"></i>', title: 'Aus Zwischenablage einfügen', type: 'button', tabIndex: -1 });
             pasteButton.style.cssText = copyButton.style.cssText;
 
             const clearButton = document.createElement('button');
@@ -379,56 +454,122 @@
 
     const enhanceAllElements = () => {
         const inputSelectors = ['.dw-textField', '.dw-numericField', '.dw-memoField', '.dw-dateField', '.is-dateEntry', '.hasCalendarsPicker'];
+        
+        // NEU: Batch-Verarbeitung mit Limit
         inputSelectors.forEach(selector => {
-            document.querySelectorAll(selector).forEach(field => {
+            let fields = queryCache.get(selector);
+            if (!fields) {
+                fields = document.querySelectorAll(selector);
+                queryCache.set(selector, fields);
+            }
+            
+            Array.from(fields).slice(0, 100).forEach(field => {
                 if (field.type !== 'hidden' && !field.readOnly && !field.disabled && field.offsetWidth > 0 && field.offsetHeight > 0) {
-                    enhanceElement(field);
+                    if (!window[SCRIPT_ID].processedElements.has(field)) {
+                        enhanceElement(field);
+                        window[SCRIPT_ID].processedElements.add(field);
+                    }
                 }
             });
         });
-        document.querySelectorAll('span[data-bind*="text: value"]').forEach(span => {
-            const spanText = getElementText(span);
-            if (spanText.trim() && spanText.length > 0) enhanceElement(span);
+        
+        // NEU: Keyword-Spans mit Cache und Limit
+        let spans = queryCache.get('span[data-bind*="text: value"]');
+        if (!spans) {
+            spans = document.querySelectorAll('span[data-bind*="text: value"]');
+            queryCache.set('span[data-bind*="text: value"]', spans);
+        }
+        
+        Array.from(spans).slice(0, 50).forEach(span => {
+            if (!window[SCRIPT_ID].processedElements.has(span)) {
+                const spanText = getElementText(span);
+                if (spanText.trim() && spanText.length > 0) {
+                    enhanceElement(span);
+                    window[SCRIPT_ID].processedElements.add(span);
+                }
+            }
         });
+        
         enhanceResultListCells();
     };
 
-    // Observer fÃ¼r dynamische Inhalte
+    // ÄNDERUNG: Observer mit Throttling und Batch-Processing
+    let observerTimeout = null;
+    let pendingMutations = [];
+    
     const fieldObserver = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === 1) {
-                    const inputSelectors = ['.dw-textField', '.dw-numericField', '.dw-memoField', '.dw-dateField', '.is-dateEntry', '.hasCalendarsPicker'];
-                    inputSelectors.forEach(selector => {
-                        const newInputs = node.querySelectorAll ? node.querySelectorAll(selector) : [];
-                        newInputs.forEach(input => {
-                            if (!input.readOnly && !input.disabled && input.offsetWidth > 0 && input.offsetHeight > 0) {
-                                setTimeout(() => enhanceElement(input), 200);
-                            }
-                        });
+        // NEU: Sammel Mutationen für Batch-Verarbeitung
+        pendingMutations.push(...mutations);
+        
+        // NEU: Throttling - max. alle 200ms verarbeiten
+        if (observerTimeout) return;
+        
+        observerTimeout = setTimeout(() => {
+            // NEU: Verarbeite gesammelte Mutationen
+            const addedNodes = new Set();
+            
+            pendingMutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1 && !window[SCRIPT_ID].processedElements.has(node)) {
+                        addedNodes.add(node);
+                    }
+                });
+            });
+            
+            // NEU: Limitiere gleichzeitige Verarbeitung
+            const maxNodesPerBatch = 30;
+            const nodesToProcess = Array.from(addedNodes).slice(0, maxNodesPerBatch);
+            
+            nodesToProcess.forEach(node => {
+                const inputSelectors = ['.dw-textField', '.dw-numericField', '.dw-memoField', '.dw-dateField', '.is-dateEntry', '.hasCalendarsPicker'];
+                inputSelectors.forEach(selector => {
+                    const newInputs = node.querySelectorAll ? node.querySelectorAll(selector) : [];
+                    newInputs.forEach(input => {
+                        if (!input.readOnly && !input.disabled && input.offsetWidth > 0 && input.offsetHeight > 0) {
+                            enhanceElement(input);
+                        }
                     });
-                    const newKeywordSpans = node.querySelectorAll ? node.querySelectorAll('span[data-bind*="text: value"]') : [];
-                    newKeywordSpans.forEach(span => {
-                        const spanText = getElementText(span);
-                        if (spanText.trim() && spanText.length > 0) setTimeout(() => enhanceElement(span), 200);
-                    });
-                    const newCells = node.querySelectorAll ? node.querySelectorAll('.slick-cell:not(.dw-cell-enhanced)') : [];
-                    if (newCells.length > 0) setTimeout(() => enhanceResultListCells(), 200);
-                    if (isSupportedField(node)) setTimeout(() => enhanceElement(node), 200);
-                    if (node.classList && node.classList.contains('slick-cell')) setTimeout(() => enhanceResultListCells(), 200);
+                });
+                const newKeywordSpans = node.querySelectorAll ? node.querySelectorAll('span[data-bind*="text: value"]') : [];
+                newKeywordSpans.forEach(span => {
+                    const spanText = getElementText(span);
+                    if (spanText.trim() && spanText.length > 0) enhanceElement(span);
+                });
+                const newCells = node.querySelectorAll ? node.querySelectorAll('.slick-cell:not(.dw-cell-enhanced)') : [];
+                if (newCells.length > 0) {
+                    // NEU: Cache invalidieren bei neuen Zellen
+                    queryCache.cache.delete('.slick-cell:not(.dw-cell-enhanced)');
+                    enhanceResultListCells();
+                }
+                if (isSupportedField(node)) enhanceElement(node);
+                if (node.classList && node.classList.contains('slick-cell')) {
+                    queryCache.cache.delete('.slick-cell:not(.dw-cell-enhanced)');
+                    enhanceResultListCells();
                 }
             });
-        });
+            
+            // Reset
+            pendingMutations = [];
+            observerTimeout = null;
+        }, 200);
     });
 
     fieldObserver.observe(document.body, { childList: true, subtree: true });
     window[SCRIPT_ID].observer = fieldObserver;
 
-    // Event Listeners
+    // NEU: Throttled Scroll-Handler
+    let scrollTimeout = null;
     addTrackedEventListener(window, 'scroll', () => {
-        if (buttonVisible && currentHoveredCell && currentCellButton) {
-            positionCellButton(currentHoveredCell, currentCellButton);
-        }
+        if (!buttonVisible || !currentHoveredCell || !currentCellButton) return;
+        
+        if (scrollTimeout) return;
+        
+        scrollTimeout = setTimeout(() => {
+            if (buttonVisible && currentHoveredCell && currentCellButton) {
+                positionCellButton(currentHoveredCell, currentCellButton);
+            }
+            scrollTimeout = null;
+        }, 50);
     });
 
     setupGlobalMouseTracking();
@@ -444,7 +585,7 @@
     setTimeout(enhanceAllElements, 3000);
 
     console.log('âœ… DocuWare Enhancement: Buttons innerhalb der Inputfelder positioniert');
-    console.log('ðŸ”§ UnterstÃ¼tzte Feldtypen:', Object.keys(supportedFieldTypes));
-    console.log('ðŸ”„ Script kann durch erneute AusfÃ¼hrung zurÃ¼ckgesetzt werden');
+    console.log('ðŸ”§ Unterstützte Feldtypen:', Object.keys(supportedFieldTypes));
+    console.log('ðŸ”„ Script kann durch erneute Ausführung zurückgesetzt werden');
 })();
 
