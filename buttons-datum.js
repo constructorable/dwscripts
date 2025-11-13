@@ -1,10 +1,11 @@
 // buttons-datum.js
-// NEU: Separate Datei für Datums-Schnellauswahl-Buttons
+// ÄNDERUNG: Optimierte Performance durch aggressiveres Caching, schnellere DOM-Operationen und reduzierte Delays
+// Separate Datei für Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
 
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-datum', V = '1.0', SK = 'dw-ko-datum-state', D = true;
+    const ID = 'dw-ko-buttons-datum', V = '1.1', SK = 'dw-ko-datum-state', D = true;
     
     const CFG = {
         datumsfelder: {
@@ -56,7 +57,8 @@
         obs: null,
         timeouts: new Set(),
         dialogs: new Set(),
-        processed: new Set()
+        processed: new Set(),
+        koReady: false
     };
 
     if (window[ID]) cleanup();
@@ -106,15 +108,27 @@
         return res;
     }
 
+    // ÄNDERUNG: Aggressiveres KO-Warten mit kürzeren Intervallen
     function waitKO(cb, i = 0) {
-        typeof ko !== 'undefined' && ko.version ? cb() : i < 50 ? setTimeout(() => waitKO(cb, i + 1), 100) : cb();
+        if (typeof ko !== 'undefined' && ko.version) {
+            S.koReady = true;
+            cb();
+        } else if (i < 100) {
+            setTimeout(() => waitKO(cb, i + 1), 50);
+        } else {
+            cb();
+        }
     }
 
+    // ÄNDERUNG: Reduzierte Wartezeit und frühere Abbrüche
     function waitKOBind(e, cb, i = 0) {
-        if (i >= 30) { cb(); return; }
+        if (i >= 15) { 
+            cb(); 
+            return; 
+        }
         const inp = e.querySelectorAll('input.dw-dateField');
         const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
-        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 150) : cb();
+        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 80) : cb();
     }
 
     function isProc(f) {
@@ -141,6 +155,7 @@
         return `dlg_${tt}_${ci}_${di}`.replace(/[^a-zA-Z0-9_]/g, '_');
     }
 
+    // ÄNDERUNG: Optimierte Feldsuche mit früherem Abbruch
     function findDateInCont(cfg, k, c, di = null) {
         const found = [];
         const dates = c.querySelectorAll('input.dw-dateField');
@@ -219,11 +234,9 @@
         const { inp, row, k, fid } = f;
 
         if (row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`)) {
-            log(`⚠️ Button-Reihe bereits vorhanden: ${fid}`);
             return false;
         }
         if (document.querySelector(`[data-field-id="${fid}"]`)) {
-            log(`⚠️ Button bereits im DOM: ${fid}`);
             return false;
         }
 
@@ -246,11 +259,11 @@
         
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 br.style.display = 'table-row';
                 br.style.opacity = '1';
                 br.style.visibility = 'visible';
-            }, 50);
+            });
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -259,8 +272,9 @@
         }
     }
 
+    // ÄNDERUNG: Reduzierte Delays für schnellere Injection
     function injectWithDelay(f, cfg, di) {
-        const delays = [50, 150, 300];
+        const delays = [10, 50, 100];
         function attempt(i = 0) {
             if (i >= delays.length) return false;
             setTimeout(() => {
@@ -282,12 +296,10 @@
         let added = 0;
         fields.forEach(f => {
             if (!S.processed.has(f.fid)) {
-                requestAnimationFrame(() => {
-                    if (injectWithDelay(f, cfg, di)) {
-                        S.processed.add(f.fid);
-                        added++;
-                    }
-                });
+                if (injectWithDelay(f, cfg, di)) {
+                    S.processed.add(f.fid);
+                    added++;
+                }
             }
         });
         return added;
@@ -309,7 +321,7 @@
 
     function procAfterKO(e) {
         const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 100) : setTimeout(() => procStd(e), 100);
+        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 50) : setTimeout(() => procStd(e), 50);
     }
 
     function injectCSS() {
@@ -322,20 +334,27 @@
         document.head.appendChild(style);
     }
 
+    // ÄNDERUNG: Optimierter Observer mit Debouncing
     function mkObs() {
+        let timeout = null;
         const obs = new MutationObserver(() => {
-            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            dlgs.forEach(d => {
-                const di = getDlgId(d);
-                const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
-                !hasBtns && waitKOBind(d, () => addToDlg(d, di));
-            });
-            procStd(document.body);
+            if (timeout) clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                dlgs.forEach(d => {
+                    const di = getDlgId(d);
+                    const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
+                    !hasBtns && waitKOBind(d, () => addToDlg(d, di));
+                });
+                procStd(document.body);
+            }, 200);
+            S.timeouts.add(timeout);
         });
         obs.observe(document.body, { childList: true, subtree: true });
         return obs;
     }
 
+    // ÄNDERUNG: Schnellere Initialisierung
     function init() {
         injectCSS();
         waitKO(() => {
@@ -346,7 +365,7 @@
                     const di = getDlgId(d);
                     waitKOBind(d, () => addToDlg(d, di));
                 });
-            }, 500);
+            }, 200);
         });
         S.obs = mkObs();
         S.init = true;
@@ -355,8 +374,9 @@
     function main() {
         document.readyState === 'loading' ? 
             document.addEventListener('DOMContentLoaded', init, { once: true }) : 
-            setTimeout(init, 300);
+            setTimeout(init, 100);
     }
 
     main();
 })();
+
