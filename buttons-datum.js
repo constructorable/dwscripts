@@ -1,11 +1,11 @@
 // buttons-datum.js
-// ÄNDERUNG: Optimierte Performance durch aggressiveres Caching, schnellere DOM-Operationen und reduzierte Delays
+// ÄNDERUNG: Dialog-Höhe wird automatisch angepasst + optimierte Performance
 // Separate Datei für Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
 
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-datum', V = '1.1', SK = 'dw-ko-datum-state', D = true;
+    const ID = 'dw-ko-buttons-datum', V = '1.2', SK = 'dw-ko-datum-state', D = true;
     
     const CFG = {
         datumsfelder: {
@@ -108,7 +108,55 @@
         return res;
     }
 
-    // ÄNDERUNG: Aggressiveres KO-Warten mit kürzeren Intervallen
+    // NEU: Dialog-Höhe automatisch anpassen
+    function adjustDialogHeight(dialog) {
+        if (!dialog) return;
+        
+        try {
+            // Content-Bereiche anpassen
+            const content = dialog.querySelector('.ui-dialog-content');
+            if (content) {
+                content.style.maxHeight = 'none';
+                content.style.height = 'auto';
+                content.style.overflow = 'visible';
+            }
+            
+            const dialogContent = dialog.querySelector('.dw-dialogContent.fields');
+            if (dialogContent) {
+                dialogContent.style.maxHeight = 'none';
+                dialogContent.style.height = 'auto';
+                dialogContent.style.overflowY = 'visible';
+                dialogContent.style.minHeight = '200px';
+            }
+            
+            const scrollWrapper = dialog.querySelector('.scroll-wrapper');
+            if (scrollWrapper) {
+                scrollWrapper.style.overflowY = 'visible';
+                scrollWrapper.style.maxHeight = 'none';
+                scrollWrapper.style.height = 'auto';
+            }
+            
+            dialog.style.height = 'auto';
+            
+            // jQuery UI Dialog neu positionieren
+            if (typeof $ !== 'undefined' && $(dialog).data('ui-dialog')) {
+                setTimeout(() => {
+                    try {
+                        const $dialog = $(dialog);
+                        const dialogInstance = $dialog.data('ui-dialog');
+                        if (dialogInstance) {
+                            dialogInstance.option('position', dialogInstance.option('position'));
+                        }
+                    } catch (e) { }
+                }, 100);
+            }
+            
+            log(`📏 Dialog-Höhe angepasst`);
+        } catch (e) {
+            log(`⚠️ Dialog-Höhe Anpassung fehlgeschlagen:`, e);
+        }
+    }
+
     function waitKO(cb, i = 0) {
         if (typeof ko !== 'undefined' && ko.version) {
             S.koReady = true;
@@ -120,7 +168,6 @@
         }
     }
 
-    // ÄNDERUNG: Reduzierte Wartezeit und frühere Abbrüche
     function waitKOBind(e, cb, i = 0) {
         if (i >= 15) { 
             cb(); 
@@ -155,7 +202,6 @@
         return `dlg_${tt}_${ci}_${di}`.replace(/[^a-zA-Z0-9_]/g, '_');
     }
 
-    // ÄNDERUNG: Optimierte Feldsuche mit früherem Abbruch
     function findDateInCont(cfg, k, c, di = null) {
         const found = [];
         const dates = c.querySelectorAll('input.dw-dateField');
@@ -263,6 +309,12 @@
                 br.style.display = 'table-row';
                 br.style.opacity = '1';
                 br.style.visibility = 'visible';
+                
+                // NEU: Dialog-Höhe nach Button-Injection anpassen
+                const dialog = br.closest('.ui-dialog.dw-dialogs');
+                if (dialog) {
+                    setTimeout(() => adjustDialogHeight(dialog), 100);
+                }
             });
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
@@ -272,7 +324,6 @@
         }
     }
 
-    // ÄNDERUNG: Reduzierte Delays für schnellere Injection
     function injectWithDelay(f, cfg, di) {
         const delays = [10, 50, 100];
         function attempt(i = 0) {
@@ -324,9 +375,64 @@
         dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 50) : setTimeout(() => procStd(e), 50);
     }
 
+    // ÄNDERUNG: CSS erweitert für automatische Dialog-Höhenanpassung
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
-        const css = `.dw-datum-button-row,.dw-datum-past-button-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="dw-datum"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:4px!important;padding:4px 1px 8px 29px!important;flex-wrap:wrap!important}[class*="dw-datum"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:2px 4px!important;min-height:18px!important;font-size:10px!important;margin:1px!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row){min-width:500px!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialogContent.fields{max-height:400px!important;overflow-y:auto!important}.dw-datum-button-container{max-width:470px!important;margin-top:-5px!important}`;
+        const css = `
+            .dw-datum-button-row,.dw-datum-past-button-row{
+                position:relative!important;
+                display:table-row!important;
+                opacity:1!important;
+                visibility:visible!important
+            }
+            [class*="dw-datum"][class*="-button-container"]{
+                display:flex!important;
+                align-items:center!important;
+                gap:4px!important;
+                padding:4px 1px 8px 29px!important;
+                flex-wrap:wrap!important
+            }
+            [class*="dw-datum"][class*="-action-button"]{
+                display:inline-flex!important;
+                cursor:pointer!important;
+                border-radius:3px!important;
+                border:1px solid #d1d5db!important;
+                background:#fff!important;
+                color:#374151!important;
+                padding:2px 4px!important;
+                min-height:18px!important;
+                font-size:10px!important;
+                margin:1px!important
+            }
+            .ui-dialog.dw-dialogs:has(.dw-datum-button-row){
+                min-width:500px!important;
+                height:auto!important
+            }
+            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialogContent.fields{
+                min-height:200px!important;
+                max-height:none!important;
+                height:auto!important;
+                overflow-y:visible!important
+            }
+            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .ui-dialog-content{
+                min-height:200px!important;
+                max-height:none!important;
+                height:auto!important;
+                overflow:visible!important
+            }
+            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .scroll-wrapper{
+                overflow-y:visible!important;
+                max-height:none!important;
+                height:auto!important
+            }
+            .ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialog.scroll-content{
+                height:auto!important
+            }
+            .dw-datum-button-container{
+                max-width:470px!important;
+                margin-top:-5px!important
+            }
+        `;
         
         const style = document.createElement('style');
         style.textContent = css;
@@ -334,7 +440,6 @@
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Optimierter Observer mit Debouncing
     function mkObs() {
         let timeout = null;
         const obs = new MutationObserver(() => {
@@ -354,7 +459,6 @@
         return obs;
     }
 
-    // ÄNDERUNG: Schnellere Initialisierung
     function init() {
         injectCSS();
         waitKO(() => {
@@ -379,4 +483,5 @@
 
     main();
 })();
+
 
