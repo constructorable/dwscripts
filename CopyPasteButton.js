@@ -447,3 +447,4 @@
     console.log('ðŸ”§ UnterstÃ¼tzte Feldtypen:', Object.keys(supportedFieldTypes));
     console.log('ðŸ”„ Script kann durch erneute AusfÃ¼hrung zurÃ¼ckgesetzt werden');
 })();
+
