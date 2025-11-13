@@ -1,15 +1,15 @@
 // buttons-verwaltung.js
-// ÄNDERUNG: Pre-Rendering + Performance-Optimierung + Dialog-Höhenanpassung
-// Separate Datei für Verwaltungs-Schnellauswahl-Buttons (Verwendungszweck, Bauteile, Gewerk, Zahlungsart, Buchungskonto)
+// ÄNDERUNG: Feldnamen-Matching verbessert für Pflichtfelder (mit *)
+// Separate Datei für Verwaltungs-Schnellauswahl-Buttons
 
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-verwaltung', V = '1.1', SK = 'dw-ko-verwaltung-state', D = true;
+    const ID = 'dw-ko-buttons-verwaltung', V = '1.2', SK = 'dw-ko-verwaltung-state', D = true;
     
     const CFG = {
         vwz: {
-            txt: 'verwendungszweck 4',
+            txt: 'verwendungszweck',
             type: 'includes_lower',
             pre: 'dw-vwz',
             gap: '20px',
@@ -133,7 +133,6 @@
         }
     }
 
-    // NEU: Pre-Rendering von Button-Templates
     function preRenderButtons() {
         Object.keys(CFG).forEach(k => {
             const cfg = CFG[k];
@@ -154,7 +153,6 @@
         log('✅ Button-Templates vorgerendert');
     }
 
-    // NEU: Dialog-Höhe anpassen
     function adjustDialogHeight(dialog) {
         if (!dialog) return;
         
@@ -225,7 +223,6 @@
         return false;
     }
 
-    // ÄNDERUNG: Optimierte KO-Warte-Funktion
     function waitKO(cb, i = 0) {
         if (typeof ko !== 'undefined' && ko.version) {
             cb();
@@ -236,7 +233,6 @@
         }
     }
 
-    // ÄNDERUNG: Schnellere KO-Bind-Prüfung
     function waitKOBind(e, cb, i = 0) {
         if (i >= 10) { 
             cb(); 
@@ -271,14 +267,21 @@
         return `dlg_${tt}_${ci}_${di}`.replace(/[^a-zA-Z0-9_]/g, '_');
     }
 
+    // ÄNDERUNG: Verbessertes Matching für Feldnamen (mit/ohne * und Leerzeichen)
     function matches(txt, cfg) {
         if (!cfg.txt) return false;
+        
+        // Entferne Stern und trimme für Vergleich
+        const cleanTxt = txt.replace(/\s*\*\s*$/g, '').trim().toLowerCase();
+        const cleanCfgTxt = cfg.txt.trim().toLowerCase();
+        
         switch (cfg.type) {
-            case 'includes_lower': return txt.toLowerCase().includes(cfg.txt.toLowerCase());
+            case 'includes_lower': 
+                return cleanTxt.includes(cleanCfgTxt);
             case 'exact_bauteil_only': 
-                const t = txt.trim();
-                return t === 'Bauteil' || t === 'Bauteil:';
-            default: return txt.toLowerCase().includes(cfg.txt.toLowerCase());
+                return cleanTxt === 'bauteil' || cleanTxt === 'bauteil:';
+            default: 
+                return cleanTxt.includes(cleanCfgTxt);
         }
     }
 
@@ -295,6 +298,7 @@
             for (const lbl of labels) {
                 if (!lbl.textContent) continue;
                 const txt = lbl.textContent.trim();
+                
                 if (!matches(txt, cfg)) continue;
 
                 const row = lbl.closest('tr');
@@ -354,7 +358,6 @@
         });
     }
 
-    // ÄNDERUNG: Verwende vorgerenderte Buttons
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
         const cont = document.createElement('div');
@@ -420,7 +423,7 @@
                     setTimeout(() => adjustDialogHeight(dialog), 50);
                 }
             });
-            log(`✅ Buttons eingefügt: ${fid}`);
+            log(`✅ Buttons eingefügt: ${fid} für "${f.txt}"`);
             return true;
         } catch (e) {
             log(`❌ Inject fail: ${fid}`, e);
@@ -428,7 +431,6 @@
         }
     }
 
-    // ÄNDERUNG: Schnellere Injection
     function injectWithDelay(f, cfg, di) {
         const delays = [0, 20, 50];
         function attempt(i = 0) {
@@ -484,7 +486,6 @@
         dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 20) : setTimeout(() => procStd(e), 20);
     }
 
-    // ÄNDERUNG: CSS erweitert für Dialog-Höhenanpassung
     function injectCSS() {
         if (document.querySelector('style[data-dw-verw-btns]')) return;
         const css = `
@@ -558,7 +559,6 @@
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Schnellerer Observer
     function mkObs() {
         let timeout = null;
         const obs = new MutationObserver(() => {
