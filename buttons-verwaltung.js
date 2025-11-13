@@ -1,12 +1,11 @@
 // buttons-verwaltung.js
-// NEU: Separate Datei für Verwaltungs-Schnellauswahl-Buttons (Verwendungszweck, Bauteile, Gewerk, Zahlungsart, Buchungskonto)
-// Diese Buttons ermöglichen die schnelle Auswahl von häufig verwendeten Werten in komplexen Verwaltungsfeldern
-// Wird hauptsächlich in Rechnungs-, Wartungs- und Buchhaltungsdialogen verwendet
+// ÄNDERUNG: Pre-Rendering + Performance-Optimierung + Dialog-Höhenanpassung
+// Separate Datei für Verwaltungs-Schnellauswahl-Buttons (Verwendungszweck, Bauteile, Gewerk, Zahlungsart, Buchungskonto)
 
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-verwaltung', V = '1.0', SK = 'dw-ko-verwaltung-state', D = true;
+    const ID = 'dw-ko-buttons-verwaltung', V = '1.1', SK = 'dw-ko-verwaltung-state', D = true;
     
     const CFG = {
         vwz: {
@@ -117,7 +116,8 @@
         obs: null,
         timeouts: new Set(),
         dialogs: new Set(),
-        processed: new Set()
+        processed: new Set(),
+        preRenderedButtons: new Map()
     };
 
     if (window[ID]) cleanup();
@@ -129,7 +129,72 @@
         if (window[ID] && window[ID].s) {
             window[ID].s.obs && window[ID].s.obs.disconnect();
             window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
+            window[ID].s.preRenderedButtons && window[ID].s.preRenderedButtons.clear();
         }
+    }
+
+    // NEU: Pre-Rendering von Button-Templates
+    function preRenderButtons() {
+        Object.keys(CFG).forEach(k => {
+            const cfg = CFG[k];
+            const template = document.createDocumentFragment();
+            
+            cfg.opts.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = `${cfg.pre}-action-button`;
+                btn.type = 'button';
+                btn.textContent = opt.l;
+                btn.title = opt.l;
+                btn.setAttribute('data-value', opt.v);
+                template.appendChild(btn);
+            });
+            
+            S.preRenderedButtons.set(k, template);
+        });
+        log('✅ Button-Templates vorgerendert');
+    }
+
+    // NEU: Dialog-Höhe anpassen
+    function adjustDialogHeight(dialog) {
+        if (!dialog) return;
+        
+        try {
+            const content = dialog.querySelector('.ui-dialog-content');
+            if (content) {
+                content.style.maxHeight = 'none';
+                content.style.height = 'auto';
+                content.style.overflow = 'visible';
+            }
+            
+            const dialogContent = dialog.querySelector('.dw-dialogContent.fields');
+            if (dialogContent) {
+                dialogContent.style.maxHeight = 'none';
+                dialogContent.style.height = 'auto';
+                dialogContent.style.overflowY = 'visible';
+                dialogContent.style.minHeight = '200px';
+            }
+            
+            const scrollWrapper = dialog.querySelector('.scroll-wrapper');
+            if (scrollWrapper) {
+                scrollWrapper.style.overflowY = 'visible';
+                scrollWrapper.style.maxHeight = 'none';
+                scrollWrapper.style.height = 'auto';
+            }
+            
+            dialog.style.height = 'auto';
+            
+            if (typeof $ !== 'undefined' && $(dialog).data('ui-dialog')) {
+                setTimeout(() => {
+                    try {
+                        const $dialog = $(dialog);
+                        const dialogInstance = $dialog.data('ui-dialog');
+                        if (dialogInstance) {
+                            dialogInstance.option('position', dialogInstance.option('position'));
+                        }
+                    } catch (e) { }
+                }, 50);
+            }
+        } catch (e) { }
     }
 
     function saveState() {
@@ -160,15 +225,26 @@
         return false;
     }
 
+    // ÄNDERUNG: Optimierte KO-Warte-Funktion
     function waitKO(cb, i = 0) {
-        typeof ko !== 'undefined' && ko.version ? cb() : i < 50 ? setTimeout(() => waitKO(cb, i + 1), 100) : cb();
+        if (typeof ko !== 'undefined' && ko.version) {
+            cb();
+        } else if (i < 100) {
+            setTimeout(() => waitKO(cb, i + 1), 50);
+        } else {
+            cb();
+        }
     }
 
+    // ÄNDERUNG: Schnellere KO-Bind-Prüfung
     function waitKOBind(e, cb, i = 0) {
-        if (i >= 30) { cb(); return; }
+        if (i >= 10) { 
+            cb(); 
+            return; 
+        }
         const inp = e.querySelectorAll('input.dw-textField, input.dw-numericField');
         const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
-        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 150) : cb();
+        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 50) : cb();
     }
 
     function isProc(f) {
@@ -231,10 +307,7 @@
                 const alreadyProcessed = S.processed.has(fid);
                 const hasButtonsInDOM = document.querySelector(`[data-field-id="${fid}"]`);
 
-                if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) {
-                    log(`⏭️ Feld bereits verarbeitet: ${fid}`);
-                    continue;
-                }
+                if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) continue;
 
                 found.push({ inp, txt, row, k, fid });
                 if (!cfg.multi) break;
@@ -267,18 +340,6 @@
         setVal(inp, opt.v);
     }
 
-    function mkBtn(opt, cfg, inp, fid) {
-        const btn = document.createElement('button');
-        btn.className = `${cfg.pre}-action-button`;
-        btn.type = 'button';
-        btn.textContent = opt.l;
-        btn.title = opt.l;
-        btn.setAttribute('data-value', opt.v);
-        btn.setAttribute('data-field-id', fid);
-        btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
-        return btn;
-    }
-
     function restoreState(inp, cfg, btns, fid) {
         const cur = inp.value.trim();
         const saved = S.reg.get(fid);
@@ -293,21 +354,30 @@
         });
     }
 
+    // ÄNDERUNG: Verwende vorgerenderte Buttons
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
         const cont = document.createElement('div');
         cont.className = `${cfg.pre}-button-container`;
         cont.setAttribute('data-field-id', fid);
 
-        const btns = [];
-        const frag = document.createDocumentFragment();
-        cfg.opts.forEach(opt => {
-            const btn = mkBtn(opt, cfg, inp, fid);
-            frag.appendChild(btn);
-            btns.push(btn);
-        });
-        cont.appendChild(frag);
-        restoreState(inp, cfg, btns, fid);
+        const template = S.preRenderedButtons.get(k);
+        if (template) {
+            const clone = template.cloneNode(true);
+            const buttons = clone.querySelectorAll('button');
+            const btnArray = [];
+            
+            buttons.forEach((btn, idx) => {
+                const opt = cfg.opts[idx];
+                btn.setAttribute('data-field-id', fid);
+                btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
+                btnArray.push(btn);
+            });
+            
+            cont.appendChild(clone);
+            restoreState(inp, cfg, btnArray, fid);
+        }
+        
         return cont;
     }
 
@@ -315,11 +385,9 @@
         const { inp, row, k, fid } = f;
 
         if (row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`)) {
-            log(`⚠️ Button-Reihe bereits vorhanden: ${fid}`);
             return false;
         }
         if (document.querySelector(`[data-field-id="${fid}"]`)) {
-            log(`⚠️ Button bereits im DOM: ${fid}`);
             return false;
         }
 
@@ -342,11 +410,16 @@
         
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 br.style.display = 'table-row';
                 br.style.opacity = '1';
                 br.style.visibility = 'visible';
-            }, 50);
+                
+                const dialog = br.closest('.ui-dialog.dw-dialogs');
+                if (dialog) {
+                    setTimeout(() => adjustDialogHeight(dialog), 50);
+                }
+            });
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -355,8 +428,9 @@
         }
     }
 
+    // ÄNDERUNG: Schnellere Injection
     function injectWithDelay(f, cfg, di) {
-        const delays = [50, 150, 300];
+        const delays = [0, 20, 50];
         function attempt(i = 0) {
             if (i >= delays.length) return false;
             setTimeout(() => {
@@ -378,12 +452,10 @@
         let added = 0;
         fields.forEach(f => {
             if (!S.processed.has(f.fid)) {
-                requestAnimationFrame(() => {
-                    if (injectWithDelay(f, cfg, di)) {
-                        S.processed.add(f.fid);
-                        added++;
-                    }
-                });
+                if (injectWithDelay(f, cfg, di)) {
+                    S.processed.add(f.fid);
+                    added++;
+                }
             }
         });
         return added;
@@ -409,12 +481,76 @@
 
     function procAfterKO(e) {
         const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 100) : setTimeout(() => procStd(e), 100);
+        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 20) : setTimeout(() => procStd(e), 20);
     }
 
+    // ÄNDERUNG: CSS erweitert für Dialog-Höhenanpassung
     function injectCSS() {
         if (document.querySelector('style[data-dw-verw-btns]')) return;
-        const css = `[class*="dw-vwz-button-row"],[class*="dw-bauteile-button-row"],[class*="dw-gewerk-button-row"],[class*="dw-zahlungsart-button-row"],[class*="dw-buchungskonto-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="dw-vwz-"][class*="-button-container"],[class*="dw-bauteile-"][class*="-button-container"],[class*="dw-gewerk-"][class*="-button-container"],[class*="dw-zahlungsart-"][class*="-button-container"],[class*="dw-buchungskonto-"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:4px 1px 8px 29px!important;flex-wrap:wrap!important}[class*="dw-vwz-"][class*="-action-button"],[class*="dw-bauteile-"][class*="-action-button"],[class*="dw-gewerk-"][class*="-action-button"],[class*="dw-zahlungsart-"][class*="-action-button"],[class*="dw-buchungskonto-"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:20px!important;font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}`;
+        const css = `
+            [class*="dw-vwz-button-row"],[class*="dw-bauteile-button-row"],[class*="dw-gewerk-button-row"],[class*="dw-zahlungsart-button-row"],[class*="dw-buchungskonto-button-row"]{
+                position:relative!important;
+                display:table-row!important;
+                opacity:1!important;
+                visibility:visible!important
+            }
+            [class*="dw-vwz-"][class*="-button-container"],[class*="dw-bauteile-"][class*="-button-container"],[class*="dw-gewerk-"][class*="-button-container"],[class*="dw-zahlungsart-"][class*="-button-container"],[class*="dw-buchungskonto-"][class*="-button-container"]{
+                display:flex!important;
+                align-items:center!important;
+                gap:6px!important;
+                padding:4px 1px 8px 29px!important;
+                flex-wrap:wrap!important
+            }
+            [class*="dw-vwz-"][class*="-action-button"],[class*="dw-bauteile-"][class*="-action-button"],[class*="dw-gewerk-"][class*="-action-button"],[class*="dw-zahlungsart-"][class*="-action-button"],[class*="dw-buchungskonto-"][class*="-action-button"]{
+                display:inline-flex!important;
+                cursor:pointer!important;
+                border-radius:3px!important;
+                border:1px solid #d1d5db!important;
+                background:#fff!important;
+                color:#374151!important;
+                padding:3px 8px!important;
+                min-height:20px!important;
+                font-size:11px!important;
+                white-space:nowrap!important
+            }
+            [class*="-action-button"].selected{
+                background:#eff6ff!important;
+                border-color:#3b82f6!important;
+                box-shadow:0 0 0 1px #3b82f6!important
+            }
+            .dw-btn-fade{
+                animation:dwFade .3s ease-out
+            }
+            @keyframes dwFade{
+                from{opacity:0;transform:translateY(-5px)}
+                to{opacity:1;transform:translateY(0)}
+            }
+            .ui-dialog [class*="-action-button"]{
+                font-size:10px!important;
+                padding:2px 6px!important;
+                min-height:18px!important
+            }
+            .ui-dialog.dw-dialogs:has([class*="dw-vwz-button-row"]),.ui-dialog.dw-dialogs:has([class*="dw-bauteile-button-row"]),.ui-dialog.dw-dialogs:has([class*="dw-gewerk-button-row"]),.ui-dialog.dw-dialogs:has([class*="dw-zahlungsart-button-row"]),.ui-dialog.dw-dialogs:has([class*="dw-buchungskonto-button-row"]){
+                height:auto!important
+            }
+            .ui-dialog.dw-dialogs:has([class*="dw-vwz-button-row"]) .dw-dialogContent.fields,.ui-dialog.dw-dialogs:has([class*="dw-bauteile-button-row"]) .dw-dialogContent.fields,.ui-dialog.dw-dialogs:has([class*="dw-gewerk-button-row"]) .dw-dialogContent.fields,.ui-dialog.dw-dialogs:has([class*="dw-zahlungsart-button-row"]) .dw-dialogContent.fields,.ui-dialog.dw-dialogs:has([class*="dw-buchungskonto-button-row"]) .dw-dialogContent.fields{
+                min-height:200px!important;
+                max-height:none!important;
+                height:auto!important;
+                overflow-y:visible!important
+            }
+            .ui-dialog.dw-dialogs:has([class*="dw-vwz-button-row"]) .ui-dialog-content,.ui-dialog.dw-dialogs:has([class*="dw-bauteile-button-row"]) .ui-dialog-content,.ui-dialog.dw-dialogs:has([class*="dw-gewerk-button-row"]) .ui-dialog-content,.ui-dialog.dw-dialogs:has([class*="dw-zahlungsart-button-row"]) .ui-dialog-content,.ui-dialog.dw-dialogs:has([class*="dw-buchungskonto-button-row"]) .ui-dialog-content{
+                min-height:200px!important;
+                max-height:none!important;
+                height:auto!important;
+                overflow:visible!important
+            }
+            .ui-dialog.dw-dialogs:has([class*="dw-vwz-button-row"]) .scroll-wrapper,.ui-dialog.dw-dialogs:has([class*="dw-bauteile-button-row"]) .scroll-wrapper,.ui-dialog.dw-dialogs:has([class*="dw-gewerk-button-row"]) .scroll-wrapper,.ui-dialog.dw-dialogs:has([class*="dw-zahlungsart-button-row"]) .scroll-wrapper,.ui-dialog.dw-dialogs:has([class*="dw-buchungskonto-button-row"]) .scroll-wrapper{
+                overflow-y:visible!important;
+                max-height:none!important;
+                height:auto!important
+            }
+        `;
         
         const style = document.createElement('style');
         style.textContent = css;
@@ -422,15 +558,21 @@
         document.head.appendChild(style);
     }
 
+    // ÄNDERUNG: Schnellerer Observer
     function mkObs() {
+        let timeout = null;
         const obs = new MutationObserver(() => {
-            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            dlgs.forEach(d => {
-                const di = getDlgId(d);
-                const hasBtns = d.querySelectorAll('.dw-ko-btn-row').length > 0;
-                !hasBtns && waitKOBind(d, () => addToDlg(d, di));
-            });
-            procStd(document.body);
+            if (timeout) clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                dlgs.forEach(d => {
+                    const di = getDlgId(d);
+                    const hasBtns = d.querySelectorAll('.dw-ko-btn-row').length > 0;
+                    !hasBtns && waitKOBind(d, () => addToDlg(d, di));
+                });
+                procStd(document.body);
+            }, 100);
+            S.timeouts.add(timeout);
         });
         obs.observe(document.body, { childList: true, subtree: true });
         return obs;
@@ -439,6 +581,8 @@
     function init() {
         injectCSS();
         loadState();
+        preRenderButtons();
+        
         waitKO(() => {
             setTimeout(() => {
                 procStd(document.body);
@@ -447,7 +591,7 @@
                     const di = getDlgId(d);
                     waitKOBind(d, () => addToDlg(d, di));
                 });
-            }, 500);
+            }, 100);
         });
         S.obs = mkObs();
         S.init = true;
@@ -478,8 +622,9 @@
     function main() {
         document.readyState === 'loading' ? 
             document.addEventListener('DOMContentLoaded', init, { once: true }) : 
-            setTimeout(init, 300);
+            setTimeout(init, 50);
     }
 
     main();
 })();
+
