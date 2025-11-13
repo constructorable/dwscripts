@@ -1,11 +1,11 @@
 // buttons-datum.js
-// Ã„NDERUNG: Pre-Rendering der Buttons fÃ¼r sofortige VerfÃ¼gbarkeit + optimierte Performance
-// Separate Datei fÃ¼r Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
+// ÄNDERUNG: Dialog-Höhe wird automatisch angepasst + optimierte Performance
+// Separate Datei für Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
 
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-datum', V = '1.3', SK = 'dw-ko-datum-state', D = true;
+    const ID = 'dw-ko-buttons-datum', V = '1.2', SK = 'dw-ko-datum-state', D = true;
     
     const CFG = {
         datumsfelder: {
@@ -18,7 +18,7 @@
             exc: [
                 'Eingangsdatum', 'Rechnungsdatum', 'Fälligkeitsdatum',
                 'Erstellungsdatum', 'Ausgangsdatum', 'Ausführungsdatum (Bericht)',
-                'Abgelegt am', 'nÃ¤chster Ablesetermin'
+                'Abgelegt am', 'nächster Ablesetermin'
             ],
             opts: [
                 { v: 'heute', l: 'Heute', a: 'setToday' },
@@ -52,18 +52,13 @@
         }
     };
 
-    // ÄNDERUNG: State mit Größenlimits für Memory-Management
     let S = {
         init: false,
         obs: null,
         timeouts: new Set(),
         dialogs: new Set(),
         processed: new Set(),
-        koReady: false,
-        preRenderedButtons: new Map(),
-        // NEU: Maximale Set-Größen
-        maxProcessed: 500,
-        maxDialogs: 50
+        koReady: false
     };
 
     if (window[ID]) cleanup();
@@ -75,31 +70,14 @@
         if (window[ID] && window[ID].s) {
             window[ID].s.obs && window[ID].s.obs.disconnect();
             window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
-            window[ID].s.preRenderedButtons && window[ID].s.preRenderedButtons.clear();
-            // NEU: Alle Sets leeren
-            window[ID].s.processed && window[ID].s.processed.clear();
-            window[ID].s.dialogs && window[ID].s.dialogs.clear();
-            window[ID].s.timeouts && window[ID].s.timeouts.clear();
-            // NEU: Date-Cache leeren
-            dateCache.clear();
-            // NEU: Query-Cache leeren
-            queryCache.cache.clear();
-            log('🧹 Cleanup abgeschlossen - alle Caches geleert');
         }
     }
 
-    // ÄNDERUNG: Cache mit Größenbegrenzung
     const dateCache = new Map();
-    const MAX_CACHE_SIZE = 100;
     
     function getFmt(d) {
         const k = d.getTime();
         if (!dateCache.has(k)) {
-            // NEU: Cache-Größe begrenzen (FIFO-Prinzip)
-            if (dateCache.size >= MAX_CACHE_SIZE) {
-                const firstKey = dateCache.keys().next().value;
-                dateCache.delete(firstKey);
-            }
             dateCache.set(k, `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`);
         }
         return dateCache.get(k);
@@ -130,32 +108,12 @@
         return res;
     }
 
-    // NEU: Pre-Rendering von Button-Templates
-    function preRenderButtons() {
-        Object.keys(CFG).forEach(k => {
-            const cfg = CFG[k];
-            const template = document.createDocumentFragment();
-            
-            cfg.opts.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = `${cfg.pre}-action-button`;
-                btn.type = 'button';
-                btn.textContent = opt.l;
-                btn.title = opt.l;
-                btn.setAttribute('data-value', opt.v);
-                btn.setAttribute('data-action', opt.a || '');
-                template.appendChild(btn);
-            });
-            
-            S.preRenderedButtons.set(k, template);
-        });
-        log('âœ… Button-Templates vorgerendert');
-    }
-
+    // NEU: Dialog-Höhe automatisch anpassen
     function adjustDialogHeight(dialog) {
         if (!dialog) return;
         
         try {
+            // Content-Bereiche anpassen
             const content = dialog.querySelector('.ui-dialog-content');
             if (content) {
                 content.style.maxHeight = 'none';
@@ -180,6 +138,7 @@
             
             dialog.style.height = 'auto';
             
+            // jQuery UI Dialog neu positionieren
             if (typeof $ !== 'undefined' && $(dialog).data('ui-dialog')) {
                 setTimeout(() => {
                     try {
@@ -189,9 +148,13 @@
                             dialogInstance.option('position', dialogInstance.option('position'));
                         }
                     } catch (e) { }
-                }, 50);
+                }, 100);
             }
-        } catch (e) { }
+            
+            log(`📏 Dialog-Höhe angepasst`);
+        } catch (e) {
+            log(`⚠️ Dialog-Höhe Anpassung fehlgeschlagen:`, e);
+        }
     }
 
     function waitKO(cb, i = 0) {
@@ -205,15 +168,14 @@
         }
     }
 
-    // Ã„NDERUNG: Noch aggressivere KO-Bind-PrÃ¼fung
     function waitKOBind(e, cb, i = 0) {
-        if (i >= 10) { 
+        if (i >= 15) { 
             cb(); 
             return; 
         }
         const inp = e.querySelectorAll('input.dw-dateField');
         const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
-        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 50) : cb();
+        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 80) : cb();
     }
 
     function isProc(f) {
@@ -286,29 +248,31 @@
         setVal(inp, val);
     }
 
-    // Ã„NDERUNG: Verwende vorgerenderte Buttons
+    function mkBtn(opt, cfg, inp, fid) {
+        const btn = document.createElement('button');
+        btn.className = `${cfg.pre}-action-button`;
+        btn.type = 'button';
+        btn.textContent = opt.l;
+        btn.title = opt.l;
+        btn.setAttribute('data-value', opt.v);
+        btn.setAttribute('data-field-id', fid);
+        btn.setAttribute('data-action', opt.a || '');
+        btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
+        return btn;
+    }
+
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
         const cont = document.createElement('div');
         cont.className = `${cfg.pre}-button-container`;
         cont.setAttribute('data-field-id', fid);
 
-        // NEU: Clone vorgerenderte Buttons
-        const template = S.preRenderedButtons.get(k);
-        if (template) {
-            const clone = template.cloneNode(true);
-            const buttons = clone.querySelectorAll('button');
-            
-            // Event-Listener und Field-ID hinzufÃ¼gen
-            buttons.forEach((btn, idx) => {
-                const opt = cfg.opts[idx];
-                btn.setAttribute('data-field-id', fid);
-                btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
-            });
-            
-            cont.appendChild(clone);
-        }
-        
+        const frag = document.createDocumentFragment();
+        cfg.opts.forEach(opt => {
+            const btn = mkBtn(opt, cfg, inp, fid);
+            frag.appendChild(btn);
+        });
+        cont.appendChild(frag);
         return cont;
     }
 
@@ -346,22 +310,22 @@
                 br.style.opacity = '1';
                 br.style.visibility = 'visible';
                 
+                // NEU: Dialog-Höhe nach Button-Injection anpassen
                 const dialog = br.closest('.ui-dialog.dw-dialogs');
                 if (dialog) {
-                    setTimeout(() => adjustDialogHeight(dialog), 50);
+                    setTimeout(() => adjustDialogHeight(dialog), 100);
                 }
             });
-            log(`âœ… Buttons eingefÃ¼gt: ${fid}`);
+            log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
-            log(`âŒ Inject fail: ${fid}`, e);
+            log(`❌ Inject fail: ${fid}`, e);
             return false;
         }
     }
 
-    // Ã„NDERUNG: Noch schnellere Injection
     function injectWithDelay(f, cfg, di) {
-        const delays = [0, 20, 50];
+        const delays = [10, 50, 100];
         function attempt(i = 0) {
             if (i >= delays.length) return false;
             setTimeout(() => {
@@ -375,14 +339,6 @@
         return true;
     }
 
-    // NEU: Set-Größe begrenzen (FIFO-Prinzip)
-    function limitSetSize(set, maxSize) {
-        if (set.size >= maxSize) {
-            const firstItem = set.values().next().value;
-            set.delete(firstItem);
-        }
-    }
-
     function procCfgInEl(k, c, di = null) {
         const cfg = CFG[k];
         const fields = findDateInCont(cfg, k, c, di);
@@ -392,8 +348,6 @@
         fields.forEach(f => {
             if (!S.processed.has(f.fid)) {
                 if (injectWithDelay(f, cfg, di)) {
-                    // NEU: Set-Größe vor Hinzufügen prüfen
-                    limitSetSize(S.processed, S.maxProcessed);
                     S.processed.add(f.fid);
                     added++;
                 }
@@ -412,19 +366,16 @@
         if (S.dialogs.has(di)) return 0;
         let total = 0;
         Object.keys(CFG).forEach(k => { total += procCfgInEl(k, d, di); });
-        if (total > 0) {
-            // NEU: Set-Größe vor Hinzufügen prüfen
-            limitSetSize(S.dialogs, S.maxDialogs);
-            S.dialogs.add(di);
-        }
+        if (total > 0) S.dialogs.add(di);
         return total;
     }
 
     function procAfterKO(e) {
         const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 20) : setTimeout(() => procStd(e), 20);
+        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 50) : setTimeout(() => procStd(e), 50);
     }
 
+    // ÄNDERUNG: CSS erweitert für automatische Dialog-Höhenanpassung
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
         const css = `
@@ -489,149 +440,36 @@
         document.head.appendChild(style);
     }
 
-    // NEU: Interner Query-Cache für diese Datei
-    const queryCache = {
-        cache: new Map(),
-        maxSize: 50,
-        ttl: 3000,
-        
-        get(selector) {
-            const cached = this.cache.get(selector);
-            if (cached && Date.now() - cached.timestamp < this.ttl) {
-                // Validiere dass Elemente noch im DOM sind
-                if (cached.elements[0]?.isConnected) {
-                    return cached.elements;
-                }
-            }
-            this.cache.delete(selector);
-            return null;
-        },
-        
-        set(selector, elements) {
-            if (this.cache.size >= this.maxSize) {
-                const firstKey = this.cache.keys().next().value;
-                this.cache.delete(firstKey);
-            }
-            this.cache.set(selector, {
-                elements: Array.from(elements),
-                timestamp: Date.now()
-            });
-        },
-        
-        invalidate(selector = null) {
-            selector ? this.cache.delete(selector) : this.cache.clear();
-        }
-    };
-    
-    // NEU: Optimierte Query-Funktion mit Cache
-    function queryWithCache(selector) {
-        let cached = queryCache.get(selector);
-        if (cached) return cached;
-        
-        const elements = document.querySelectorAll(selector);
-        queryCache.set(selector, elements);
-        return Array.from(elements);
-    }
-
-    // ÄNDERUNG: Hochoptimierter Observer mit internem Cache
     function mkObs() {
         let timeout = null;
-        let mutationCount = 0;
-        let lastRun = Date.now();
-        
-        const obs = new MutationObserver((mutations) => {
-            mutationCount++;
-            const now = Date.now();
-            
-            // NEU: Ignoriere Mutationen außerhalb relevanter Container
-            const relevantMutation = mutations.some(m => {
-                const target = m.target;
-                return target.classList?.contains('ui-dialog') ||
-                       target.classList?.contains('dw-dialogs') ||
-                       target.closest?.('.ui-dialog.dw-dialogs') ||
-                       target.classList?.contains('dw-dialogContent');
-            });
-            
-            if (!relevantMutation) return;
-            
-            // NEU: Cache bei relevanten Mutationen invalidieren
-            queryCache.invalidate('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            
-            // NEU: Aggressiveres Throttling bei vielen Mutationen
-            const delay = mutationCount > 10 ? 300 : 100;
-            
-            // NEU: Mindestabstand zwischen Runs (Rate Limiting)
-            if (now - lastRun < 50) {
-                if (timeout) clearTimeout(timeout);
-                timeout = setTimeout(() => {
-                    processDialogs();
-                    mutationCount = 0;
-                }, delay);
-                S.timeouts.add(timeout);
-                return;
-            }
-            
+        const obs = new MutationObserver(() => {
             if (timeout) clearTimeout(timeout);
             timeout = setTimeout(() => {
-                processDialogs();
-                mutationCount = 0;
-                lastRun = Date.now();
-            }, delay);
+                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                dlgs.forEach(d => {
+                    const di = getDlgId(d);
+                    const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
+                    !hasBtns && waitKOBind(d, () => addToDlg(d, di));
+                });
+                procStd(document.body);
+            }, 200);
             S.timeouts.add(timeout);
         });
-        
-        // NEU: Gezielter Scope statt document.body
-        const observeTargets = () => {
-            const dialogs = queryWithCache('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            dialogs.forEach(d => {
-                obs.observe(d, { childList: true, subtree: true });
-            });
-            
-            // Fallback: Body nur für neue Dialoge
-            obs.observe(document.body, { 
-                childList: true, 
-                subtree: false,
-                attributes: false,
-                characterData: false
-            });
-        };
-        
-        // NEU: Separate Prozessierungs-Funktion mit Cache
-        function processDialogs() {
-            const dlgs = queryWithCache('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            
-            dlgs.forEach(d => {
-                const di = getDlgId(d);
-                const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
-                !hasBtns && waitKOBind(d, () => addToDlg(d, di));
-            });
-            
-            // NEU: Nur prozessieren wenn keine Dialoge offen
-            if (dlgs.length === 0) {
-                procStd(document.body);
-            }
-        }
-        
-        observeTargets();
+        obs.observe(document.body, { childList: true, subtree: true });
         return obs;
     }
 
     function init() {
         injectCSS();
-        preRenderButtons();
-        
         waitKO(() => {
             setTimeout(() => {
                 procStd(document.body);
-                
-                // NEU: Mit internem Query-Cache
-                const dlgs = queryWithCache('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-                
+                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
                 dlgs.forEach(d => {
                     const di = getDlgId(d);
                     waitKOBind(d, () => addToDlg(d, di));
                 });
-            }, 100);
+            }, 200);
         });
         S.obs = mkObs();
         S.init = true;
@@ -640,7 +478,7 @@
     function main() {
         document.readyState === 'loading' ? 
             document.addEventListener('DOMContentLoaded', init, { once: true }) : 
-            setTimeout(init, 50);
+            setTimeout(init, 100);
     }
 
     main();
