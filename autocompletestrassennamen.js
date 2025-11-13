@@ -92,20 +92,20 @@
 
     let activeObjektDropdown = null;
     let selectedObjektIndex = 0;
-    let ObjektAutoVervollstaendigungAktiv = false;
-    let letzteLoeschAktion2 = 0;
-    let loeschBlockadeTimeout2 = null;
+    let objektAutoVervollstaendigungAktiv = false;
+    let letzteObjektLoeschAktion = 0;
+    let objektLoeschBlockadeTimeout = null;
 
     // NEU: Sternchen entfernen
-    function bereinigeEingabe(input) {
+    function bereinigeObjektEingabe(input) {
         if (!input) return '';
         return input.replace(/^[\s*]+/, '').trim();
     }
 
     // NEU: Intelligente Objekt-Suche
     function findeObjektMatch(input) {
-        input = bereinigeEingabe(input);
-        if (!input || input.length < 2) return null; // 2 erlaubt kurze Präfixe wie "Be" / "Ber"
+        input = bereinigeObjektEingabe(input);
+        if (!input || input.length < 2) return null;
         const inputLower = input.toLowerCase().trim();
         const inputTeile = inputLower.split(/\s+/).filter(t => t.length > 0);
 
@@ -117,24 +117,24 @@
         if (matches.length === 1) return { typ: 'eindeutig', wert: matches[0] };
         if (matches.length > 1 && matches.length <= 10) return { typ: 'mehrfach', wert: matches };
 
-        // 2) Wenn zu viele Matches: Versuche Präfix-/StartsWith-Filter (hilft bei "Ber")
+        // 2) Wenn zu viele Matches: Versuche Präfix-/StartsWith-Filter
         const prefixMatches = OBJEKT_KATALOG.filter(typ =>
             typ.toLowerCase().startsWith(inputLower)
         );
         if (prefixMatches.length === 1) return { typ: 'eindeutig', wert: prefixMatches[0] };
         if (prefixMatches.length > 1 && prefixMatches.length <= 10) return { typ: 'mehrfach', wert: prefixMatches };
 
-        // 3) Falls immer noch zu viele Matches: gib erste 10 zurück und markiere, dass es mehr gibt
+        // 3) Falls immer noch zu viele Matches: gib erste 10 zurück
         if (matches.length > 10) {
             return { typ: 'mehrfach', wert: matches.slice(0, 10), mehr: true, total: matches.length };
         }
 
-        // 4) Fallback: keine sinnvollen Treffer
         return null;
     }
+
     // NEU: Dropdown erstellen
-    function zeigeDropdown(inputField, optionenMeta) {
-        entferneDropdown();
+    function zeigeObjektDropdown(inputField, optionenMeta) {
+        entferneObjektDropdown();
         selectedObjektIndex = 0;
 
         // DocuWare-Dropdowns ausblenden
@@ -159,14 +159,13 @@
         dropdown.style.left = rect.left + window.scrollX + 'px';
         dropdown.style.top = rect.bottom + window.scrollY + 6 + 'px';
 
-        // optionenMeta kann entweder ein Array von Strings oder ein Objekt mit {wert: [...], mehr: true, total: N}
         let optionen = Array.isArray(optionenMeta) ? optionenMeta : (optionenMeta.wert || []);
         const hatMehr = optionenMeta && optionenMeta.mehr;
         const total = optionenMeta && optionenMeta.total ? optionenMeta.total : optionen.length;
 
         optionen.forEach((option, index) => {
             const item = document.createElement('div');
-            item.className = 'dropdown-item';
+            item.className = 'objekt-dropdown-item';
             item.textContent = option;
             item.style.cssText = `
             padding: 8px 12px;
@@ -177,15 +176,15 @@
         `;
             item.addEventListener('mouseenter', () => {
                 selectedObjektIndex = index;
-                markiereAuswahl(dropdown, selectedObjektIndex);
+                markiereObjektAuswahl(dropdown, selectedObjektIndex);
             });
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 inputField.value = option;
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
-                entferneDropdown();
-                fokussiereNaechstesFeld(inputField);
+                entferneObjektDropdown();
+                fokussiereNaechstesObjektFeld(inputField);
             });
             dropdown.appendChild(item);
         });
@@ -193,7 +192,7 @@
         // NEU: Footer anzeigen, wenn es mehr Treffer gibt
         if (hatMehr) {
             const footer = document.createElement('div');
-            footer.className = 'dropdown-footer';
+            footer.className = 'objekt-dropdown-footer';
             footer.style.cssText = `
             padding: 8px 12px;
             font-size: 12px;
@@ -207,55 +206,15 @@
         document.body.appendChild(dropdown);
         activeObjektDropdown = { dropdown, inputField, optionen };
 
-        markiereAuswahl(dropdown, selectedObjektIndex);
+        markiereObjektAuswahl(dropdown, selectedObjektIndex);
 
         setTimeout(() => inputField.focus(), 0);
-        setTimeout(() => document.addEventListener('click', handleOutsideClick), 100);
+        setTimeout(() => document.addEventListener('click', handleObjektOutsideClick), 100);
     }
-
-    // ÄNDERUNG: verbessertes Fokusverhalten in DocuWare-Feldern
-document.addEventListener('keydown', function (e) {
-    const dropdown = document.querySelector('.custom-autocomplete-list');
-    const activeItem = dropdown?.querySelector('.active');
-
-    // Innerhalb Dropdown navigieren
-    if (dropdown && dropdown.style.display !== 'none') {
-        const items = Array.from(dropdown.querySelectorAll('li'));
-        const currentIndex = items.indexOf(activeItem);
-
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            const nextIndex = (currentIndex + 1) % items.length;
-            items.forEach(li => li.classList.remove('active'));
-            items[nextIndex].classList.add('active');
-            items[nextIndex].scrollIntoView({ block: 'nearest' });
-        }
-
-        // Enter = Auswahl + nächstes Eingabefeld
-        else if (e.key === 'Enter' && activeItem) {
-            e.preventDefault();
-            activeItem.click();
-
-            const currentInput = document.activeElement.closest('input.dw-textField, input.dw-dateField');
-            if (!currentInput) return;
-
-            // Nächstes sichtbares, aktivierbares Feld finden
-            const allInputs = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField'))
-                .filter(inp => inp.offsetParent !== null && !inp.readOnly && !inp.disabled);
-
-            const currentIndex = allInputs.indexOf(currentInput);
-            const next = allInputs[currentIndex + 1];
-            if (next) {
-                setTimeout(() => next.focus(), 150); // kleine Verzögerung, damit DW-Skript fertig ist
-            }
-        }
-    }
-});
-
 
     // NEU: Auswahl markieren
-    function markiereAuswahl(dropdown, index) {
-        const items = dropdown.querySelectorAll('.dropdown-item');
+    function markiereObjektAuswahl(dropdown, index) {
+        const items = dropdown.querySelectorAll('.objekt-dropdown-item');
         items.forEach((item, i) => {
             if (i === index) {
                 item.style.background = '#4b70a6';
@@ -268,206 +227,178 @@ document.addEventListener('keydown', function (e) {
     }
 
     // NEU: Dropdown entfernen
-    function entferneDropdown() {
+    function entferneObjektDropdown() {
         const existing = document.querySelector('.objekt-dropdown');
         if (existing) existing.remove();
         document.querySelectorAll('.dw-MultiControlList').forEach(el => el.style.display = '');
-        document.removeEventListener('click', handleOutsideClick);
+        document.removeEventListener('click', handleObjektOutsideClick);
         activeObjektDropdown = null;
     }
 
-    function handleOutsideClick(e) {
-        if (!e.target.closest('.objekt-dropdown')) entferneDropdown();
+    function handleObjektOutsideClick(e) {
+        if (!e.target.closest('.objekt-dropdown')) entferneObjektDropdown();
     }
 
     // NEU: Tastatursteuerung
-    // ÄNDERUNG: Tastatursteuerung erweitert (Tab navigiert, Enter springt weiter)
-function handleKeyDown(e) {
-    // Wenn kein eigenes Dropdown offen -> nichts tun
-    if (!activeObjektDropdown) return;
+    function handleObjektKeyDown(e) {
+        if (!activeObjektDropdown) return;
 
-    // verhindern, dass DocuWare eigene Handler dazwischenfunken
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
 
-    const { dropdown, inputField, optionen } = activeObjektDropdown;
-    const items = dropdown.querySelectorAll('.dropdown-item');
-    if (!items || items.length === 0) return;
+        const { dropdown, inputField, optionen } = activeObjektDropdown;
+        const items = dropdown.querySelectorAll('.objekt-dropdown-item');
+        if (!items || items.length === 0) return;
 
-    // Hilfsfunktionen
-    const gotoIndex = (idx) => {
-        selectedObjektIndex = (idx + items.length) % items.length;
-        markiereAuswahl(dropdown, selectedObjektIndex);
-    };
+        const gotoIndex = (idx) => {
+            selectedObjektIndex = (idx + items.length) % items.length;
+            markiereObjektAuswahl(dropdown, selectedObjektIndex);
+        };
 
-    // Navigation
-    if (e.key === 'ArrowDown') {
-        gotoIndex(selectedObjektIndex + 1);
-        return;
-    }
-    if (e.key === 'ArrowUp') {
-        gotoIndex(selectedObjektIndex - 1);
-        return;
-    }
-
-    // Tab / Shift+Tab im Dropdown: wie ArrowDown / ArrowUp
-    if (e.key === 'Tab') {
-        if (e.shiftKey) gotoIndex(selectedObjektIndex - 1);
-        else gotoIndex(selectedObjektIndex + 1);
-        return;
-    }
-
-    // Enter: Auswahl übernehmen + zum nächsten logischen DocuWare-Feld springen
-if (e.key === 'Enter') {
-    const chosen = optionen[selectedObjektIndex];
-    if (chosen) {
-        inputField.value = chosen;
-        inputField.dispatchEvent(new Event('input', { bubbles: true }));
-
-        // Eigenes Dropdown entfernen
-        entferneDropdown();
-
-        // DocuWare Dropdown unterdrücken
-        const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer');
-        if (dwDropdown) {
-            dwDropdown.style.display = 'none';
-            dwDropdown.setAttribute('data-suppressed', 'true');
-
-            // Optional: knockout viewModel auf hidden setzen
-            const koData = ko.dataFor(dwDropdown);
-            if (koData && koData.visible) {
-                koData.visible(false);
-            }
+        if (e.key === 'ArrowDown') {
+            gotoIndex(selectedObjektIndex + 1);
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            gotoIndex(selectedObjektIndex - 1);
+            return;
         }
 
-        // Fokus auf nächstes Feld
-        fokussiereNaechstesFeldDocuWare(inputField);
-    }
-}
-
-    // Escape wie vorher
-    if (e.key === 'Escape') {
-        entferneDropdown();
-        return;
-    }
-}
-
-function fokussiereNaechstesFeldDocuWare(currentField) {
-    // 1) Versuche innerhalb des gleichen <tbody> / Tabelle / Dialogs vorwärts zu gehen
-    const currentTr = currentField.closest('tr');
-    const rootTable = currentTr ? currentTr.closest('tbody, table, .dw-dialog, form, .dw-section') : null;
-
-    const isValid = (el) => {
-        if (!el) return false;
-        if (el.readOnly) return false;
-        if (el.disabled) return false;
-        // visible: offsetParent oder getClientRects
-        const rects = el.getClientRects();
-        if (!rects || rects.length === 0) return false;
-        // ignore small hidden controls like icon-only buttons
-        return true;
-    };
-
-    const findInSiblingTrs = () => {
-        if (!currentTr) return null;
-        let tr = currentTr.nextElementSibling;
-        while (tr) {
-            // skip Knockout comment nodes - nextElementSibling already does
-            // Suche nach Eingabefeld im TR (bevorzugt .dw-textField / .dw-dateField)
-            const candidate = tr.querySelector('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]');
-            if (candidate && isValid(candidate)) return candidate;
-            tr = tr.nextElementSibling;
+        if (e.key === 'Tab') {
+            if (e.shiftKey) gotoIndex(selectedObjektIndex - 1);
+            else gotoIndex(selectedObjektIndex + 1);
+            return;
         }
-        return null;
-    };
 
-    const findInRoot = () => {
-        if (!rootTable) return null;
-        // alle Inputs in rootTable in DOM-Reihenfolge
-        const candidates = Array.from(rootTable.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
-        const idx = candidates.indexOf(currentField);
-        if (idx >= 0) {
-            for (let i = idx + 1; i < candidates.length; i++) {
-                if (isValid(candidates[i])) return candidates[i];
-            }
-        }
-        return null;
-    };
+        if (e.key === 'Enter') {
+            const chosen = optionen[selectedObjektIndex];
+            if (chosen) {
+                inputField.value = chosen;
+                inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                entferneObjektDropdown();
 
-    const findGlobally = () => {
-        const all = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
-        const idx = all.indexOf(currentField);
-        if (idx >= 0) {
-            for (let i = idx + 1; i < all.length; i++) {
-                if (isValid(all[i])) return all[i];
-            }
-        }
-        return null;
-    };
+                const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer');
+                if (dwDropdown) {
+                    dwDropdown.style.display = 'none';
+                    dwDropdown.setAttribute('data-suppressed', 'true');
 
-    // Reihenfolge: siblings -> rootTable -> global
-    let next = findInSiblingTrs() || findInRoot() || findGlobally();
-
-    if (next) {
-        // Kleiner Delay, damit DocuWare eigene asynchrone Fokus-Mechanismen abgeschlossen sind.
-        setTimeout(() => {
-            try {
-                next.focus();
-                // wenn text, select zum schnellen Weitertippen
-                if (typeof next.select === 'function') {
-                    next.select();
+                    const koData = ko.dataFor(dwDropdown);
+                    if (koData && koData.visible) {
+                        koData.visible(false);
+                    }
                 }
-                // manuell ein focus-Event feuern (falls DW darauf hört)
-                next.dispatchEvent(new Event('focus', { bubbles: true }));
-            } catch (err) {
-                // Fallback: nichts tun
+
+                fokussiereNaechstesObjektFeldDocuWare(inputField);
             }
-        }, 60);
-    }
-}
+        }
 
-
-    // NEU: Input-Handler
-// ÄNDERUNG: Input-Handler mit korrekter Delete-Behandlung
-function handleInput(e) {
-    const inputField = e.target;
-    
-    // Spezialbehandlung für Delete/Backspace direkt nach Autovervollständigung
-    if (e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
-        letzteLoeschAktion = Date.now();
-        entferneDropdown();
-        
-        // Sicherstellen, dass das Feld wirklich leer ist
-        if (inputField.value.trim() === '') {
-            inputField.value = '';
+        if (e.key === 'Escape') {
+            entferneObjektDropdown();
             return;
         }
     }
-    
-    let value = bereinigeEingabe(inputField.value);
-    inputField.value = value;
 
-    const zeitSeitLetzterLoeschung = Date.now() - letzteLoeschAktion;
-    if (zeitSeitLetzterLoeschung < 400 || value.length < 3) {
-        entferneDropdown();
-        return;
+    function fokussiereNaechstesObjektFeldDocuWare(currentField) {
+        const currentTr = currentField.closest('tr');
+        const rootTable = currentTr ? currentTr.closest('tbody, table, .dw-dialog, form, .dw-section') : null;
+
+        const isValid = (el) => {
+            if (!el) return false;
+            if (el.readOnly) return false;
+            if (el.disabled) return false;
+            const rects = el.getClientRects();
+            if (!rects || rects.length === 0) return false;
+            return true;
+        };
+
+        const findInSiblingTrs = () => {
+            if (!currentTr) return null;
+            let tr = currentTr.nextElementSibling;
+            while (tr) {
+                const candidate = tr.querySelector('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]');
+                if (candidate && isValid(candidate)) return candidate;
+                tr = tr.nextElementSibling;
+            }
+            return null;
+        };
+
+        const findInRoot = () => {
+            if (!rootTable) return null;
+            const candidates = Array.from(rootTable.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
+            const idx = candidates.indexOf(currentField);
+            if (idx >= 0) {
+                for (let i = idx + 1; i < candidates.length; i++) {
+                    if (isValid(candidates[i])) return candidates[i];
+                }
+            }
+            return null;
+        };
+
+        const findGlobally = () => {
+            const all = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
+            const idx = all.indexOf(currentField);
+            if (idx >= 0) {
+                for (let i = idx + 1; i < all.length; i++) {
+                    if (isValid(all[i])) return all[i];
+                }
+            }
+            return null;
+        };
+
+        let next = findInSiblingTrs() || findInRoot() || findGlobally();
+
+        if (next) {
+            setTimeout(() => {
+                try {
+                    next.focus();
+                    if (typeof next.select === 'function') {
+                        next.select();
+                    }
+                    next.dispatchEvent(new Event('focus', { bubbles: true }));
+                } catch (err) {
+                    // Fallback
+                }
+            }, 60);
+        }
     }
 
-    const match = findeDokumententypMatch(value);
-    if (match) {
-        if (match.typ === 'eindeutig') {
-            inputField.value = match.wert;
-            // NEU: Fokus setzen, damit nächste Eingabe erkannt wird
-            setTimeout(() => {
-                inputField.setSelectionRange(match.wert.length, match.wert.length);
-            }, 10);
-            entferneDropdown();
-        } else if (match.typ === 'mehrfach') {
-            zeigeDropdown(inputField, match.wert);
+    // ÄNDERUNG: Input-Handler mit korrekter Delete-Behandlung
+    function handleObjektInput(e) {
+        const inputField = e.target;
+
+        if (e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
+            letzteObjektLoeschAktion = Date.now();
+            entferneObjektDropdown();
+
+            if (inputField.value.trim() === '') {
+                inputField.value = '';
+                return;
+            }
         }
-    } else entferneDropdown();
-}
+
+        let value = bereinigeObjektEingabe(inputField.value);
+        inputField.value = value;
+
+        const zeitSeitLetzterLoeschung = Date.now() - letzteObjektLoeschAktion;
+        if (zeitSeitLetzterLoeschung < 400 || value.length < 2) {
+            entferneObjektDropdown();
+            return;
+        }
+
+        const match = findeObjektMatch(value);
+        if (match) {
+            if (match.typ === 'eindeutig') {
+                inputField.value = match.wert;
+                setTimeout(() => {
+                    inputField.setSelectionRange(match.wert.length, match.wert.length);
+                }, 10);
+                entferneObjektDropdown();
+            } else if (match.typ === 'mehrfach') {
+                zeigeObjektDropdown(inputField, match);
+            }
+        } else entferneObjektDropdown();
+    }
 
     // ÄNDERUNG: Jedes Label, das "Objekt" enthält, wird erkannt
     function istObjektFeld(inputField) {
@@ -479,28 +410,19 @@ function handleInput(e) {
         return labelText.includes('objekt');
     }
 
-    // NEU: Nächstes Feld fokussieren
     // ÄNDERUNG: Verbesserte Fokus-Steuerung für DocuWare-Felder
-    function fokussiereNaechstesFeld(currentField) {
-        // Lokalen Bereich ermitteln (z. B. gleiche Tabelle oder Sektion)
+    function fokussiereNaechstesObjektFeld(currentField) {
         const bereich = currentField.closest('table, .dw-section, form') || document;
         const felder = Array.from(bereich.querySelectorAll('input[type="text"], textarea, select'))
-            .filter(el => !el.disabled && el.offsetParent !== null); // nur sichtbare Felder
+            .filter(el => !el.disabled && el.offsetParent !== null);
 
         const index = felder.indexOf(currentField);
         if (index >= 0 && index < felder.length - 1) {
-            // Nächstes Feld im gleichen Bereich
             const next = felder[index + 1];
             setTimeout(() => next.focus(), 80);
             return;
         }
 
-        setTimeout(() => {
-            next.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            next.focus();
-        }, 80);
-
-        // Falls kein weiteres Feld im gleichen Bereich → global weitersuchen
         const alleFelder = Array.from(document.querySelectorAll('input[type="text"], textarea, select'))
             .filter(el => !el.disabled && el.offsetParent !== null);
 
@@ -511,40 +433,35 @@ function handleInput(e) {
         }
     }
 
-
     // NEU: Handler anhängen
-    function attachHandler(inputField) {
-        if (inputField.dataset.ObjektAttached) return;
+    function attachObjektHandler(inputField) {
+        if (inputField.dataset.objektAttached) return;
         if (!istObjektFeld(inputField)) return;
-        inputField.addEventListener('input', handleInput);
-        inputField.addEventListener('keydown', handleKeyDown, true);
-        inputField.dataset.ObjektAttached = 'true';
+        inputField.addEventListener('input', handleObjektInput);
+        inputField.addEventListener('keydown', handleObjektKeyDown, true);
+        inputField.dataset.objektAttached = 'true';
     }
 
     // NEU: Scannen
-    function scan() {
-        document.querySelectorAll('input.dw-textField').forEach(attachHandler);
+    function scanObjekte() {
+        document.querySelectorAll('input.dw-textField').forEach(attachObjektHandler);
     }
 
-const observer = new MutationObserver(() => {
-    const dwDropdown = document.querySelector('.dw-scroll-content.scroll-content');
-    const customDropdown = document.querySelector('.objekt-dropdown');
+    const objektObserver = new MutationObserver(() => {
+        const dwDropdown = document.querySelector('.dw-scroll-content.scroll-content');
+        const customDropdown = document.querySelector('.objekt-dropdown');
 
-    if (dwDropdown && customDropdown && customDropdown.style.display !== 'none') {
-        // DocuWare Dropdown ausblenden
-        dwDropdown.style.display = 'none';
-        dwDropdown.setAttribute('data-suppressed', 'true');
-    } else if (dwDropdown && dwDropdown.getAttribute('data-suppressed')) {
-        // Wieder einblenden, wenn dein Dropdown geschlossen wird
-        dwDropdown.style.display = '';
-        dwDropdown.removeAttribute('data-suppressed');
-    }
+        if (dwDropdown && customDropdown && customDropdown.style.display !== 'none') {
+            dwDropdown.style.display = 'none';
+            dwDropdown.setAttribute('data-suppressed', 'true');
+        } else if (dwDropdown && dwDropdown.getAttribute('data-suppressed')) {
+            dwDropdown.style.display = '';
+            dwDropdown.removeAttribute('data-suppressed');
+        }
 
-    // Zusätzlich: scanne neue Input-Felder
-    scan();
-});
+        scanObjekte();
+    });
 
-observer.observe(document.body, { childList: true, subtree: true });
+    objektObserver.observe(document.body, { childList: true, subtree: true });
 
 })();
-
