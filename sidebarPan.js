@@ -31,28 +31,27 @@
         }
         #${ID} button {
             padding: 1px 2px;
-            border: 1px solid #2e4975ff;
+            border: 1px solid #65686dff;
             background: #fff;
-            color: #31476bff;
+            color: #65686dff;
             border-radius: 4px;
             cursor: pointer;
             font-size: 11px;
             font-weight: 600;
             transition: all 0.2s;
             min-width: 70px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            
             white-space: nowrap;
         }
         #${ID} button:hover {
             background: #eff6ff;
             transform: scale(1.05);
-            box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+            
         }
         #${ID} button.active {
-            background: #36588fff;
+            background: #65686dff;
             color: #fff;
-            box-shadow: 0 3px 10px rgba(59, 130, 246, 0.4);
-            border-color: #2a437aff;
+                    border-color: #65686dff;
         }
         .splitter-bar.splitter-bar-vertical {
             position: relative;
