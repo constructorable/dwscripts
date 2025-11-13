@@ -1,6 +1,6 @@
 // buttons-datum.js
-// ÄNDERUNG: Pre-Rendering der Buttons für sofortige Verfügbarkeit + optimierte Performance
-// Separate Datei für Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
+// Ã„NDERUNG: Pre-Rendering der Buttons fÃ¼r sofortige VerfÃ¼gbarkeit + optimierte Performance
+// Separate Datei fÃ¼r Datums-Schnellauswahl-Buttons (Zukunft + Vergangenheit)
 
 (function () {
     'use strict';
@@ -16,9 +16,9 @@
             wrap: true,
             isDate: true,
             exc: [
-                'Eingangsdatum', 'Rechnungsdatum', 'Fälligkeitsdatum',
-                'Erstellungsdatum', 'Ausgangsdatum', 'Ausführungsdatum (Bericht)',
-                'Abgelegt am', 'nächster Ablesetermin'
+                'Eingangsdatum', 'Rechnungsdatum', 'FÃ¤lligkeitsdatum',
+                'Erstellungsdatum', 'Ausgangsdatum', 'AusfÃ¼hrungsdatum (Bericht)',
+                'Abgelegt am', 'nÃ¤chster Ablesetermin'
             ],
             opts: [
                 { v: 'heute', l: 'Heute', a: 'setToday' },
@@ -59,7 +59,7 @@
         dialogs: new Set(),
         processed: new Set(),
         koReady: false,
-        preRenderedButtons: new Map() // NEU: Cache für vorgerenderte Buttons
+        preRenderedButtons: new Map() // NEU: Cache fÃ¼r vorgerenderte Buttons
     };
 
     if (window[ID]) cleanup();
@@ -72,14 +72,24 @@
             window[ID].s.obs && window[ID].s.obs.disconnect();
             window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
             window[ID].s.preRenderedButtons && window[ID].s.preRenderedButtons.clear();
+            // NEU: Date-Cache leeren
+            dateCache.clear();
+            log('🧹 Cleanup abgeschlossen - alle Caches geleert');
         }
     }
 
+    // ÄNDERUNG: Cache mit Größenbegrenzung
     const dateCache = new Map();
+    const MAX_CACHE_SIZE = 100;
     
     function getFmt(d) {
         const k = d.getTime();
         if (!dateCache.has(k)) {
+            // NEU: Cache-Größe begrenzen (FIFO-Prinzip)
+            if (dateCache.size >= MAX_CACHE_SIZE) {
+                const firstKey = dateCache.keys().next().value;
+                dateCache.delete(firstKey);
+            }
             dateCache.set(k, `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`);
         }
         return dateCache.get(k);
@@ -129,7 +139,7 @@
             
             S.preRenderedButtons.set(k, template);
         });
-        log('✅ Button-Templates vorgerendert');
+        log('âœ… Button-Templates vorgerendert');
     }
 
     function adjustDialogHeight(dialog) {
@@ -185,7 +195,7 @@
         }
     }
 
-    // ÄNDERUNG: Noch aggressivere KO-Bind-Prüfung
+    // Ã„NDERUNG: Noch aggressivere KO-Bind-PrÃ¼fung
     function waitKOBind(e, cb, i = 0) {
         if (i >= 10) { 
             cb(); 
@@ -266,7 +276,7 @@
         setVal(inp, val);
     }
 
-    // ÄNDERUNG: Verwende vorgerenderte Buttons
+    // Ã„NDERUNG: Verwende vorgerenderte Buttons
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
         const cont = document.createElement('div');
@@ -279,7 +289,7 @@
             const clone = template.cloneNode(true);
             const buttons = clone.querySelectorAll('button');
             
-            // Event-Listener und Field-ID hinzufügen
+            // Event-Listener und Field-ID hinzufÃ¼gen
             buttons.forEach((btn, idx) => {
                 const opt = cfg.opts[idx];
                 btn.setAttribute('data-field-id', fid);
@@ -331,15 +341,15 @@
                     setTimeout(() => adjustDialogHeight(dialog), 50);
                 }
             });
-            log(`✅ Buttons eingefügt: ${fid}`);
+            log(`âœ… Buttons eingefÃ¼gt: ${fid}`);
             return true;
         } catch (e) {
-            log(`❌ Inject fail: ${fid}`, e);
+            log(`âŒ Inject fail: ${fid}`, e);
             return false;
         }
     }
 
-    // ÄNDERUNG: Noch schnellere Injection
+    // Ã„NDERUNG: Noch schnellere Injection
     function injectWithDelay(f, cfg, di) {
         const delays = [0, 20, 50];
         function attempt(i = 0) {
@@ -455,7 +465,7 @@
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Schnellerer Observer
+    // Ã„NDERUNG: Schnellerer Observer
     function mkObs() {
         let timeout = null;
         const obs = new MutationObserver(() => {
@@ -501,3 +511,4 @@
 
     main();
 })();
+
