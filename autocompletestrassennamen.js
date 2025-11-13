@@ -429,27 +429,45 @@ function fokussiereNaechstesFeldDocuWare(currentField) {
 
 
     // NEU: Input-Handler
-    function handleInput(e) {
-        const inputField = e.target;
-        let value = bereinigeEingabe(inputField.value);
-        inputField.value = value;
-
-        const zeitSeitLetzterLoeschung = Date.now() - letzteLoeschAktion2;
-        if (zeitSeitLetzterLoeschung < 400 || value.length < 3) {
-            entferneDropdown();
+// ÄNDERUNG: Input-Handler mit korrekter Delete-Behandlung
+function handleInput(e) {
+    const inputField = e.target;
+    
+    // Spezialbehandlung für Delete/Backspace direkt nach Autovervollständigung
+    if (e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
+        letzteLoeschAktion = Date.now();
+        entferneDropdown();
+        
+        // Sicherstellen, dass das Feld wirklich leer ist
+        if (inputField.value.trim() === '') {
+            inputField.value = '';
             return;
         }
-
-        const match = findeObjektMatch(value);
-        if (match) {
-            if (match.typ === 'eindeutig') {
-                inputField.value = match.wert;
-                entferneDropdown();
-            } else if (match.typ === 'mehrfach') {
-                zeigeDropdown(inputField, match.wert);
-            }
-        } else entferneDropdown();
     }
+    
+    let value = bereinigeEingabe(inputField.value);
+    inputField.value = value;
+
+    const zeitSeitLetzterLoeschung = Date.now() - letzteLoeschAktion;
+    if (zeitSeitLetzterLoeschung < 400 || value.length < 3) {
+        entferneDropdown();
+        return;
+    }
+
+    const match = findeDokumententypMatch(value);
+    if (match) {
+        if (match.typ === 'eindeutig') {
+            inputField.value = match.wert;
+            // NEU: Fokus setzen, damit nächste Eingabe erkannt wird
+            setTimeout(() => {
+                inputField.setSelectionRange(match.wert.length, match.wert.length);
+            }, 10);
+            entferneDropdown();
+        } else if (match.typ === 'mehrfach') {
+            zeigeDropdown(inputField, match.wert);
+        }
+    } else entferneDropdown();
+}
 
     // ÄNDERUNG: Jedes Label, das "Objekt" enthält, wird erkannt
     function istObjektFeld(inputField) {
@@ -525,6 +543,8 @@ const observer = new MutationObserver(() => {
     // Zusätzlich: scanne neue Input-Felder
     scan();
 });
+
 observer.observe(document.body, { childList: true, subtree: true });
+
 })();
 
