@@ -1,12 +1,17 @@
-// TEMPORÄRER CODE: Splitter-Buttons für Schnellauswahl (1200px, 1500px, 1900px)
-// Erstellt drei Buttons zur schnellen Positionierung des Splitters
+// TEMPORÄRER CODE: Splitter-Buttons integriert in Splitter-Bar (900px, 1100px, 1400px)
+// Erstellt drei Buttons direkt in der Splitter-Bar zur schnellen Positionierung
 
 (function() {
     const ID = 'dw-splitter-buttons';
     
     // Cleanup vorheriger Instanz
-    if (document.getElementById(ID)) {
-        document.getElementById(ID).remove();
+    const existingButtons = document.getElementById(ID);
+    if (existingButtons) {
+        existingButtons.remove();
+    }
+    const existingStyle = document.getElementById(`${ID}-style`);
+    if (existingStyle) {
+        existingStyle.remove();
     }
     
     // CSS injizieren
@@ -14,86 +19,64 @@
     style.id = `${ID}-style`;
     style.textContent = `
         #${ID} {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            z-index: 9999;
-            background: #fff;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            padding: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            font-family: system-ui, -apple-system, sans-serif;
-        }
-        #${ID} .title {
-            font-size: 12px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 8px;
-            text-align: center;
-        }
-        #${ID} .button-group {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+            z-index: 10;
+            pointer-events: auto;
         }
         #${ID} button {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: 1px solid #3b82f6;
             background: #fff;
             color: #3b82f6;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: 600;
             transition: all 0.2s;
-            min-width: 100px;
+            min-width: 70px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            white-space: nowrap;
         }
         #${ID} button:hover {
             background: #eff6ff;
-            transform: translateY(-1px);
+            transform: scale(1.05);
+            box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
         }
         #${ID} button.active {
             background: #3b82f6;
             color: #fff;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 3px 10px rgba(59, 130, 246, 0.4);
+            border-color: #2563eb;
         }
-        #${ID} .close-btn {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            width: 20px;
-            height: 20px;
-            border: none;
-            background: transparent;
-            color: #9ca3af;
-            cursor: pointer;
-            font-size: 16px;
-            line-height: 1;
-            padding: 0;
-            min-width: auto;
-        }
-        #${ID} .close-btn:hover {
-            color: #374151;
-            background: transparent;
-            transform: none;
+        .splitter-bar.splitter-bar-vertical {
+            position: relative;
         }
     `;
     document.head.appendChild(style);
+    
+    // Finde die Splitter-Bar
+    const splitterBar = document.querySelector('.splitter-bar.splitter-bar-vertical');
+    
+    if (!splitterBar) {
+        console.log('❌ Splitter-Bar nicht gefunden');
+        return;
+    }
     
     // Button-Container erstellen
     const container = document.createElement('div');
     container.id = ID;
     container.innerHTML = `
-        <button class="close-btn" title="Schließen">×</button>
-        <div class="title">Splitter-Position</div>
-        <div class="button-group">
-            <button data-position="1200">1200 px</button>
-            <button data-position="1500">1500 px</button>
-            <button data-position="1900">1900 px</button>
-        </div>
+        <button data-position="900" title="Linke Seite: 900px">900</button>
+        <button data-position="1100" title="Linke Seite: 1100px">1100</button>
+        <button data-position="1400" title="Linke Seite: 1400px">1400</button>
     `;
-    document.body.appendChild(container);
+    splitterBar.appendChild(container);
     
     // Funktion zum Verschieben des Splitters
     function moveSplitter(targetLeft) {
@@ -158,7 +141,9 @@
     // Button-Event-Listener
     const buttons = container.querySelectorAll('button[data-position]');
     buttons.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             const position = parseInt(this.getAttribute('data-position'));
             if (moveSplitter(position)) {
                 // Active-State setzen
@@ -168,12 +153,6 @@
         });
     });
     
-    // Close-Button
-    container.querySelector('.close-btn').addEventListener('click', function() {
-        container.remove();
-        document.getElementById(`${ID}-style`).remove();
-        console.log('🗑️ Splitter-Buttons entfernt');
-    });
-    
-    console.log('✅ Splitter-Buttons erstellt');
+    console.log('✅ Splitter-Buttons in Splitter-Bar integriert (900px, 1100px, 1400px)');
 })();
+
