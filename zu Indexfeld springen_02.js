@@ -2,21 +2,36 @@
     'use strict';
     const SEARCH_SCRIPT_ID = 'docuware-field-search-script';
 
-    // Reset bei erneuter Ausführung
+    // Reset bei erneuter AusfÃ¼hrung
     if (window[SEARCH_SCRIPT_ID]) {
-        console.log('🔄 DocuWare Field Search wird zurückgesetzt...');
+        console.log('ðŸ”„ DocuWare Field Search wird zurÃ¼ckgesetzt...');
         document.querySelectorAll('.dw-field-search-overlay, .dw-field-search-widget').forEach(el => el.remove());
+        // ÄNDERUNG: Sichere Listener-Entfernung
         if (window[SEARCH_SCRIPT_ID].listeners) {
-            window[SEARCH_SCRIPT_ID].listeners.forEach(({ element, event, handler }) =>
-                element.removeEventListener(event, handler)
-            );
+            window[SEARCH_SCRIPT_ID].listeners.forEach(({ element, event, handler }) => {
+                if (element && element.removeEventListener) {
+                    element.removeEventListener(event, handler);
+                }
+            });
+            window[SEARCH_SCRIPT_ID].listeners = [];
+        }
+        // NEU: Cache leeren
+        if (window[SEARCH_SCRIPT_ID].searchCache) {
+            window[SEARCH_SCRIPT_ID].searchCache.clear();
         }
         delete window[SEARCH_SCRIPT_ID];
-        console.log('✅ DocuWare Field Search zurückgesetzt');
+        console.log('âœ… DocuWare Field Search zurÃ¼ckgesetzt');
     }
 
-    window[SEARCH_SCRIPT_ID] = { listeners: [] };
-    console.log('🚀 DocuWare Field Search wird initialisiert...');
+    // ÄNDERUNG: Erweitertes State-Management mit Limits
+    window[SEARCH_SCRIPT_ID] = { 
+        listeners: [],
+        maxListeners: 500, // NEU: Maximale Anzahl Listener
+        processedElements: new WeakSet(), // NEU: Verhindert doppelte Verarbeitung
+        searchCache: new Map(), // NEU: Cache für Suchergebnisse
+        maxCacheSize: 50 // NEU: Maximale Cache-Größe
+    };
+    console.log('ðŸš€ DocuWare Field Search wird initialisiert...');
 
     // ===== SUCHBARE FELDER KONFIGURATION =====
     const SEARCHABLE_FIELDS = {
@@ -25,16 +40,56 @@
             displayName: 'Dokumententyp (Unterart)'
         },
         'objekt': {
-            searchTerms: ['objekt', 'object', 'haus', 'gebäude'],
+            searchTerms: ['objekt', 'object', 'haus', 'gebÃ¤ude'],
             displayName: 'Objekt'
         }
     };
 
-    // Event Listener Management
+    // ÄNDERUNG: Listener-Management mit automatischer Bereinigung
     const addTrackedEventListener = (element, event, handler) => {
+        // NEU: Prüfe ob Element bereits verarbeitet wurde
+        if (!element || !element.isConnected) return;
+        
+        // NEU: Listener-Limit prüfen und alte entfernen
+        if (window[SEARCH_SCRIPT_ID].listeners.length >= window[SEARCH_SCRIPT_ID].maxListeners) {
+            const removed = window[SEARCH_SCRIPT_ID].listeners.splice(0, 50); // Älteste 50 entfernen
+            removed.forEach(({ element: el, event: ev, handler: h }) => {
+                if (el && el.removeEventListener) {
+                    el.removeEventListener(ev, h);
+                }
+            });
+        }
+        
         element.addEventListener(event, handler);
         window[SEARCH_SCRIPT_ID].listeners.push({ element, event, handler });
     };
+    
+    // NEU: Periodische Bereinigung toter Listener
+    const cleanupDeadListeners = () => {
+        const before = window[SEARCH_SCRIPT_ID].listeners.length;
+        window[SEARCH_SCRIPT_ID].listeners = window[SEARCH_SCRIPT_ID].listeners.filter(({ element }) => {
+            if (!element || !element.isConnected) {
+                return false; // Element aus DOM entfernt
+            }
+            return true;
+        });
+        const removed = before - window[SEARCH_SCRIPT_ID].listeners.length;
+        if (removed > 0) {
+            console.log(`🧹 Field Search: ${removed} tote Listener entfernt`);
+        }
+    };
+    
+    // NEU: Cache-Verwaltung mit Größenlimit
+    const addToSearchCache = (key, value) => {
+        if (window[SEARCH_SCRIPT_ID].searchCache.size >= window[SEARCH_SCRIPT_ID].maxCacheSize) {
+            const firstKey = window[SEARCH_SCRIPT_ID].searchCache.keys().next().value;
+            window[SEARCH_SCRIPT_ID].searchCache.delete(firstKey);
+        }
+        window[SEARCH_SCRIPT_ID].searchCache.set(key, value);
+    };
+    
+    // NEU: Cleanup alle 30 Sekunden
+    setInterval(cleanupDeadListeners, 30000);
 
     // ===== CSS STYLES =====
     const createStyles = () => {
@@ -152,7 +207,7 @@
     padding: 10px;
     cursor: pointer;
     border-bottom: 1px solid #eee;
-    /* NEU: Mehr Platz für Tab-Info */
+    /* NEU: Mehr Platz fÃ¼r Tab-Info */
     min-height: 45px;
 }
 
@@ -308,10 +363,10 @@
                 inputField.style.boxShadow = '';
             }, 1000);
 
-            console.log(`🎯 Fokus gesetzt auf: ${inputField.tagName}[${inputField.type || 'default'}]`);
+            console.log(`ðŸŽ¯ Fokus gesetzt auf: ${inputField.tagName}[${inputField.type || 'default'}]`);
 
         } catch (error) {
-            console.warn('⚠️ Fokus konnte nicht gesetzt werden:', error);
+            console.warn('âš ï¸ Fokus konnte nicht gesetzt werden:', error);
         }
     };
 
@@ -329,23 +384,23 @@
 const getSuggestions = (searchTerm) => {
     if (!searchTerm || searchTerm.length < 1) return [];
 
-    console.log(`💡 Generiere Suggestions für: "${searchTerm}"`);
+    console.log(`ðŸ’¡ Generiere Suggestions fÃ¼r: "${searchTerm}"`);
 
     const suggestions = [];
     const normalizedSearch = searchTerm.toLowerCase();
 
-    // ÄNDERUNG: Bei JEDER Suggestion-Generierung komplett neu ermitteln
+    // Ã„NDERUNG: Bei JEDER Suggestion-Generierung komplett neu ermitteln
     const allTabs = TAB_MANAGEMENT.findAllTabs();
     const activeTab = allTabs.find(tab => tab.isActive);
     
     if (!activeTab) {
-        console.warn('⚠️ Kein aktiver Tab für Suggestions');
+        console.warn('âš ï¸ Kein aktiver Tab fÃ¼r Suggestions');
         return suggestions;
     }
 
     console.log(`   Aktiver Tab: "${activeTab.name}"`);
 
-    // ÄNDERUNG: Tab-Content komplett neu ermitteln
+    // Ã„NDERUNG: Tab-Content komplett neu ermitteln
     let searchArea = null;
     
     // Erst versuchen den spezifischen Tab-Content zu finden
@@ -356,32 +411,32 @@ const getSuggestions = (searchTerm) => {
                         window.getComputedStyle(tabContent).display === 'none';
         
         if (isHidden) {
-            console.log(`   ⚠️ Tab-Content versteckt, suche sichtbare Panels...`);
+            console.log(`   âš ï¸ Tab-Content versteckt, suche sichtbare Panels...`);
             const visiblePanels = TAB_MANAGEMENT.findVisibleContent();
             if (visiblePanels.length > 0) {
                 searchArea = visiblePanels[0];
-                console.log(`   ✅ Nutze sichtbares Panel: ${searchArea.id}`);
+                console.log(`   âœ… Nutze sichtbares Panel: ${searchArea.id}`);
             }
         } else {
             searchArea = tabContent;
-            console.log(`   ✅ Nutze Tab-Content: ${tabContent.id}`);
+            console.log(`   âœ… Nutze Tab-Content: ${tabContent.id}`);
         }
     }
     
     // Fallback
     if (!searchArea) {
-        console.log(`   ⚠️ Kein Tab-Content, suche sichtbare Panels...`);
+        console.log(`   âš ï¸ Kein Tab-Content, suche sichtbare Panels...`);
         const visiblePanels = TAB_MANAGEMENT.findVisibleContent();
         if (visiblePanels.length > 0) {
             searchArea = visiblePanels[0];
-            console.log(`   ✅ Nutze sichtbares Panel: ${searchArea.id}`);
+            console.log(`   âœ… Nutze sichtbares Panel: ${searchArea.id}`);
         } else {
-            console.log(`   ⚠️ Keine sichtbaren Panels, nutze Document`);
+            console.log(`   âš ï¸ Keine sichtbaren Panels, nutze Document`);
             searchArea = document;
         }
     }
 
-    // ÄNDERUNG: Sammle Feldnamen komplett neu
+    // Ã„NDERUNG: Sammle Feldnamen komplett neu
     const fieldRows = searchArea.querySelectorAll('tr:has(.dw-fieldLabel), tbody[data-bind*="foreach"] tr, tr');
     const directMatches = new Set();
 
@@ -400,7 +455,7 @@ const getSuggestions = (searchTerm) => {
 
         fieldsFound++;
         
-        const cleanLabelText = labelText.toLowerCase().replace(/[^\w\säöüß-]/g, '');
+        const cleanLabelText = labelText.toLowerCase().replace(/[^\w\sÃ¤Ã¶Ã¼ÃŸ-]/g, '');
 
         if ((cleanLabelText.includes(normalizedSearch) ||
             labelText.toLowerCase().includes(normalizedSearch)) &&
@@ -416,7 +471,7 @@ const getSuggestions = (searchTerm) => {
                     matchingTerms: [normalizedSearch],
                     tabName: activeTab.name
                 });
-                console.log(`   ✓ Suggestion: "${labelText}"`);
+                console.log(`   âœ“ Suggestion: "${labelText}"`);
             }
         }
     });
@@ -454,7 +509,7 @@ const getSuggestions = (searchTerm) => {
         }
     });
 
-    console.log(`💡 Finale Suggestions: ${suggestions.length}`);
+    console.log(`ðŸ’¡ Finale Suggestions: ${suggestions.length}`);
     
     return suggestions.slice(0, 8);
 };
@@ -475,11 +530,11 @@ const TAB_MANAGEMENT = {
         for (let selector of selectors) {
             const container = document.querySelector(selector);
             if (container) {
-                console.log(`✅ Tab-Container gefunden: ${selector}`);
+                console.log(`âœ… Tab-Container gefunden: ${selector}`);
                 return container;
             }
         }
-        console.warn('⚠️ Kein Tab-Container gefunden');
+        console.warn('âš ï¸ Kein Tab-Container gefunden');
         return null;
     },
 
@@ -489,7 +544,7 @@ const TAB_MANAGEMENT = {
 
         const tabs = Array.from(tabContainer.querySelectorAll('li[role="tab"], .ui-tabs-tab, .tab-item, li.ui-state-default'));
 
-        console.log(`📋 Tabs im Container: ${tabs.length}`);
+        console.log(`ðŸ“‹ Tabs im Container: ${tabs.length}`);
 
         return tabs.map(tab => {
             const anchor = tab.querySelector('a');
@@ -541,7 +596,7 @@ const TAB_MANAGEMENT = {
                 return;
             }
 
-            console.log(`🔄 Aktiviere Tab: ${tab.name}`);
+            console.log(`ðŸ”„ Aktiviere Tab: ${tab.name}`);
 
             try {
                 tab.anchor.click();
@@ -552,30 +607,30 @@ const TAB_MANAGEMENT = {
                         tab.element.classList.contains('active');
 
                     if (isNowActive) {
-                        console.log(`✅ Tab erfolgreich aktiviert: ${tab.name}`);
+                        console.log(`âœ… Tab erfolgreich aktiviert: ${tab.name}`);
                         resolve(true);
                     } else {
-                        console.log(`⚠️ Fallback-Aktivierung für Tab: ${tab.name}`);
+                        console.log(`âš ï¸ Fallback-Aktivierung fÃ¼r Tab: ${tab.name}`);
                         tab.element.click();
                         setTimeout(() => resolve(true), 300);
                     }
                 }, 200);
 
             } catch (error) {
-                console.warn(`⚠️ Fehler beim Aktivieren von Tab ${tab.name}:`, error);
+                console.warn(`âš ï¸ Fehler beim Aktivieren von Tab ${tab.name}:`, error);
                 resolve(false);
             }
         });
     },
 
-    // ÄNDERUNG: Erweiterte Content-Suche mit Sichtbarkeitsprüfung
+    // Ã„NDERUNG: Erweiterte Content-Suche mit SichtbarkeitsprÃ¼fung
     findTabContent: (tab) => {
         if (!tab.tabId) {
-            console.warn('⚠️ Tab hat keine ID:', tab.name);
+            console.warn('âš ï¸ Tab hat keine ID:', tab.name);
             return null;
         }
 
-        console.log(`🔍 Suche Content für Tab "${tab.name}" mit ID: ${tab.tabId}`);
+        console.log(`ðŸ” Suche Content fÃ¼r Tab "${tab.name}" mit ID: ${tab.tabId}`);
 
         const contentSelectors = [
             `#${CSS.escape(tab.tabId)}`,
@@ -588,7 +643,7 @@ const TAB_MANAGEMENT = {
             try {
                 const content = document.querySelector(selector);
                 if (content) {
-                    // ÄNDERUNG: Prüfe Sichtbarkeit
+                    // Ã„NDERUNG: PrÃ¼fe Sichtbarkeit
                     const style = window.getComputedStyle(content);
                     const classList = Array.from(content.classList);
                     const isHidden = content.classList.contains('ui-hidden') ||
@@ -596,12 +651,12 @@ const TAB_MANAGEMENT = {
                                    style.visibility === 'hidden' ||
                                    content.getAttribute('aria-hidden') === 'true';
                     
-                    console.log(`✅ Content gefunden für Tab "${tab.name}": ${selector}`);
+                    console.log(`âœ… Content gefunden fÃ¼r Tab "${tab.name}": ${selector}`);
                     console.log(`   Klassen: ${classList.join(' ')}`);
                     console.log(`   Display: ${style.display}`);
                     console.log(`   Visibility: ${style.visibility}`);
                     console.log(`   aria-hidden: ${content.getAttribute('aria-hidden')}`);
-                    console.log(`   ⚠️ VERSTECKT: ${isHidden}`);
+                    console.log(`   âš ï¸ VERSTECKT: ${isHidden}`);
                     
                     return content;
                 }
@@ -610,13 +665,13 @@ const TAB_MANAGEMENT = {
             }
         }
 
-        console.warn(`⚠️ Kein Content gefunden für Tab "${tab.name}" (ID: ${tab.tabId})`);
+        console.warn(`âš ï¸ Kein Content gefunden fÃ¼r Tab "${tab.name}" (ID: ${tab.tabId})`);
         return null;
     },
 
     // NEU: Finde alle sichtbaren Content-Bereiche
     findVisibleContent: () => {
-        console.log(`🔍 Suche nach sichtbaren Content-Bereichen...`);
+        console.log(`ðŸ” Suche nach sichtbaren Content-Bereichen...`);
         
         const allPanels = document.querySelectorAll('.ui-tabs-panel, .dw-tabContent, [role="tabpanel"]');
         console.log(`   Gefundene Panels gesamt: ${allPanels.length}`);
@@ -629,7 +684,7 @@ const TAB_MANAGEMENT = {
                             panel.getAttribute('aria-hidden') !== 'true';
             
             if (isVisible) {
-                console.log(`   ✅ Sichtbares Panel: ${panel.id || 'ohne ID'}`);
+                console.log(`   âœ… Sichtbares Panel: ${panel.id || 'ohne ID'}`);
                 console.log(`      Klassen: ${Array.from(panel.classList).join(' ')}`);
             }
             
@@ -647,11 +702,11 @@ const TAB_MANAGEMENT = {
 const searchInTabContent = (tab, normalizedSearch) => {
     const results = [];
 
-    console.log(`🔎 === STARTE TAB-CONTENT-SUCHE ===`);
-    console.log(`🔎 Tab: "${tab.name}"`);
+    console.log(`ðŸ”Ž === STARTE TAB-CONTENT-SUCHE ===`);
+    console.log(`ðŸ”Ž Tab: "${tab.name}"`);
     console.log(`   Suche nach: "${normalizedSearch}"`);
 
-    // ÄNDERUNG: Tab-Content komplett neu ermitteln
+    // Ã„NDERUNG: Tab-Content komplett neu ermitteln
     let searchArea = null;
     
     // Schritt 1: Versuche spezifischen Tab-Content zu finden
@@ -663,7 +718,7 @@ const searchInTabContent = (tab, normalizedSearch) => {
                         tabContent.getAttribute('aria-hidden') === 'true';
         
         if (isHidden) {
-            console.warn(`⚠️ Tab-Content ist VERSTECKT!`);
+            console.warn(`âš ï¸ Tab-Content ist VERSTECKT!`);
             console.log(`   ID: ${tabContent.id}`);
             console.log(`   Klassen: ${Array.from(tabContent.classList).join(' ')}`);
             console.log(`   Suche nach sichtbaren Alternativen...`);
@@ -673,42 +728,42 @@ const searchInTabContent = (tab, normalizedSearch) => {
             
             if (visiblePanels.length > 0) {
                 searchArea = visiblePanels[0];
-                console.log(`✅ Nutze sichtbares Panel: ${searchArea.id || 'ohne ID'}`);
+                console.log(`âœ… Nutze sichtbares Panel: ${searchArea.id || 'ohne ID'}`);
             } else {
-                console.warn(`⚠️ Keine sichtbaren Panels!`);
+                console.warn(`âš ï¸ Keine sichtbaren Panels!`);
                 searchArea = null;
             }
         } else {
             searchArea = tabContent;
-            console.log(`✅ Tab-Content ist sichtbar: ${tabContent.id}`);
+            console.log(`âœ… Tab-Content ist sichtbar: ${tabContent.id}`);
         }
     } else {
-        console.log(`⚠️ Kein Tab-Content gefunden`);
+        console.log(`âš ï¸ Kein Tab-Content gefunden`);
     }
     
     // Schritt 2: Fallback wenn kein searchArea
     if (!searchArea) {
-        console.log(`🔍 Fallback: Suche nach sichtbaren Bereichen...`);
+        console.log(`ðŸ” Fallback: Suche nach sichtbaren Bereichen...`);
         const visiblePanels = TAB_MANAGEMENT.findVisibleContent();
         
         if (visiblePanels.length > 0) {
             searchArea = visiblePanels[0];
-            console.log(`✅ Nutze sichtbares Panel: ${searchArea.id || 'keine ID'}`);
+            console.log(`âœ… Nutze sichtbares Panel: ${searchArea.id || 'keine ID'}`);
         } else {
-            console.warn(`⚠️ Keine sichtbaren Panels, nutze Document`);
+            console.warn(`âš ï¸ Keine sichtbaren Panels, nutze Document`);
             searchArea = document;
         }
     }
 
     // Debug SearchArea
-    console.log(`📦 SearchArea Info:`);
+    console.log(`ðŸ“¦ SearchArea Info:`);
     console.log(`   Element: ${searchArea.tagName}`);
     console.log(`   ID: ${searchArea.id || 'keine'}`);
     console.log(`   Klassen: ${Array.from(searchArea.classList).join(' ') || 'keine'}`);
     console.log(`   Kinder: ${searchArea.children.length}`);
     console.log(`   Alle Elemente: ${searchArea.querySelectorAll('*').length}`);
 
-    // ÄNDERUNG: Feldzeilen komplett neu sammeln
+    // Ã„NDERUNG: Feldzeilen komplett neu sammeln
     const fieldSelectors = [
         'tr.index-entries-table-fields',
         'tbody[data-bind*="foreach"] tr',
@@ -731,7 +786,7 @@ const searchInTabContent = (tab, normalizedSearch) => {
         try {
             const elements = searchArea.querySelectorAll(selector);
             if (elements.length > 0) {
-                console.log(`   ✓ Selector ${index + 1}: ${elements.length} Elemente`);
+                console.log(`   âœ“ Selector ${index + 1}: ${elements.length} Elemente`);
             }
             
             elements.forEach(el => {
@@ -748,14 +803,14 @@ const searchInTabContent = (tab, normalizedSearch) => {
                 }
             });
         } catch (e) {
-            // :has() nicht unterstützt
+            // :has() nicht unterstÃ¼tzt
         }
     });
 
-    console.log(`  📊 Gefundene Feldzeilen: ${tabFieldRows.size}`);
+    console.log(`  ðŸ“Š Gefundene Feldzeilen: ${tabFieldRows.size}`);
     
     if (tabFieldRows.size > 0) {
-        console.log(`  📝 Erste Felder:`);
+        console.log(`  ðŸ“ Erste Felder:`);
         let count = 0;
         for (let row of tabFieldRows) {
             const labelSpan = row.querySelector('.dw-fieldLabel span') ||
@@ -771,12 +826,12 @@ const searchInTabContent = (tab, normalizedSearch) => {
             console.log(`     ... und ${tabFieldRows.size - 5} weitere`);
         }
     } else {
-        console.warn(`  ⚠️ KEINE Feldzeilen gefunden!`);
+        console.warn(`  âš ï¸ KEINE Feldzeilen gefunden!`);
     }
 
-    console.log(`  🔎 Suche Matches für: "${normalizedSearch}"`);
+    console.log(`  ðŸ”Ž Suche Matches fÃ¼r: "${normalizedSearch}"`);
 
-    // Such-Logik (unverändert)
+    // Such-Logik (unverÃ¤ndert)
     for (let row of tabFieldRows) {
         if (!row) continue;
 
@@ -788,7 +843,7 @@ const searchInTabContent = (tab, normalizedSearch) => {
 
         const labelText = labelSpan.textContent.trim();
         const normalizedLabelText = labelText.toLowerCase();
-        const cleanLabelText = normalizedLabelText.replace(/[^\w\säöüß-]/g, '');
+        const cleanLabelText = normalizedLabelText.replace(/[^\w\sÃ¤Ã¶Ã¼ÃŸ-]/g, '');
 
         const searchMatches = [
             cleanLabelText.includes(normalizedSearch),
@@ -803,7 +858,7 @@ const searchInTabContent = (tab, normalizedSearch) => {
         const hasMatch = searchMatches.some(match => match);
 
         if (hasMatch) {
-            console.log(`  ✓ Match: "${labelText}"`);
+            console.log(`  âœ“ Match: "${labelText}"`);
             
             const inputField = findInputFieldForRow(row);
 
@@ -817,15 +872,15 @@ const searchInTabContent = (tab, normalizedSearch) => {
                     tab: tab,
                     tabContent: tabContent
                 });
-                console.log(`  ✅ Vollständiger Treffer: ${labelText}`);
+                console.log(`  âœ… VollstÃ¤ndiger Treffer: ${labelText}`);
             } else {
-                console.log(`  ⚠️ Match ohne Input: ${labelText}`);
+                console.log(`  âš ï¸ Match ohne Input: ${labelText}`);
             }
         }
     }
 
     if (results.length === 0) {
-        console.log(`  🔍 Prüfe konfigurierte Felder...`);
+        console.log(`  ðŸ” PrÃ¼fe konfigurierte Felder...`);
         
         Object.entries(SEARCHABLE_FIELDS).forEach(([key, config]) => {
             config.searchTerms.forEach(term => {
@@ -840,7 +895,7 @@ const searchInTabContent = (tab, normalizedSearch) => {
                         if (!labelSpan || !labelSpan.textContent) continue;
 
                         const labelText = labelSpan.textContent.toLowerCase().trim();
-                        const cleanLabelText = labelText.replace(/[^\w\säöüß-]/g, '');
+                        const cleanLabelText = labelText.replace(/[^\w\sÃ¤Ã¶Ã¼ÃŸ-]/g, '');
 
                         if (cleanLabelText.includes(term.toLowerCase()) ||
                             labelText.includes(term.toLowerCase())) {
@@ -859,7 +914,7 @@ const searchInTabContent = (tab, normalizedSearch) => {
                                     tab: tab,
                                     tabContent: tabContent
                                 });
-                                console.log(`  ✅ Konfigurierter Treffer: ${labelSpan.textContent.trim()}`);
+                                console.log(`  âœ… Konfigurierter Treffer: ${labelSpan.textContent.trim()}`);
                             }
                         }
                     }
@@ -868,8 +923,8 @@ const searchInTabContent = (tab, normalizedSearch) => {
         });
     }
 
-    console.log(`  📊 Endergebnis: ${results.length} Treffer`);
-    console.log(`🔎 === TAB-CONTENT-SUCHE BEENDET ===\n`);
+    console.log(`  ðŸ“Š Endergebnis: ${results.length} Treffer`);
+    console.log(`ðŸ”Ž === TAB-CONTENT-SUCHE BEENDET ===\n`);
     
     return results;
 };
@@ -881,42 +936,42 @@ const findFieldBySearchTermWithTabs = (searchTerm) => {
         const normalizedSearch = searchTerm.toLowerCase().trim();
         const allResults = [];
 
-        console.log(`🔍 === NEUE SUCHE GESTARTET ===`);
-        console.log(`🔍 Suche im aktiven Tab nach: "${searchTerm}"`);
+        console.log(`ðŸ” === NEUE SUCHE GESTARTET ===`);
+        console.log(`ðŸ” Suche im aktiven Tab nach: "${searchTerm}"`);
 
-        // ÄNDERUNG: Komplett neu ermitteln
+        // Ã„NDERUNG: Komplett neu ermitteln
         const allTabs = TAB_MANAGEMENT.findAllTabs();
-        console.log(`📋 Gefundene Tabs: ${allTabs.length}`);
+        console.log(`ðŸ“‹ Gefundene Tabs: ${allTabs.length}`);
 
         const activeTab = allTabs.find(tab => tab.isActive);
         
         if (!activeTab) {
-            console.warn('⚠️ Kein aktiver Tab gefunden');
+            console.warn('âš ï¸ Kein aktiver Tab gefunden');
             resolve(allResults);
             return;
         }
 
-        console.log(`🎯 Aktiver Tab: "${activeTab.name}" (ID: ${activeTab.tabId})`);
+        console.log(`ðŸŽ¯ Aktiver Tab: "${activeTab.name}" (ID: ${activeTab.tabId})`);
 
-        // ÄNDERUNG: Kurz warten und dann komplett neu suchen
+        // Ã„NDERUNG: Kurz warten und dann komplett neu suchen
         setTimeout(() => {
-            // NEU: Tabs erneut ermitteln für frische Daten
+            // NEU: Tabs erneut ermitteln fÃ¼r frische Daten
             const freshTabs = TAB_MANAGEMENT.findAllTabs();
             const freshActiveTab = freshTabs.find(tab => tab.isActive);
             
             if (!freshActiveTab) {
-                console.warn('⚠️ Aktiver Tab nach Wartezeit nicht mehr gefunden');
+                console.warn('âš ï¸ Aktiver Tab nach Wartezeit nicht mehr gefunden');
                 resolve(allResults);
                 return;
             }
             
-            console.log(`🔄 Suche mit frisch ermitteltem Tab: "${freshActiveTab.name}"`);
+            console.log(`ðŸ”„ Suche mit frisch ermitteltem Tab: "${freshActiveTab.name}"`);
             
             const results = searchInTabContent(freshActiveTab, normalizedSearch);
             allResults.push(...results);
 
-            console.log(`📊 Treffer im aktiven Tab: ${allResults.length}`);
-            console.log(`🔍 === SUCHE BEENDET ===\n`);
+            console.log(`ðŸ“Š Treffer im aktiven Tab: ${allResults.length}`);
+            console.log(`ðŸ” === SUCHE BEENDET ===\n`);
             
             resolve(allResults);
         }, 200);
@@ -931,7 +986,7 @@ const findFieldBySearchTermWithTabs = (searchTerm) => {
                 return;
             }
 
-            console.log(`🎯 Springe zu Feld: ${fieldResult.labelText} in Tab: ${fieldResult.tab.name}`);
+            console.log(`ðŸŽ¯ Springe zu Feld: ${fieldResult.labelText} in Tab: ${fieldResult.tab.name}`);
 
             document.querySelectorAll('.dw-field-found-highlight').forEach(el => {
                 el.classList.remove('dw-field-found-highlight');
@@ -969,7 +1024,7 @@ const findFieldBySearchTermWithTabs = (searchTerm) => {
                 resolve();
             }, 600);
 
-            console.log(`✅ Erfolgreich zu Feld gescrollt: ${fieldResult.labelText} in Tab: ${fieldResult.tab.name}`);
+            console.log(`âœ… Erfolgreich zu Feld gescrollt: ${fieldResult.labelText} in Tab: ${fieldResult.tab.name}`);
         });
     };
 
@@ -983,19 +1038,19 @@ const createSearchWidget = () => {
     widget.innerHTML = `
         <div class="dw-field-search-header">
             <div class="dw-field-search-title">Feldsuche (Aktiver Tab)</div>
-            <button class="dw-field-search-close" title="Schließen">×</button>
+            <button class="dw-field-search-close" title="SchlieÃŸen">Ã—</button>
         </div>
         
         <div class="dw-field-search-content">
             <div class="dw-field-search-input-container">
                 <input type="text" class="dw-field-search-input" placeholder="Feldname eingeben..." autocomplete="off">
-                <button class="dw-field-search-clear" title="Löschen">×</button>
+                <button class="dw-field-search-clear" title="LÃ¶schen">Ã—</button>
             </div>
             
             <div class="dw-field-search-suggestions"></div>
             
             <div class="dw-field-search-info">
-                Sucht im aktuell geöffneten Tab nach dem gewünschten Feld.
+                Sucht im aktuell geÃ¶ffneten Tab nach dem gewÃ¼nschten Feld.
             </div>
             
             <div class="dw-field-search-shortcut">
@@ -1053,7 +1108,7 @@ const createSearchWidget = () => {
 
                         results.innerHTML = `
                             <div style="color: #0066cc; font-weight: bold; margin-bottom: 4px;">
-                                ✅ Gefunden: ${firstResult.displayName || firstResult.labelText}
+                                âœ… Gefunden: ${firstResult.displayName || firstResult.labelText}
                             </div>
                             <div style="font-size: 10px; color: #666; margin-bottom: 4px;">
                                 Tab: ${firstResult.tab.name} | Typ: ${inputType}
@@ -1072,7 +1127,7 @@ const createSearchWidget = () => {
                         results.className = 'dw-field-search-results success';
                         suggestions.style.display = 'none';
 
-                        // ÄNDERUNG: 1111ms statt 2500ms
+                        // Ã„NDERUNG: 1111ms statt 2500ms
                         setTimeout(() => {
                             if (overlay.parentNode) {
                                 closeWidget();
@@ -1088,13 +1143,13 @@ const createSearchWidget = () => {
 
                     results.innerHTML = `
                         <div style="color: #cc0000;">
-                            ❌ Kein Feld in "${tabName}" gefunden
+                            âŒ Kein Feld in "${tabName}" gefunden
                         </div>
                         <div style="font-size: 10px; color: #999; margin-top: 4px;">
                             Suchbegriff: "${searchTerm}"
                         </div>
                         <div style="font-size: 9px; color: #999; margin-top: 4px;">
-                            Tipp: Konsole (F12) für Details prüfen
+                            Tipp: Konsole (F12) fÃ¼r Details prÃ¼fen
                         </div>
                     `;
                     results.className = 'dw-field-search-results error';
@@ -1104,7 +1159,7 @@ const createSearchWidget = () => {
                 console.error('Fehler bei der Suche:', error);
                 results.innerHTML = `
                     <div style="color: #cc0000;">
-                        ⚠️ Fehler bei der Suche
+                        âš ï¸ Fehler bei der Suche
                     </div>
                     <div style="font-size: 10px; color: #999; margin-top: 4px;">
                         ${error.message}
@@ -1215,7 +1270,7 @@ const createSearchWidget = () => {
 // ===== TASTENKOMBINATION (STRG+SHIFT+D) =====
 const setupKeyboardShortcut = () => {
     addTrackedEventListener(document, 'keydown', (e) => {
-        // ÄNDERUNG: Strg+Shift+D statt F
+        // Ã„NDERUNG: Strg+Shift+D statt F
         if (e.ctrlKey && e.shiftKey && e.key === 'D') {
             e.preventDefault();
 
@@ -1231,9 +1286,9 @@ const initializeFieldSearch = () => {
     createScrollIndicator();
     setupKeyboardShortcut();
 
-    console.log('✅ DocuWare Field Search aktiviert');
-    console.log('⌨️ Tastenkombination: Strg+Shift+D');
-    console.log('📋 Verfügbare Feldtypen:', Object.values(SEARCHABLE_FIELDS).map(f => f.displayName).join(', '));
+    console.log('âœ… DocuWare Field Search aktiviert');
+    console.log('âŒ¨ï¸ Tastenkombination: Strg+Shift+D');
+    console.log('ðŸ“‹ VerfÃ¼gbare Feldtypen:', Object.values(SEARCHABLE_FIELDS).map(f => f.displayName).join(', '));
 };
 
     if (document.readyState === 'loading') {
@@ -1243,4 +1298,3 @@ const initializeFieldSearch = () => {
     }
 
 })();
-
