@@ -1,7 +1,5 @@
 // buttons-basis.js
-// NEU: Separate Datei für Basis-Schnellauswahl-Buttons (Nebenkosten, Wirtschaftsjahr, Skonto, Zuweisen, VN-Nummer)
-// Diese Buttons ermöglichen die schnelle Auswahl häufig verwendeter Werte in Standard-Formularfeldern
-// Jedes Button-Set wird automatisch unter dem zugehörigen Eingabefeld eingefügt und reagiert auf KnockoutJS-Bindings
+// ÄNDERUNG: Kontinuierliche Button-Überprüfung für dynamische KnockoutJS/AJAX-Inhalte
 
 (function () {
     'use strict';
@@ -81,9 +79,8 @@
         init: false,
         reg: new Map(),
         obs: null,
-        timeouts: new Set(),
-        dialogs: new Set(),
-        processed: new Set()
+        intervalId: null,
+        checkCounter: 0
     };
 
     if (window[ID]) cleanup();
@@ -94,7 +91,7 @@
     function cleanup() {
         if (window[ID] && window[ID].s) {
             window[ID].s.obs && window[ID].s.obs.disconnect();
-            window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
+            window[ID].s.intervalId && clearInterval(window[ID].s.intervalId);
         }
     }
 
@@ -102,8 +99,6 @@
         try {
             const data = {
                 reg: Array.from(S.reg.entries()),
-                dlgs: Array.from(S.dialogs),
-                processed: Array.from(S.processed),
                 ts: Date.now()
             };
             sessionStorage.setItem(SK, JSON.stringify(data));
@@ -117,8 +112,6 @@
                 const data = JSON.parse(stored);
                 if (Date.now() - data.ts < 1800000) {
                     S.reg = new Map(data.reg || []);
-                    S.dialogs = new Set(data.dlgs || []);
-                    S.processed = new Set(data.processed || []);
                     return true;
                 }
             }
@@ -126,48 +119,18 @@
         return false;
     }
 
-    function waitKO(cb, i = 0) {
-        typeof ko !== 'undefined' && ko.version ? cb() : i < 50 ? setTimeout(() => waitKO(cb, i + 1), 100) : cb();
-    }
-
-    function waitKOBind(e, cb, i = 0) {
-        if (i >= 30) { cb(); return; }
-        const inp = e.querySelectorAll('input.dw-textField, input.dw-numericField');
-        const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
-        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 150) : cb();
-    }
-
-    function isProc(f) {
-        if (!f) return false;
-        const r = f.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && f.offsetParent !== null && f.closest('tr');
-    }
-
-    function mkId(inp, txt, k, di = null) {
-        const nm = inp.name || inp.id || '';
-        const tbl = inp.closest('table');
-        const pos = tbl ? Array.from(tbl.querySelectorAll('input')).indexOf(inp) : 0;
-        const base = `${k}_${nm}_${txt.replace(/[^a-zA-Z0-9]/g, '')}_${pos}`;
-        return di ? `${di}_${base}` : base;
-    }
-
-    function getDlgId(d) {
-        if (!d) return null;
-        const t = d.querySelector('.ui-dialog-title');
-        const tt = t && t.textContent ? t.textContent.trim() : '';
-        const c = d.querySelector('.ui-dialog-content');
-        const ci = c && c.id ? c.id : '';
-        const di = d.id || Math.random().toString(36).substr(2, 9);
-        return `dlg_${tt}_${ci}_${di}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    function cleanTxt(txt) {
+        return txt.replace(/\s*\*+\s*/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
     function matches(txt, cfg) {
         if (!cfg.txt) return false;
+        const cleanedTxt = cleanTxt(txt);
         switch (cfg.type) {
-            case 'includes': return txt.includes(cfg.txt);
-            case 'includes_lower': return txt.toLowerCase().includes(cfg.txt.toLowerCase());
-            case 'exact': return txt.trim() === cfg.txt;
-            default: return txt.includes(cfg.txt);
+            case 'includes': return cleanedTxt.includes(cfg.txt);
+            case 'includes_lower': return cleanedTxt.toLowerCase().includes(cfg.txt.toLowerCase());
+            case 'exact': return cleanedTxt === cfg.txt;
+            default: return cleanedTxt.includes(cfg.txt);
         }
     }
 
@@ -175,7 +138,29 @@
         return row.querySelector('input.dw-textField, input.dw-numericField, input[type="text"]');
     }
 
-    function findInCont(k, c, di = null) {
+    function isProc(f) {
+        if (!f) return false;
+        const r = f.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && f.offsetParent !== null;
+    }
+
+    // ÄNDERUNG: Vereinfachte ID-Generierung basierend auf DOM-Position
+    function mkId(inp, txt, k) {
+        const row = inp.closest('tr');
+        if (!row) return null;
+        const tbl = row.closest('table');
+        const allRows = tbl ? Array.from(tbl.querySelectorAll('tr')) : [];
+        const rowIdx = allRows.indexOf(row);
+        return `${k}_${txt.replace(/[^a-zA-Z0-9]/g, '')}_${rowIdx}`;
+    }
+
+    // ÄNDERUNG: Prüft ob Buttons bereits vorhanden sind
+    function hasButtons(row, pre) {
+        const next = row.nextElementSibling;
+        return next && next.classList.contains(`${pre}-button-row`);
+    }
+
+    function findInCont(k, c) {
         const cfg = CFG[k];
         const found = [];
         
@@ -188,20 +173,17 @@
 
                 const row = lbl.closest('tr');
                 if (!row) continue;
+                
+                // ÄNDERUNG: Prüft immer ob Buttons fehlen
+                if (hasButtons(row, cfg.pre)) continue;
+                
                 const inp = findInp(row);
                 if (!inp || !isProc(inp)) continue;
-                const fid = mkId(inp, txt, k, di);
+                
+                const fid = mkId(inp, txt, k);
+                if (!fid) continue;
 
-                const hasExistingButtons = row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
-                const alreadyProcessed = S.processed.has(fid);
-                const hasButtonsInDOM = document.querySelector(`[data-field-id="${fid}"]`);
-
-                if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) {
-                    log(`⏭️ Feld bereits verarbeitet: ${fid}`);
-                    continue;
-                }
-
-                found.push({ inp, txt, row, k, fid });
+                found.push({ inp, txt, row, k, fid, cfg });
                 if (!cfg.multi) break;
             }
         } catch (e) { log(`Err find ${k}:`, e); }
@@ -258,8 +240,7 @@
         });
     }
 
-    function mkBtnCont(inp, k, fid) {
-        const cfg = CFG[k];
+    function mkBtnCont(inp, k, fid, cfg) {
         const cont = document.createElement('div');
         cont.className = `${cfg.pre}-button-container`;
         cont.setAttribute('data-field-id', fid);
@@ -276,42 +257,28 @@
         return cont;
     }
 
-    function inject(f, cfg, di = null) {
-        const { inp, row, k, fid } = f;
+    // ÄNDERUNG: Direktes Einfügen ohne Delays
+    function inject(f) {
+        const { inp, row, k, fid, cfg } = f;
 
-        if (row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`)) {
-            log(`⚠️ Button-Reihe bereits vorhanden: ${fid}`);
-            return false;
-        }
-        if (document.querySelector(`[data-field-id="${fid}"]`)) {
-            log(`⚠️ Button bereits im DOM: ${fid}`);
-            return false;
-        }
+        if (hasButtons(row, cfg.pre)) return false;
 
         const br = document.createElement('tr');
         br.className = `${cfg.pre}-button-row dw-ko-btn-row`;
         br.setAttribute('data-field-id', fid);
         br.setAttribute('data-config-key', k);
-        di && br.setAttribute('data-dialog-id', di);
-        br.style.cssText = 'position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;';
         
         const lc = document.createElement('td');
         lc.className = 'dw-fieldLabel';
         const cc = document.createElement('td');
         cc.className = `table-fields-content ${cfg.pre}-button-content`;
-        const bc = mkBtnCont(inp, k, fid);
+        const bc = mkBtnCont(inp, k, fid, cfg);
         cc.appendChild(bc);
         br.appendChild(lc);
         br.appendChild(cc);
-        br.classList.add('dw-btn-fade');
         
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
-            setTimeout(() => {
-                br.style.display = 'table-row';
-                br.style.opacity = '1';
-                br.style.visibility = 'visible';
-            }, 50);
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -320,66 +287,44 @@
         }
     }
 
-    function injectWithDelay(f, cfg, di) {
-        const delays = [50, 150, 300];
-        function attempt(i = 0) {
-            if (i >= delays.length) return false;
-            setTimeout(() => {
-                if (f.inp && f.inp.isConnected && f.inp.offsetParent !== null) {
-                    const success = inject(f, cfg, di);
-                    if (!success) attempt(i + 1);
-                }
-            }, delays[i]);
-        }
-        attempt();
-        return true;
-    }
-
-    function procCfgInEl(k, c, di = null) {
-        const cfg = CFG[k];
-        const fields = findInCont(k, c, di);
-        if (!fields.length) return 0;
-        
-        let added = 0;
-        fields.forEach(f => {
-            if (!S.processed.has(f.fid)) {
-                requestAnimationFrame(() => {
-                    if (injectWithDelay(f, cfg, di)) {
-                        S.processed.add(f.fid);
-                        added++;
-                    }
-                });
-            }
+    // ÄNDERUNG: Verarbeitet alle Configs in einem Container
+    function procAll(c) {
+        let total = 0;
+        Object.keys(CFG).forEach(k => {
+            const fields = findInCont(k, c);
+            fields.forEach(f => {
+                if (inject(f)) total++;
+            });
         });
-        return added;
-    }
-
-    function procStd(e) {
-        let total = 0;
-        Object.keys(CFG).forEach(k => { total += procCfgInEl(k, e); });
-        total > 0 && saveState();
         return total;
     }
 
-    function addToDlg(d, di) {
-        if (S.dialogs.has(di)) return 0;
-        let total = 0;
-        Object.keys(CFG).forEach(k => { total += procCfgInEl(k, d, di); });
-        if (total > 0) {
-            S.dialogs.add(di);
-            saveState();
-        }
-        return total;
-    }
-
-    function procAfterKO(e) {
-        const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 100) : setTimeout(() => procStd(e), 100);
+    // ÄNDERUNG: Kontinuierliche Überprüfung alle 500ms
+    function startInterval() {
+        if (S.intervalId) return;
+        S.intervalId = setInterval(() => {
+            S.checkCounter++;
+            
+            // Body prüfen
+            const bodyCount = procAll(document.body);
+            
+            // Alle sichtbaren Dialoge prüfen
+            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            let dlgCount = 0;
+            dlgs.forEach(d => {
+                dlgCount += procAll(d);
+            });
+            
+            if (bodyCount > 0 || dlgCount > 0) {
+                log(`Check #${S.checkCounter}: Body=${bodyCount}, Dialogs=${dlgCount}`);
+                saveState();
+            }
+        }, 500);
     }
 
     function injectCSS() {
         if (document.querySelector('style[data-dw-basis-btns]')) return;
-        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:4px 1px 8px 29px!important;flex-wrap:wrap!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:20px!important;font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}`;
+        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:4px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-6px!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:2px 6px!important;min-height:18px!important;font-size:10px!important;white-space:nowrap!important;line-height:1.2!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
         
         const style = document.createElement('style');
         style.textContent = css;
@@ -387,15 +332,12 @@
         document.head.appendChild(style);
     }
 
+    // ÄNDERUNG: Zusätzlicher MutationObserver für sofortige Reaktion
     function mkObs() {
         const obs = new MutationObserver(() => {
+            procAll(document.body);
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            dlgs.forEach(d => {
-                const di = getDlgId(d);
-                const hasBtns = d.querySelectorAll('.dw-ko-btn-row').length > 0;
-                !hasBtns && waitKOBind(d, () => addToDlg(d, di));
-            });
-            procStd(document.body);
+            dlgs.forEach(d => procAll(d));
         });
         obs.observe(document.body, { childList: true, subtree: true });
         return obs;
@@ -404,40 +346,49 @@
     function init() {
         injectCSS();
         loadState();
-        waitKO(() => {
-            setTimeout(() => {
-                procStd(document.body);
-                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-                dlgs.forEach(d => {
-                    const di = getDlgId(d);
-                    waitKOBind(d, () => addToDlg(d, di));
-                });
-            }, 500);
-        });
+        
+        // Sofortige erste Verarbeitung
+        setTimeout(() => {
+            procAll(document.body);
+            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            dlgs.forEach(d => procAll(d));
+        }, 300);
+        
+        // ÄNDERUNG: Startet kontinuierliche Überprüfung
+        startInterval();
+        
+        // ÄNDERUNG: Zusätzlicher MutationObserver
         S.obs = mkObs();
+        
         S.init = true;
+        log('✅ Initialisierung abgeschlossen - kontinuierliche Überprüfung aktiv');
     }
 
     window[ID].api = {
         refresh: () => {
-            S.dialogs.clear();
-            S.processed.clear();
-            const std = procStd(document.body);
-            let dlgCnt = 0;
+            const bodyCount = procAll(document.body);
+            let dlgCount = 0;
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            dlgs.forEach(d => {
-                const di = getDlgId(d);
-                waitKOBind(d, () => { dlgCnt += addToDlg(d, di); });
-            });
-            return { std, dlgs: dlgCnt };
+            dlgs.forEach(d => { dlgCount += procAll(d); });
+            return { body: bodyCount, dialogs: dlgCount };
         },
         status: () => ({
             init: S.init,
             btns: document.querySelectorAll('.dw-ko-btn-row').length,
-            dlgs: S.dialogs.size,
-            reg: S.reg.size,
-            processed: S.processed.size
-        })
+            checks: S.checkCounter,
+            reg: S.reg.size
+        }),
+        stop: () => {
+            if (S.intervalId) {
+                clearInterval(S.intervalId);
+                S.intervalId = null;
+                log('⏸️ Kontinuierliche Überprüfung gestoppt');
+            }
+        },
+        start: () => {
+            startInterval();
+            log('▶️ Kontinuierliche Überprüfung gestartet');
+        }
     };
 
     function main() {
