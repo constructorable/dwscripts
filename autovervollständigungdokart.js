@@ -10,7 +10,6 @@
         'Ausweisdokument',
         'Baugenehmigung',
         'Bedienungsanleitung / Produktblatt',
-        'Bericht - Abnahme & Übergabeprotokoll',
         'Bericht - Abnahme- & Übergabeprotokoll',
         'Bericht - Abnahmeprotokoll',
         'Bericht - Brandschutzgutachten',
@@ -604,4 +603,5 @@
     observer.observe(document.body, { childList: true, subtree: true });
 
 })();
+
 
