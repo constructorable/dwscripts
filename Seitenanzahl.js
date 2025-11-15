@@ -1,4 +1,4 @@
-// pageNavigation.js - OPTIMIERT
+// pageNavigation.js - BUGFIX
 (function() {
     'use strict';
 
@@ -10,7 +10,6 @@
         viewer: '#viewerArea',
         container: 'page-navigation-sidebar'
     };
-
     
     let S = {
         init: false,
@@ -189,11 +188,19 @@
         document.head.appendChild(style);
     }
 
+    // BUGFIX: Verbesserte Seitenzahl-Erkennung
     function checkPageCount() {
         const pageCountEl = document.querySelector(SEL.pageCount);
         if (!pageCountEl) return;
 
-        const count = parseInt(pageCountEl.textContent.trim());
+        // ÄNDERUNG: Warte bis Knockout fertig gebunden hat
+        const text = pageCountEl.textContent.trim();
+        if (!text || text === '0' || text === '...') {
+            log('Warte auf Seitenzahl...');
+            return;
+        }
+
+        const count = parseInt(text);
         if (isNaN(count) || count <= 0) return;
 
         if (count !== S.lastPageCount) {
@@ -246,6 +253,7 @@
         const columnsNeeded = Math.min(totalButtons, maxPerRow);
         grid.style.gridTemplateColumns = `repeat(${columnsNeeded}, 17px)`;
 
+        // BUGFIX: Explizite Schleife für alle Seiten
         for (let i = 1; i <= pageCount; i++) {
             const btn = createPageButton(i, inputEl);
             grid.appendChild(btn);
@@ -265,6 +273,9 @@
 
         viewerEl.appendChild(container);
         S.container = container;
+        
+        // BUGFIX: Logging zur Diagnose
+        log(`✅ Sidebar erstellt mit ${pageCount} Seiten`);
     }
 
     function toggleSidebar(container) {
@@ -307,15 +318,20 @@
         }, 100);
     }
 
-    // ÄNDERUNG: Throttled Observer statt Polling + XHR-Interception
+    // BUGFIX: Observer mit längerer Wartezeit + Retry-Logik
     function mkObs() {
         let timeout;
         const obs = new MutationObserver(() => {
             clearTimeout(timeout);
-            timeout = setTimeout(checkPageCount, 300);
+            timeout = setTimeout(() => {
+                checkPageCount();
+                // ÄNDERUNG: Falls immer noch nur 1 Seite, nochmal prüfen
+                if (S.lastPageCount === 1) {
+                    setTimeout(checkPageCount, 500);
+                }
+            }, 500); // ÄNDERUNG: 500ms statt 300ms
         });
         
-        // Beobachte nur relevante Container
         const targetEl = document.querySelector('.top-bar-nav-info') || document.body;
         obs.observe(targetEl, { 
             childList: true, 
@@ -338,7 +354,15 @@
             return;
         }
 
-        const pageCount = parseInt(pageCountEl.textContent.trim());
+        // BUGFIX: Warte bis Seitenzahl verfügbar ist
+        const text = pageCountEl.textContent.trim();
+        if (!text || text === '0' || text === '...') {
+            log('Warte auf Seitenzahl-Initialisierung...');
+            setTimeout(init, 500);
+            return;
+        }
+
+        const pageCount = parseInt(text);
         if (isNaN(pageCount) || pageCount <= 0) {
             setTimeout(init, 500);
             return;
@@ -347,9 +371,12 @@
         S.lastPageCount = pageCount;
         createSidebar(pageCount, inputEl);
         
-        S.obs = mkObs();
-        S.init = true;
-        log('✅ Initialisiert');
+        // BUGFIX: Observer erst nach erfolgreicher Initialisierung
+        setTimeout(() => {
+            S.obs = mkObs();
+            S.init = true;
+            log(`✅ Initialisiert mit ${pageCount} Seiten`);
+        }, 300);
     }
 
     window[ID].api = {
@@ -361,7 +388,19 @@
             init: S.init,
             pageCount: S.lastPageCount,
             expanded: S.expanded
-        })
+        }),
+        // NEU: Manuelle Aktualisierung
+        forceUpdate: () => {
+            const pageCountEl = document.querySelector(SEL.pageCount);
+            if (pageCountEl) {
+                const count = parseInt(pageCountEl.textContent.trim());
+                if (count > 0) {
+                    S.lastPageCount = count;
+                    updateNav();
+                    log(`🔄 Force Update: ${count} Seiten`);
+                }
+            }
+        }
     };
 
     function main() {
@@ -372,5 +411,4 @@
 
     main();
 })();
-
 
