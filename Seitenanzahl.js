@@ -457,9 +457,8 @@
     function main() {
         document.readyState === 'loading' ?
             document.addEventListener('DOMContentLoaded', init, { once: true }) :
-            setTimeout(init, 1200); // ÄNDERUNG: 1.2 Sekunden initiale Verzögerung
+            setTimeout(init, 5555); // ÄNDERUNG: 1.2 Sekunden initiale Verzögerung
     }
 
     main();
 })();
-
