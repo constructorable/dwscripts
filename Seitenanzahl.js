@@ -1,8 +1,8 @@
-// pageNavigation.js - BUGFIX
+// pageNavigation.js - ROBUST MIT WARTESCHLEIFE
 (function() {
     'use strict';
 
-    const ID = 'dw-page-navigation', V = '2.0', D = true;
+    const ID = 'dw-page-navigation', V = '2.1', D = true;
     
     const SEL = {
         input: '.top-bar-nav-info input[data-trackerevent="NavToPage"]',
@@ -16,7 +16,8 @@
         obs: null,
         expanded: false,
         container: null,
-        lastPageCount: 0
+        lastPageCount: 0,
+        initAttempts: 0
     };
 
     if (window[ID]) cleanup();
@@ -188,38 +189,42 @@
         document.head.appendChild(style);
     }
 
-    // BUGFIX: Verbesserte Seitenzahl-Erkennung
-    function checkPageCount() {
+    // ÄNDERUNG: Prüft ob Seitenzahl wirklich geladen ist
+    function getValidPageCount() {
         const pageCountEl = document.querySelector(SEL.pageCount);
-        if (!pageCountEl) return;
+        if (!pageCountEl) return null;
 
-        // ÄNDERUNG: Warte bis Knockout fertig gebunden hat
         const text = pageCountEl.textContent.trim();
-        if (!text || text === '0' || text === '...') {
-            log('Warte auf Seitenzahl...');
-            return;
+        
+        // ÄNDERUNG: Ignoriere Platzhalter und ungültige Werte
+        if (!text || text === '0' || text === '...' || text === '-' || text === '') {
+            return null;
         }
 
         const count = parseInt(text);
-        if (isNaN(count) || count <= 0) return;
+        
+        // ÄNDERUNG: Nur gültige Zahlen > 0 akzeptieren
+        if (isNaN(count) || count <= 0) return null;
+        
+        return count;
+    }
+
+    function checkPageCount() {
+        const count = getValidPageCount();
+        if (!count) return;
 
         if (count !== S.lastPageCount) {
-            log(`Seitenzahl: ${S.lastPageCount} → ${count}`);
+            log(`Seitenzahl aktualisiert: ${S.lastPageCount} → ${count}`);
             S.lastPageCount = count;
             updateNav();
         }
     }
 
     function updateNav() {
-        const pageCountEl = document.querySelector(SEL.pageCount);
         const inputEl = document.querySelector(SEL.input);
+        if (!inputEl || !S.lastPageCount) return;
         
-        if (!pageCountEl || !inputEl) return;
-
-        const pageCount = parseInt(pageCountEl.textContent.trim());
-        if (isNaN(pageCount) || pageCount <= 0) return;
-
-        createSidebar(pageCount, inputEl);
+        createSidebar(S.lastPageCount, inputEl);
     }
 
     function createSidebar(pageCount, inputEl) {
@@ -253,7 +258,6 @@
         const columnsNeeded = Math.min(totalButtons, maxPerRow);
         grid.style.gridTemplateColumns = `repeat(${columnsNeeded}, 17px)`;
 
-        // BUGFIX: Explizite Schleife für alle Seiten
         for (let i = 1; i <= pageCount; i++) {
             const btn = createPageButton(i, inputEl);
             grid.appendChild(btn);
@@ -274,8 +278,7 @@
         viewerEl.appendChild(container);
         S.container = container;
         
-        // BUGFIX: Logging zur Diagnose
-        log(`✅ Sidebar erstellt mit ${pageCount} Seiten`);
+        log(`✅ Sidebar mit ${pageCount} Seiten erstellt`);
     }
 
     function toggleSidebar(container) {
@@ -318,18 +321,11 @@
         }, 100);
     }
 
-    // BUGFIX: Observer mit längerer Wartezeit + Retry-Logik
     function mkObs() {
         let timeout;
         const obs = new MutationObserver(() => {
             clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                checkPageCount();
-                // ÄNDERUNG: Falls immer noch nur 1 Seite, nochmal prüfen
-                if (S.lastPageCount === 1) {
-                    setTimeout(checkPageCount, 500);
-                }
-            }, 500); // ÄNDERUNG: 500ms statt 300ms
+            timeout = setTimeout(checkPageCount, 400);
         });
         
         const targetEl = document.querySelector('.top-bar-nav-info') || document.body;
@@ -342,41 +338,56 @@
         return obs;
     }
 
-    function init() {
-        injectStyles();
+    // ÄNDERUNG: Aggressive Warteschleife mit Retry-Logik
+    function waitForValidPageCount(callback, attempt = 0) {
+        const maxAttempts = 40; // 40 × 500ms = 20 Sekunden
         
+        if (attempt >= maxAttempts) {
+            log('⚠️ Timeout: Konnte keine gültige Seitenzahl finden');
+            return;
+        }
+
         const pageCountEl = document.querySelector(SEL.pageCount);
         const inputEl = document.querySelector(SEL.input);
         const viewerEl = document.querySelector(SEL.viewer);
-        
+
         if (!pageCountEl || !inputEl || !viewerEl) {
-            setTimeout(init, 500);
+            log(`Versuch ${attempt + 1}/${maxAttempts}: Warte auf DOM-Elemente...`);
+            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
             return;
         }
 
-        // BUGFIX: Warte bis Seitenzahl verfügbar ist
-        const text = pageCountEl.textContent.trim();
-        if (!text || text === '0' || text === '...') {
-            log('Warte auf Seitenzahl-Initialisierung...');
-            setTimeout(init, 500);
-            return;
-        }
-
-        const pageCount = parseInt(text);
-        if (isNaN(pageCount) || pageCount <= 0) {
-            setTimeout(init, 500);
-            return;
-        }
-
-        S.lastPageCount = pageCount;
-        createSidebar(pageCount, inputEl);
+        const pageCount = getValidPageCount();
         
-        // BUGFIX: Observer erst nach erfolgreicher Initialisierung
-        setTimeout(() => {
-            S.obs = mkObs();
-            S.init = true;
-            log(`✅ Initialisiert mit ${pageCount} Seiten`);
-        }, 300);
+        if (!pageCount) {
+            log(`Versuch ${attempt + 1}/${maxAttempts}: Warte auf Seitenzahl... (aktuell: "${pageCountEl.textContent.trim()}")`);
+            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
+            return;
+        }
+
+        // ERFOLG: Gültige Seitenzahl gefunden
+        log(`✅ Gültige Seitenzahl gefunden: ${pageCount} (nach ${attempt + 1} Versuchen)`);
+        S.lastPageCount = pageCount;
+        callback();
+    }
+
+    function init() {
+        injectStyles();
+        
+        // ÄNDERUNG: Warte aktiv auf gültige Seitenzahl
+        waitForValidPageCount(() => {
+            const inputEl = document.querySelector(SEL.input);
+            if (inputEl && S.lastPageCount > 0) {
+                createSidebar(S.lastPageCount, inputEl);
+                
+                // Observer erst nach erfolgreicher Initialisierung
+                setTimeout(() => {
+                    S.obs = mkObs();
+                    S.init = true;
+                    log(`✅ Vollständig initialisiert mit ${S.lastPageCount} Seiten`);
+                }, 500);
+            }
+        });
     }
 
     window[ID].api = {
@@ -387,18 +398,17 @@
         status: () => ({
             init: S.init,
             pageCount: S.lastPageCount,
-            expanded: S.expanded
+            expanded: S.expanded,
+            attempts: S.initAttempts
         }),
-        // NEU: Manuelle Aktualisierung
         forceUpdate: () => {
-            const pageCountEl = document.querySelector(SEL.pageCount);
-            if (pageCountEl) {
-                const count = parseInt(pageCountEl.textContent.trim());
-                if (count > 0) {
-                    S.lastPageCount = count;
-                    updateNav();
-                    log(`🔄 Force Update: ${count} Seiten`);
-                }
+            const count = getValidPageCount();
+            if (count && count > 0) {
+                S.lastPageCount = count;
+                updateNav();
+                log(`🔄 Force Update: ${count} Seiten`);
+            } else {
+                log('⚠️ Force Update fehlgeschlagen: Keine gültige Seitenzahl');
             }
         }
     };
@@ -406,7 +416,7 @@
     function main() {
         document.readyState === 'loading' ?
             document.addEventListener('DOMContentLoaded', init, { once: true }) :
-            setTimeout(init, 300);
+            setTimeout(init, 800); // ÄNDERUNG: 800ms initiale Verzögerung
     }
 
     main();
