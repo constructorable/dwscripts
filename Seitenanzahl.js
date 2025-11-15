@@ -10,6 +10,7 @@
         viewer: '#viewerArea',
         container: 'page-navigation-sidebar'
     };
+
     
     let S = {
         init: false,
@@ -371,4 +372,5 @@
 
     main();
 })();
+
 
