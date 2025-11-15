@@ -1,10 +1,8 @@
-// buttons-basis.js
-// ÄNDERUNG: Kontinuierliche Button-Überprüfung für dynamische KnockoutJS/AJAX-Inhalte
-
+// buttons-basis.js - OPTIMIERT
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-basis', V = '1.0', SK = 'dw-ko-basis-state', D = true;
+    const ID = 'dw-ko-buttons-basis', V = '2.0', SK = 'dw-ko-basis-state', D = true;
     
     const CFG = {
         nebenkosten: {
@@ -16,10 +14,7 @@
                 { v: 'j', l: 'Ja' },
                 { v: 'n', l: 'Nein' }
             ],
-            map: {
-                'j': 'j', 'ja': 'j',
-                'n': 'n', 'nein': 'n'
-            }
+            map: { 'j': 'j', 'ja': 'j', 'n': 'n', 'nein': 'n' }
         },
         
         wirtschaftsjahr: {
@@ -75,12 +70,12 @@
         }
     };
 
+    // ÄNDERUNG: Zentrales WeakSet + SessionStorage
     let S = {
         init: false,
         reg: new Map(),
         obs: null,
-        intervalId: null,
-        checkCounter: 0
+        processed: new WeakSet()
     };
 
     if (window[ID]) cleanup();
@@ -89,9 +84,8 @@
     const log = (m, d) => D && console.log(`[DW-BASIS] ${m}`, d || '');
 
     function cleanup() {
-        if (window[ID] && window[ID].s) {
-            window[ID].s.obs && window[ID].s.obs.disconnect();
-            window[ID].s.intervalId && clearInterval(window[ID].s.intervalId);
+        if (window[ID]?.s) {
+            window[ID].s.obs?.disconnect();
         }
     }
 
@@ -144,7 +138,6 @@
         return r.width > 0 && r.height > 0 && f.offsetParent !== null;
     }
 
-    // ÄNDERUNG: Vereinfachte ID-Generierung basierend auf DOM-Position
     function mkId(inp, txt, k) {
         const row = inp.closest('tr');
         if (!row) return null;
@@ -154,10 +147,9 @@
         return `${k}_${txt.replace(/[^a-zA-Z0-9]/g, '')}_${rowIdx}`;
     }
 
-    // ÄNDERUNG: Prüft ob Buttons bereits vorhanden sind
     function hasButtons(row, pre) {
         const next = row.nextElementSibling;
-        return next && next.classList.contains(`${pre}-button-row`);
+        return next?.classList.contains(`${pre}-button-row`);
     }
 
     function findInCont(k, c) {
@@ -172,13 +164,10 @@
                 if (!matches(txt, cfg)) continue;
 
                 const row = lbl.closest('tr');
-                if (!row) continue;
-                
-                // ÄNDERUNG: Prüft immer ob Buttons fehlen
-                if (hasButtons(row, cfg.pre)) continue;
+                if (!row || hasButtons(row, cfg.pre)) continue;
                 
                 const inp = findInp(row);
-                if (!inp || !isProc(inp)) continue;
+                if (!inp || !isProc(inp) || S.processed.has(inp)) continue;
                 
                 const fid = mkId(inp, txt, k);
                 if (!fid) continue;
@@ -198,7 +187,7 @@
         });
     }
 
-    function updSel(btn, fid) {
+    function updSel(btn) {
         const cont = btn.closest('[class*="-button-container"]');
         if (!cont) return;
         cont.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
@@ -208,7 +197,7 @@
     function handleClick(e, opt, inp, fid) {
         e.preventDefault();
         e.stopPropagation();
-        updSel(e.target, fid);
+        updSel(e.target);
         S.reg.set(fid, { sel: opt.v, ts: Date.now() });
         saveState();
         setVal(inp, opt.v);
@@ -229,12 +218,12 @@
     function restoreState(inp, cfg, btns, fid) {
         const cur = inp.value.trim();
         const saved = S.reg.get(fid);
-        const match = saved && saved.sel ? saved.sel : cur;
+        const match = saved?.sel || cur;
         if (!match) return;
         
         btns.forEach(btn => {
             const val = btn.getAttribute('data-value');
-            if (val === match || (cfg.map && cfg.map[match.toLowerCase()] === val)) {
+            if (val === match || (cfg.map?.[match.toLowerCase()] === val)) {
                 btn.classList.add('selected');
             }
         });
@@ -257,7 +246,6 @@
         return cont;
     }
 
-    // ÄNDERUNG: Direktes Einfügen ohne Delays
     function inject(f) {
         const { inp, row, k, fid, cfg } = f;
 
@@ -279,6 +267,7 @@
         
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
+            S.processed.add(inp);
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -287,7 +276,6 @@
         }
     }
 
-    // ÄNDERUNG: Verarbeitet alle Configs in einem Container
     function procAll(c) {
         let total = 0;
         Object.keys(CFG).forEach(k => {
@@ -299,32 +287,9 @@
         return total;
     }
 
-    // ÄNDERUNG: Kontinuierliche Überprüfung alle 500ms
-    function startInterval() {
-        if (S.intervalId) return;
-        S.intervalId = setInterval(() => {
-            S.checkCounter++;
-            
-            // Body prüfen
-            const bodyCount = procAll(document.body);
-            
-            // Alle sichtbaren Dialoge prüfen
-            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            let dlgCount = 0;
-            dlgs.forEach(d => {
-                dlgCount += procAll(d);
-            });
-            
-            if (bodyCount > 0 || dlgCount > 0) {
-                log(`Check #${S.checkCounter}: Body=${bodyCount}, Dialogs=${dlgCount}`);
-                saveState();
-            }
-        }, 500);
-    }
-
     function injectCSS() {
         if (document.querySelector('style[data-dw-basis-btns]')) return;
-        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:4px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-6px!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:2px 6px!important;min-height:18px!important;font-size:10px!important;white-space:nowrap!important;line-height:1.2!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.dw-btn-fade{animation:dwFade .3s ease-out}@keyframes dwFade{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
+        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:4px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-6px!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:2px 6px!important;min-height:18px!important;font-size:10px!important;white-space:nowrap!important;line-height:1.2!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
         
         const style = document.createElement('style');
         style.textContent = css;
@@ -332,12 +297,16 @@
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Zusätzlicher MutationObserver für sofortige Reaktion
+    // ÄNDERUNG: Throttled Observer statt Interval
     function mkObs() {
+        let timeout;
         const obs = new MutationObserver(() => {
-            procAll(document.body);
-            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            dlgs.forEach(d => procAll(d));
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                procAll(document.body);
+                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                dlgs.forEach(d => procAll(d));
+            }, 200);
         });
         obs.observe(document.body, { childList: true, subtree: true });
         return obs;
@@ -347,21 +316,15 @@
         injectCSS();
         loadState();
         
-        // Sofortige erste Verarbeitung
         setTimeout(() => {
             procAll(document.body);
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
             dlgs.forEach(d => procAll(d));
         }, 300);
         
-        // ÄNDERUNG: Startet kontinuierliche Überprüfung
-        startInterval();
-        
-        // ÄNDERUNG: Zusätzlicher MutationObserver
         S.obs = mkObs();
-        
         S.init = true;
-        log('✅ Initialisierung abgeschlossen - kontinuierliche Überprüfung aktiv');
+        log('✅ Initialisierung abgeschlossen');
     }
 
     window[ID].api = {
@@ -375,20 +338,8 @@
         status: () => ({
             init: S.init,
             btns: document.querySelectorAll('.dw-ko-btn-row').length,
-            checks: S.checkCounter,
             reg: S.reg.size
-        }),
-        stop: () => {
-            if (S.intervalId) {
-                clearInterval(S.intervalId);
-                S.intervalId = null;
-                log('⏸️ Kontinuierliche Überprüfung gestoppt');
-            }
-        },
-        start: () => {
-            startInterval();
-            log('▶️ Kontinuierliche Überprüfung gestartet');
-        }
+        })
     };
 
     function main() {
@@ -399,3 +350,4 @@
 
     main();
 })();
+
