@@ -1,7 +1,8 @@
+// pageNavigation.js - ROBUSTE LÖSUNG MIT LANGER WARTEZEIT
 (function() {
     'use strict';
 
-    const ID = 'dw-page-navigation', V = '2.2', D = true;
+    const ID = 'dw-page-navigation', V = '2.3', D = true;
     
     const SEL = {
         input: '.top-bar-nav-info input[data-trackerevent="NavToPage"]',
@@ -15,8 +16,7 @@
         obs: null,
         expanded: false,
         container: null,
-        lastPageCount: 0,
-        stabilityChecks: 0
+        lastPageCount: 0
     };
 
     if (window[ID]) cleanup();
@@ -188,17 +188,19 @@
         document.head.appendChild(style);
     }
 
+    // ÄNDERUNG: Extrahiere nur die Zahl (ignoriert "+"-Zeichen für "hasMorePages")
     function getValidPageCount() {
         const pageCountEl = document.querySelector(SEL.pageCount);
         if (!pageCountEl) return null;
 
         const text = pageCountEl.textContent.trim();
         
-        if (!text || text === '0' || text === '...' || text === '-' || text === '') {
-            return null;
-        }
+        // ÄNDERUNG: Entferne "+"-Zeichen und andere Sonderzeichen
+        const cleanText = text.replace(/[^\d]/g, '');
+        
+        if (!cleanText) return null;
 
-        const count = parseInt(text);
+        const count = parseInt(cleanText);
         if (isNaN(count) || count <= 0) return null;
         
         return count;
@@ -316,64 +318,43 @@
         }, 100);
     }
 
-    // ÄNDERUNG: Aggressiver Observer der SOFORT reagiert
+    // ÄNDERUNG: Sehr aggressiver Observer auf SPAN-Element
     function mkObs() {
-        const obs = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                // Prüfe ob das pageCount-Element sich geändert hat
-                if (mutation.type === 'characterData' || mutation.type === 'childList') {
-                    const target = mutation.target;
-                    const pageCountEl = document.querySelector(SEL.pageCount);
-                    
-                    // Wenn die Änderung im pageCount-Element oder dessen Parent war
-                    if (target === pageCountEl || target.parentNode === pageCountEl || pageCountEl?.contains(target)) {
-                        const newCount = getValidPageCount();
-                        if (newCount && newCount !== S.lastPageCount) {
-                            log(`🔄 MutationObserver erkannt: ${S.lastPageCount} → ${newCount}`);
-                            S.lastPageCount = newCount;
-                            updateNav();
-                        }
-                    }
-                }
+        const pageCountEl = document.querySelector(SEL.pageCount);
+        if (!pageCountEl) {
+            log('⚠️ Kein pageCount-Element gefunden für Observer');
+            return null;
+        }
+
+        const obs = new MutationObserver(() => {
+            const newCount = getValidPageCount();
+            if (newCount && newCount !== S.lastPageCount) {
+                log(`🔄 Observer erkannt: ${S.lastPageCount} → ${newCount}`);
+                S.lastPageCount = newCount;
+                updateNav();
             }
         });
         
-        const pageCountEl = document.querySelector(SEL.pageCount);
-        if (pageCountEl) {
-            // ÄNDERUNG: Beobachte direkt das pageCount-Element
-            obs.observe(pageCountEl, { 
-                childList: true, 
-                subtree: true,
-                characterData: true 
-            });
-            log('Observer auf pageCount-Element aktiviert');
-        }
+        // Beobachte das SPAN direkt
+        obs.observe(pageCountEl, { 
+            childList: true, 
+            subtree: true,
+            characterData: true 
+        });
         
-        // ÄNDERUNG: Zusätzlich Parent-Container beobachten
-        const parentContainer = pageCountEl?.parentNode;
-        if (parentContainer) {
-            obs.observe(parentContainer, {
-                childList: true,
-                subtree: true,
-                characterData: true
-            });
-            log('Observer auf Parent-Container aktiviert');
-        }
-        
+        log('✓ Observer aktiviert auf SPAN-Element');
         return obs;
     }
 
-    // ÄNDERUNG: Warteschleife die auf STABILE Werte wartet
-    function waitForStablePageCount(callback, lastValue = null, stableCount = 0, attempt = 0) {
-        const maxAttempts = 60; // 60 × 300ms = 18 Sekunden
-        const requiredStability = 3; // Wert muss 3× gleich bleiben (900ms)
+    // ÄNDERUNG: Sehr lange Wartezeit + mehrfache Checks
+    function waitForValidPageCount(callback, attempt = 0) {
+        const maxAttempts = 100; // 100 × 500ms = 50 Sekunden
         
         if (attempt >= maxAttempts) {
-            log('⚠️ Timeout nach 18 Sekunden');
-            // Verwende letzten bekannten Wert als Fallback
-            if (lastValue && lastValue > 0) {
-                log(`Verwende letzten bekannten Wert: ${lastValue}`);
-                S.lastPageCount = lastValue;
+            log('⚠️ Timeout nach 50 Sekunden - verwende Fallback');
+            const fallbackCount = getValidPageCount();
+            if (fallbackCount) {
+                S.lastPageCount = fallbackCount;
                 callback();
             }
             return;
@@ -384,52 +365,50 @@
         const viewerEl = document.querySelector(SEL.viewer);
 
         if (!pageCountEl || !inputEl || !viewerEl) {
-            setTimeout(() => waitForStablePageCount(callback, lastValue, 0, attempt + 1), 300);
+            log(`Versuch ${attempt + 1}: Warte auf DOM-Elemente...`);
+            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
             return;
         }
 
-        const currentValue = getValidPageCount();
+        const currentCount = getValidPageCount();
+        const rawText = pageCountEl.textContent.trim();
         
-        // ÄNDERUNG: Warte bis Wert sich stabilisiert hat
-        if (currentValue && currentValue > 0) {
-            if (currentValue === lastValue) {
-                stableCount++;
-                log(`Stabilitätscheck ${stableCount}/${requiredStability}: Wert ${currentValue}`);
-                
-                if (stableCount >= requiredStability) {
-                    log(`✅ Stabile Seitenzahl gefunden: ${currentValue}`);
-                    S.lastPageCount = currentValue;
-                    callback();
-                    return;
-                }
-            } else {
-                // Wert hat sich geändert, Reset
-                log(`Wert geändert: ${lastValue} → ${currentValue}, Reset Stabilität`);
-                stableCount = 1;
-            }
-            
-            setTimeout(() => waitForStablePageCount(callback, currentValue, stableCount, attempt + 1), 300);
-        } else {
-            log(`Versuch ${attempt + 1}/${maxAttempts}: Warte auf gültigen Wert... (aktuell: "${pageCountEl.textContent.trim()}")`);
-            setTimeout(() => waitForStablePageCount(callback, lastValue, 0, attempt + 1), 300);
+        log(`Versuch ${attempt + 1}: Text="${rawText}", Parsed=${currentCount}`);
+        
+        if (!currentCount || currentCount <= 0) {
+            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
+            return;
         }
+
+        // ERFOLG - aber warte nochmal 2 Sekunden zur Sicherheit
+        log(`✅ Seitenzahl gefunden: ${currentCount} - Warte 2s zur Bestätigung...`);
+        setTimeout(() => {
+            const finalCount = getValidPageCount();
+            S.lastPageCount = finalCount || currentCount;
+            log(`✅ Final bestätigt: ${S.lastPageCount} Seiten`);
+            callback();
+        }, 2000);
     }
 
     function init() {
         injectStyles();
         
-        // ÄNDERUNG: Warte auf stabilen Wert
-        waitForStablePageCount(() => {
-            const inputEl = document.querySelector(SEL.input);
-            if (inputEl && S.lastPageCount > 0) {
-                createSidebar(S.lastPageCount, inputEl);
-                
-                // Observer aktivieren
-                S.obs = mkObs();
-                S.init = true;
-                log(`✅ Initialisiert mit ${S.lastPageCount} Seiten`);
-            }
-        });
+        log('🕐 Starte Initialisierung nach 3 Sekunden Wartezeit...');
+        
+        // ÄNDERUNG: Warte 3 Sekunden bevor überhaupt gestartet wird
+        setTimeout(() => {
+            waitForValidPageCount(() => {
+                const inputEl = document.querySelector(SEL.input);
+                if (inputEl && S.lastPageCount > 0) {
+                    createSidebar(S.lastPageCount, inputEl);
+                    
+                    // Observer aktivieren
+                    S.obs = mkObs();
+                    S.init = true;
+                    log(`✅ Vollständig initialisiert mit ${S.lastPageCount} Seiten`);
+                }
+            });
+        }, 3000); // 3 Sekunden initiale Verzögerung
     }
 
     window[ID].api = {
@@ -449,7 +428,8 @@
                 updateNav();
                 log(`🔄 Force Update: ${count} Seiten`);
             } else {
-                log('⚠️ Keine gültige Seitenzahl gefunden');
+                const pageCountEl = document.querySelector(SEL.pageCount);
+                log(`⚠️ Force Update fehlgeschlagen. Rohtext: "${pageCountEl?.textContent}"`);
             }
         }
     };
@@ -457,8 +437,9 @@
     function main() {
         document.readyState === 'loading' ?
             document.addEventListener('DOMContentLoaded', init, { once: true }) :
-            setTimeout(init, 5555); // ÄNDERUNG: 1.2 Sekunden initiale Verzögerung
+            init();
     }
 
     main();
 })();
+
