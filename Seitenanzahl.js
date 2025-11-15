@@ -1,35 +1,17 @@
-// pageNavigation.js - ROBUSTE LÖSUNG MIT LANGER WARTEZEIT
+// pageNavigation.js - FUNKTIONIERT MIT BEWÄHRTEN MECHANISMEN
 (function() {
     'use strict';
 
-    const ID = 'dw-page-navigation', V = '2.3', D = true;
+    const INPUT_SELECTOR = '.top-bar-nav-info input[data-trackerevent="NavToPage"]';
+    const PAGE_COUNT_SELECTOR = '.top-bar-nav-info span[data-bind*="maxPageValue"]';
+    const VIEWER_SELECTOR = '#viewerArea';
+    const CONTAINER_CLASS = 'page-navigation-sidebar';
     
-    const SEL = {
-        input: '.top-bar-nav-info input[data-trackerevent="NavToPage"]',
-        pageCount: '.top-bar-nav-info span[data-bind*="maxPageValue"]',
-        viewer: '#viewerArea',
-        container: 'page-navigation-sidebar'
-    };
-    
-    let S = {
-        init: false,
-        obs: null,
-        expanded: false,
-        container: null,
-        lastPageCount: 0
-    };
-
-    if (window[ID]) cleanup();
-    window[ID] = { v: V, s: S, cleanup };
-
-    const log = (m, d) => D && console.log(`[DW-PAGENAV] ${m}`, d || '');
-
-    function cleanup() {
-        if (window[ID]?.s) {
-            window[ID].s.obs?.disconnect();
-            window[ID].s.container?.remove();
-        }
-    }
+    let isExpanded = false;
+    let currentContainer = null;
+    let lastPageCount = 0;
+    let observers = [];
+    let checkInterval = null;
 
     function injectStyles() {
         if (document.getElementById('page-navigation-styles')) return;
@@ -37,7 +19,7 @@
         const style = document.createElement('style');
         style.id = 'page-navigation-styles';
         style.textContent = `
-            .${SEL.container} {
+            .page-navigation-sidebar {
                 position: absolute;
                 top: 90vh;
                 right: 1px;
@@ -45,12 +27,12 @@
                 transition: all 0.3s ease;
             }
 
-            .${SEL.container}:not(.expanded) {
+            .page-navigation-sidebar:not(.expanded) {
                 width: 22px;
                 height: 22px;
             }
 
-            .${SEL.container}.expanded {
+            .page-navigation-sidebar.expanded {
                 right: 0;
                 width: auto;
                 max-width: 95%;
@@ -82,7 +64,7 @@
                 box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
             }
 
-            .${SEL.container}.expanded .page-nav-tab {
+            .page-navigation-sidebar.expanded .page-nav-tab {
                 display: none;
             }
 
@@ -104,7 +86,7 @@
                 padding: 1px;
             }
 
-            .${SEL.container}.expanded .page-nav-content {
+            .page-navigation-sidebar.expanded .page-nav-content {
                 display: flex;
                 justify-content: flex-end;
             }
@@ -188,59 +170,141 @@
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Extrahiere nur die Zahl (ignoriert "+"-Zeichen für "hasMorePages")
-    function getValidPageCount() {
-        const pageCountEl = document.querySelector(SEL.pageCount);
-        if (!pageCountEl) return null;
+    // AUS ALTEM CODE: XHR-Interception
+    function interceptXHR() {
+        const originalOpen = XMLHttpRequest.prototype.open;
+        const originalSend = XMLHttpRequest.prototype.send;
 
-        const text = pageCountEl.textContent.trim();
-        
-        // ÄNDERUNG: Entferne "+"-Zeichen und andere Sonderzeichen
-        const cleanText = text.replace(/[^\d]/g, '');
-        
-        if (!cleanText) return null;
+        XMLHttpRequest.prototype.open = function(method, url) {
+            this._url = url;
+            return originalOpen.apply(this, arguments);
+        };
 
-        const count = parseInt(cleanText);
-        if (isNaN(count) || count <= 0) return null;
-        
-        return count;
+        XMLHttpRequest.prototype.send = function() {
+            this.addEventListener('load', function() {
+                if (this._url && (
+                    this._url.includes('/GetDocument') || 
+                    this._url.includes('/Documents/') ||
+                    this._url.includes('/Image')
+                )) {
+                    setTimeout(() => checkAndUpdatePageCount(), 500);
+                }
+            });
+            return originalSend.apply(this, arguments);
+        };
     }
 
-    function checkPageCount() {
-        const count = getValidPageCount();
-        if (!count) return;
+    // AUS ALTEM CODE: Polling
+    function startPolling() {
+        if (checkInterval) clearInterval(checkInterval);
+        checkInterval = setInterval(() => checkAndUpdatePageCount(), 1000);
+    }
 
-        if (count !== S.lastPageCount) {
-            log(`Seitenzahl aktualisiert: ${S.lastPageCount} → ${count}`);
-            S.lastPageCount = count;
-            updateNav();
+    // AUS ALTEM CODE: Prüfung und Update
+    function checkAndUpdatePageCount() {
+        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
+        if (!pageCountElement) return;
+
+        const currentPageCount = parseInt(pageCountElement.textContent.trim());
+        if (isNaN(currentPageCount) || currentPageCount <= 0) return;
+
+        if (currentPageCount !== lastPageCount) {
+            console.log('Seitenzahl aktualisiert:', lastPageCount, '→', currentPageCount);
+            lastPageCount = currentPageCount;
+            updateNavigation();
         }
     }
 
-    function updateNav() {
-        const inputEl = document.querySelector(SEL.input);
-        if (!inputEl || !S.lastPageCount) return;
-        
-        createSidebar(S.lastPageCount, inputEl);
+    // AUS ALTEM CODE: MutationObserver
+    function observePageCountChanges() {
+        observers.forEach(obs => obs.disconnect());
+        observers = [];
+
+        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
+        if (!pageCountElement) {
+            setTimeout(observePageCountChanges, 1000);
+            return;
+        }
+
+        const observer = new MutationObserver(() => checkAndUpdatePageCount());
+        observer.observe(pageCountElement, {
+            childList: true,
+            characterData: true,
+            subtree: true
+        });
+        observers.push(observer);
+
+        const parentContainer = pageCountElement.closest('.top-bar-nav-info');
+        if (parentContainer) {
+            const containerObserver = new MutationObserver(() => checkAndUpdatePageCount());
+            containerObserver.observe(parentContainer, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+            observers.push(containerObserver);
+        }
     }
 
-    function createSidebar(pageCount, inputEl) {
-        const viewerEl = document.querySelector(SEL.viewer);
-        if (!viewerEl) return;
+    function updateNavigation() {
+        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
+        const inputElement = document.querySelector(INPUT_SELECTOR);
+        
+        if (!pageCountElement || !inputElement) return;
 
-        if (S.container) {
-            const wasExpanded = S.container.classList.contains('expanded');
-            S.container.remove();
-            S.expanded = wasExpanded;
+        const pageCount = parseInt(pageCountElement.textContent.trim());
+        if (isNaN(pageCount) || pageCount <= 0) return;
+
+        createSidebar(pageCount, inputElement);
+    }
+
+    // AUS ALTEM CODE: Initialisierung
+    function init() {
+        injectStyles();
+        
+        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
+        const inputElement = document.querySelector(INPUT_SELECTOR);
+        const viewerElement = document.querySelector(VIEWER_SELECTOR);
+        
+        if (!pageCountElement || !inputElement || !viewerElement) {
+            setTimeout(init, 500);
+            return;
+        }
+
+        const pageCount = parseInt(pageCountElement.textContent.trim());
+        if (isNaN(pageCount) || pageCount <= 0) {
+            setTimeout(init, 500);
+            return;
+        }
+
+        lastPageCount = pageCount;
+        createSidebar(pageCount, inputElement);
+        
+        if (!window.pageNavObserverInitialized) {
+            observePageCountChanges();
+            interceptXHR();
+            startPolling();
+            window.pageNavObserverInitialized = true;
+        }
+    }
+
+    function createSidebar(pageCount, inputElement) {
+        const viewerElement = document.querySelector(VIEWER_SELECTOR);
+        if (!viewerElement) return;
+
+        if (currentContainer) {
+            const wasExpanded = currentContainer.classList.contains('expanded');
+            currentContainer.remove();
+            isExpanded = wasExpanded;
         }
 
         const container = document.createElement('div');
-        container.className = SEL.container;
-        if (S.expanded) container.classList.add('expanded');
+        container.className = CONTAINER_CLASS;
+        if (isExpanded) container.classList.add('expanded');
 
         const tab = document.createElement('button');
         tab.className = 'page-nav-tab';
-        tab.type = 'button';
+        tab.setAttribute('type', 'button');
         tab.setAttribute('aria-label', 'Seitennavigation ein/ausblenden');
         tab.addEventListener('click', () => toggleSidebar(container));
 
@@ -256,14 +320,14 @@
         grid.style.gridTemplateColumns = `repeat(${columnsNeeded}, 17px)`;
 
         for (let i = 1; i <= pageCount; i++) {
-            const btn = createPageButton(i, inputEl);
-            grid.appendChild(btn);
+            const button = createPageButton(i, inputElement);
+            grid.appendChild(button);
         }
 
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '×';
         closeBtn.className = 'page-nav-close-btn';
-        closeBtn.type = 'button';
+        closeBtn.setAttribute('type', 'button');
         closeBtn.setAttribute('aria-label', 'Navigation schließen');
         closeBtn.addEventListener('click', () => toggleSidebar(container));
         grid.appendChild(closeBtn);
@@ -272,174 +336,75 @@
         container.appendChild(tab);
         container.appendChild(content);
 
-        viewerEl.appendChild(container);
-        S.container = container;
-        
-        log(`✅ Sidebar mit ${pageCount} Seiten erstellt`);
+        viewerElement.appendChild(container);
+        currentContainer = container;
     }
 
     function toggleSidebar(container) {
-        S.expanded = !S.expanded;
-        S.expanded ? container.classList.add('expanded') : container.classList.remove('expanded');
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+            container.classList.add('expanded');
+        } else {
+            container.classList.remove('expanded');
+        }
     }
 
-    function createPageButton(pageNum, inputEl) {
-        const btn = document.createElement('button');
-        btn.textContent = pageNum;
-        btn.className = 'page-nav-btn';
-        btn.type = 'button';
-        btn.setAttribute('aria-label', `Zu Seite ${pageNum} navigieren`);
-        btn.addEventListener('click', () => navigateToPage(pageNum, inputEl));
-        return btn;
-    }
-
-    function navigateToPage(pageNum, inputEl) {
-        inputEl.value = pageNum;
+    function createPageButton(pageNumber, inputElement) {
+        const button = document.createElement('button');
+        button.textContent = pageNumber;
+        button.className = 'page-nav-btn';
+        button.setAttribute('type', 'button');
+        button.setAttribute('aria-label', `Zu Seite ${pageNumber} navigieren`);
         
-        ['input', 'change'].forEach(t => {
-            inputEl.dispatchEvent(new Event(t, { bubbles: true, cancelable: true }));
+        button.addEventListener('click', () => {
+            navigateToPage(pageNumber, inputElement);
         });
         
-        inputEl.focus();
+        return button;
+    }
+
+    function navigateToPage(pageNumber, inputElement) {
+        inputElement.value = pageNumber;
+        
+        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
+        inputElement.dispatchEvent(inputEvent);
+        
+        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
+        inputElement.dispatchEvent(changeEvent);
+        
+        inputElement.focus();
         
         setTimeout(() => {
-            ['keydown', 'keyup'].forEach((t, i) => {
-                setTimeout(() => {
-                    inputEl.dispatchEvent(new KeyboardEvent(t, {
-                        key: 'Enter',
-                        code: 'Enter',
-                        keyCode: 13,
-                        which: 13,
-                        bubbles: true,
-                        cancelable: true
-                    }));
-                }, i * 50);
+            const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
             });
+            inputElement.dispatchEvent(enterEvent);
+            
+            setTimeout(() => {
+                const keyupEvent = new KeyboardEvent('keyup', {
+                    key: 'Enter',
+                    code: 'Enter',
+                    keyCode: 13,
+                    which: 13,
+                    bubbles: true,
+                    cancelable: true
+                });
+                inputElement.dispatchEvent(keyupEvent);
+            }, 50);
         }, 100);
     }
 
-    // ÄNDERUNG: Sehr aggressiver Observer auf SPAN-Element
-    function mkObs() {
-        const pageCountEl = document.querySelector(SEL.pageCount);
-        if (!pageCountEl) {
-            log('⚠️ Kein pageCount-Element gefunden für Observer');
-            return null;
-        }
-
-        const obs = new MutationObserver(() => {
-            const newCount = getValidPageCount();
-            if (newCount && newCount !== S.lastPageCount) {
-                log(`🔄 Observer erkannt: ${S.lastPageCount} → ${newCount}`);
-                S.lastPageCount = newCount;
-                updateNav();
-            }
-        });
-        
-        // Beobachte das SPAN direkt
-        obs.observe(pageCountEl, { 
-            childList: true, 
-            subtree: true,
-            characterData: true 
-        });
-        
-        log('✓ Observer aktiviert auf SPAN-Element');
-        return obs;
+    // Auto-Start
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
 
-    // ÄNDERUNG: Sehr lange Wartezeit + mehrfache Checks
-    function waitForValidPageCount(callback, attempt = 0) {
-        const maxAttempts = 100; // 100 × 500ms = 50 Sekunden
-        
-        if (attempt >= maxAttempts) {
-            log('⚠️ Timeout nach 50 Sekunden - verwende Fallback');
-            const fallbackCount = getValidPageCount();
-            if (fallbackCount) {
-                S.lastPageCount = fallbackCount;
-                callback();
-            }
-            return;
-        }
-
-        const pageCountEl = document.querySelector(SEL.pageCount);
-        const inputEl = document.querySelector(SEL.input);
-        const viewerEl = document.querySelector(SEL.viewer);
-
-        if (!pageCountEl || !inputEl || !viewerEl) {
-            log(`Versuch ${attempt + 1}: Warte auf DOM-Elemente...`);
-            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
-            return;
-        }
-
-        const currentCount = getValidPageCount();
-        const rawText = pageCountEl.textContent.trim();
-        
-        log(`Versuch ${attempt + 1}: Text="${rawText}", Parsed=${currentCount}`);
-        
-        if (!currentCount || currentCount <= 0) {
-            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
-            return;
-        }
-
-        // ERFOLG - aber warte nochmal 2 Sekunden zur Sicherheit
-        log(`✅ Seitenzahl gefunden: ${currentCount} - Warte 2s zur Bestätigung...`);
-        setTimeout(() => {
-            const finalCount = getValidPageCount();
-            S.lastPageCount = finalCount || currentCount;
-            log(`✅ Final bestätigt: ${S.lastPageCount} Seiten`);
-            callback();
-        }, 2000);
-    }
-
-    function init() {
-        injectStyles();
-        
-        log('🕐 Starte Initialisierung nach 3 Sekunden Wartezeit...');
-        
-        // ÄNDERUNG: Warte 3 Sekunden bevor überhaupt gestartet wird
-        setTimeout(() => {
-            waitForValidPageCount(() => {
-                const inputEl = document.querySelector(SEL.input);
-                if (inputEl && S.lastPageCount > 0) {
-                    createSidebar(S.lastPageCount, inputEl);
-                    
-                    // Observer aktivieren
-                    S.obs = mkObs();
-                    S.init = true;
-                    log(`✅ Vollständig initialisiert mit ${S.lastPageCount} Seiten`);
-                }
-            });
-        }, 3000); // 3 Sekunden initiale Verzögerung
-    }
-
-    window[ID].api = {
-        refresh: () => {
-            checkPageCount();
-            return { pageCount: S.lastPageCount };
-        },
-        status: () => ({
-            init: S.init,
-            pageCount: S.lastPageCount,
-            expanded: S.expanded
-        }),
-        forceUpdate: () => {
-            const count = getValidPageCount();
-            if (count && count > 0) {
-                S.lastPageCount = count;
-                updateNav();
-                log(`🔄 Force Update: ${count} Seiten`);
-            } else {
-                const pageCountEl = document.querySelector(SEL.pageCount);
-                log(`⚠️ Force Update fehlgeschlagen. Rohtext: "${pageCountEl?.textContent}"`);
-            }
-        }
-    };
-
-    function main() {
-        document.readyState === 'loading' ?
-            document.addEventListener('DOMContentLoaded', init, { once: true }) :
-            init();
-    }
-
-    main();
 })();
 
