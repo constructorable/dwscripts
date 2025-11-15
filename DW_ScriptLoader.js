@@ -322,66 +322,76 @@ moveToCorner() {
     window.dwDeselectAll = () => document.querySelectorAll('#scriptSelection input').forEach(cb => cb.checked = false);
     window.dwCloseModal = () => document.getElementById('dwScriptModal')?.remove();
     
-    window.dwLoadScripts = async function() {
-        const checkboxes = document.querySelectorAll('#scriptSelection input[type="checkbox"]');
-        const selectedIds = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.dataset.scriptid);
-
-        if(selectedIds.length === 0) {
-            alert('Bitte wählen Sie mindestens ein Script aus!');
-            return;
-        }
-
-        // ÄNDERUNG: Auswahl speichern
-        const settings = Storage.getSettings();
-        settings.selectedScripts = {};
-        checkboxes.forEach(cb => settings.selectedScripts[cb.dataset.scriptid] = cb.checked);
-        settings.loadedScripts = {};
-        Storage.saveSettings(settings);
-
-        // ÄNDERUNG: Modal nach oben rechts verschieben
-        ModalManager.moveToCorner();
-        document.getElementById('scriptSelection').style.display = 'none';
-        document.getElementById('scriptList').style.display = 'block';
-        
-        const scriptsToLoad = SCRIPTS.filter(s => selectedIds.includes(s.id));
-        const scriptList = document.getElementById('scriptList');
-        
-        // Script-Liste vorbereiten
-        scriptsToLoad.forEach((script, index) => {
-            const item = document.createElement('div');
-            item.id = `script-${index}`;
-            item.innerHTML = `
-                <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #f1f5f9;">
-                    <i id="icon-${index}" class="fas fa-hourglass-half" style="font-size:13px;color:#94a3b8;width:16px;text-align:center;margin-right:10px;"></i>
-                    <div style="flex:1;">
-                        <div style="font-weight:500;color:#334155;font-size:12px;">${script.name}</div>
-                        <div style="font-size:10px;color:#64748b;">${script.category}</div>
-                    </div>
-                    <div id="status-${index}" style="font-size:10px;color:#64748b;font-weight:500;padding:3px 7px;background:#f1f5f9;border-radius:10px;">Warten...</div>
+window.dwLoadScripts = async function() {
+    const checkboxes = document.querySelectorAll('#scriptSelection input[type="checkbox"]');
+    const selectedIds = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.dataset.scriptid);
+    
+    if(selectedIds.length === 0) {
+        alert('Bitte wählen Sie mindestens ein Script aus!');
+        return;
+    }
+    
+    // Auswahl speichern
+    const settings = Storage.getSettings();
+    settings.selectedScripts = {};
+    checkboxes.forEach(cb => settings.selectedScripts[cb.dataset.scriptid] = cb.checked);
+    settings.loadedScripts = {};
+    Storage.saveSettings(settings);
+    
+    // Modal nach oben rechts verschieben
+    ModalManager.moveToCorner();
+    document.getElementById('scriptSelection').style.display = 'none';
+    document.getElementById('scriptList').style.display = 'block';
+    
+    const scriptsToLoad = SCRIPTS.filter(s => selectedIds.includes(s.id));
+    const scriptList = document.getElementById('scriptList');
+    
+    // Script-Liste vorbereiten
+    scriptsToLoad.forEach((script, index) => {
+        const item = document.createElement('div');
+        item.id = `script-${index}`;
+        item.innerHTML = `
+            <div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #f1f5f9;">
+                <i id="icon-${index}" class="fas fa-hourglass-half" style="font-size:13px;color:#94a3b8;width:16px;text-align:center;margin-right:10px;"></i>
+                <div style="flex:1;">
+                    <div style="font-weight:500;color:#334155;font-size:12px;">${script.name}</div>
+                    <div style="font-size:10px;color:#64748b;">${script.category}</div>
                 </div>
-            `;
-            scriptList.appendChild(item);
-        });
-
-        // Sequenzielles Laden
-        let successCount = 0;
-        for(let i = 0; i < scriptsToLoad.length; i++) {
-            const success = await ScriptLoader.load(scriptsToLoad[i], i, scriptsToLoad.length);
-            if(success) successCount++;
-        }
-
-        // Abschluss
-        window.dwScriptsLoaded = true;
-        const progressText = document.getElementById('progressText');
-        progressText.innerHTML = `<i class="fas fa-check-double" style="color:#475569;margin-right:8px;"></i>Fertig! (${successCount}/${scriptsToLoad.length})`;
+                <div id="status-${index}" style="font-size:10px;color:#64748b;font-weight:500;padding:3px 7px;background:#f1f5f9;border-radius:10px;">Warten...</div>
+            </div>
+        `;
+        scriptList.appendChild(item);
+    });
+    
+    // ÄNDERUNG: Sequenzielles Laden mit Staffelung für Button-Scripts
+    let successCount = 0;
+    for(let i = 0; i < scriptsToLoad.length; i++) {
+        const script = scriptsToLoad[i];
         
-        setTimeout(() => {
-            const modal = document.getElementById('dwScriptModal');
-            modal.style.opacity = '0';
-            modal.style.transition = 'opacity 0.3s ease';
-            setTimeout(() => modal.remove(), 300);
-        }, 1500);
-    };
+        // ÄNDERUNG: Button-Scripts mit 50ms Verzögerung laden (außer beim ersten)
+        if(script.category === 'Buttons' && i > 0) {
+            const prevScript = scriptsToLoad[i - 1];
+            if(prevScript.category === 'Buttons') {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        }
+        
+        const success = await ScriptLoader.load(script, i, scriptsToLoad.length);
+        if(success) successCount++;
+    }
+    
+    // Abschluss
+    window.dwScriptsLoaded = true;
+    const progressText = document.getElementById('progressText');
+    progressText.innerHTML = `<i class="fas fa-check-double" style="color:#475569;margin-right:8px;"></i>Fertig! (${successCount}/${scriptsToLoad.length})`;
+    
+    setTimeout(() => {
+        const modal = document.getElementById('dwScriptModal');
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => modal.remove(), 300);
+    }, 1500);
+};
     
     window.dwReloadScript = async function(scriptId, button) {
         const script = SCRIPTS.find(s => s.id === scriptId);
@@ -443,8 +453,3 @@ moveToCorner() {
         ModalManager.create('selection');
     }
 })();
-
-
-
-
-
