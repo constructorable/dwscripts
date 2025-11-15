@@ -1,33 +1,33 @@
 (function(){
     // ÄNDERUNG: Eindeutige Script-Definitionen mit klaren Namen
-    const SCRIPTS = [
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/CopyPasteButton.js', name: 'Copy/Paste Buttons', category: 'UI' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Schaltflaechen.js', name: 'Schaltflächen Erweiterung', category: 'UI' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/AutocompleteIBANuOEMN.js', name: 'IBAN Autocomplete', category: 'Autocomplete' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger.js', name: 'Textarea Vergrößerung', category: 'UI' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sternsuche.js', name: 'Sternsuche', category: 'Suche' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tabNamenk%C3%BCrzen.js', name: 'Tab-Namen Kürzen', category: 'UI' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen5.js', name: 'BK Button Ablegen', category: 'Workflow' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Delayf%C3%BCrSubMenuesButtons_001.js', name: 'Submenü Delay', category: 'Performance' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/EmojieToSymbol.js', name: 'Emoji → Symbol', category: 'UI' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu%20Indexfeld%20springen_02.js', name: 'Indexfeld Navigation', category: 'Navigation' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js', name: 'Button Verbreiterung', category: 'UI' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js', name: 'Supersuche', category: 'Suche' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js', name: 'Seitenanzahl Anzeige', category: 'Info' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/speicherbuttonduplizieren.js', name: 'Speicherbutton Duplizieren', category: 'Workflow' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autovervollst%C3%A4ndigungdokart.js', name: 'Autocomplete Dokumentarten', category: 'Autocomplete' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autocompletestrassennamen.js', name: 'Autocomplete Straßennamen', category: 'Autocomplete' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tagsfuerbetreffbuttonhinzufuegen.js', name: 'Tags für Betreffzeile', category: 'Tags' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-datum.js', name: 'Buttons Datum', category: 'Buttons' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-basis.js', name: 'Buttons Basis', category: 'Buttons' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-bestaetigung.js', name: 'Button Bestätigung', category: 'Buttons' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-verwaltung.js', name: 'Button Verwaltung', category: 'Buttons' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-navigation.js', name: 'Button Navigation', category: 'Buttons' },
-        { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sidebarPan.js', name: 'Splitter Bar', category: 'splitting' },
+// ÄNDERUNG: Reihenfolge optimieren - Buttons-Scripts am Ende laden
+const SCRIPTS = [
+    // Basis-Funktionalität zuerst
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/CopyPasteButton.js', name: 'Copy/Paste Buttons', category: 'UI' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Schaltflaechen.js', name: 'Schaltflächen Erweiterung', category: 'UI' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/AutocompleteIBANuOEMN.js', name: 'IBAN Autocomplete', category: 'Autocomplete' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Textareabigger.js', name: 'Textarea Vergrößerung', category: 'UI' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/sternsuche.js', name: 'Sternsuche', category: 'Suche' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tabNamenkürzen.js', name: 'Tab-Namen Kürzen', category: 'UI' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/BK_Buttonablegen5.js', name: 'BK Button Ablegen', category: 'Workflow' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/DelayfürSubMenuesButtons_001.js', name: 'Submenü Delay', category: 'Performance' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/EmojieToSymbol.js', name: 'Emoji → Symbol', category: 'UI' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/zu Indexfeld springen_02.js', name: 'Indexfeld Navigation', category: 'Navigation' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttonbreiter.js', name: 'Button Verbreiterung', category: 'UI' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/supersuche.js', name: 'Supersuche', category: 'Suche' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/Seitenanzahl.js', name: 'Seitenanzahl Anzeige', category: 'Info' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/speicherbuttonduplizieren.js', name: 'Speicherbutton Duplizieren', category: 'Workflow' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autovervollständigungdokart.js', name: 'Autocomplete Dokumentarten', category: 'Autocomplete' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/autocompletestrassennamen.js', name: 'Autocomplete Straßennamen', category: 'Autocomplete' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/tagsfuerbetreffbuttonhinzufuegen.js', name: 'Tags für Betreffzeile', category: 'Tags' },
 
-      
-        
-    ];
+    // ÄNDERUNG: Button-Scripts am Ende laden (damit DOM bereit ist)
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-basis.js', name: 'Buttons Basis', category: 'Buttons' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-datum.js', name: 'Buttons Datum', category: 'Buttons' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-verwaltung.js', name: 'Button Verwaltung', category: 'Buttons' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-bestaetigung.js', name: 'Button Bestätigung', category: 'Buttons' },
+    { url: 'https://raw.githubusercontent.com/constructorable/dwscripts/refs/heads/main/buttons-navigation.js', name: 'Button Navigation', category: 'Buttons' },
+];
 
     // ÄNDERUNG: Font Awesome laden
     function loadFontAwesome() {
@@ -443,6 +443,8 @@ moveToCorner() {
         ModalManager.create('selection');
     }
 })();
+
+
 
 
 
