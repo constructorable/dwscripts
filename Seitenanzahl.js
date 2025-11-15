@@ -1,27 +1,43 @@
-// pageNavigation.js
+// pageNavigation.js - OPTIMIERT
 (function() {
     'use strict';
 
-    // Selektoren
-    const INPUT_SELECTOR = '.top-bar-nav-info input[data-trackerevent="NavToPage"]';
-    const PAGE_COUNT_SELECTOR = '.top-bar-nav-info span[data-bind*="maxPageValue"]';
-    const VIEWER_SELECTOR = '#viewerArea';
-    const CONTAINER_CLASS = 'page-navigation-sidebar';
+    const ID = 'dw-page-navigation', V = '2.0', D = true;
     
-    let isExpanded = false;
-    let currentContainer = null;
-    let lastPageCount = 0;
-    let observers = [];
-    let checkInterval = null;
+    const SEL = {
+        input: '.top-bar-nav-info input[data-trackerevent="NavToPage"]',
+        pageCount: '.top-bar-nav-info span[data-bind*="maxPageValue"]',
+        viewer: '#viewerArea',
+        container: 'page-navigation-sidebar'
+    };
+    
+    let S = {
+        init: false,
+        obs: null,
+        expanded: false,
+        container: null,
+        lastPageCount: 0
+    };
 
-    // ÄNDERUNG: Dynamische Breite basierend auf Seitenanzahl
+    if (window[ID]) cleanup();
+    window[ID] = { v: V, s: S, cleanup };
+
+    const log = (m, d) => D && console.log(`[DW-PAGENAV] ${m}`, d || '');
+
+    function cleanup() {
+        if (window[ID]?.s) {
+            window[ID].s.obs?.disconnect();
+            window[ID].s.container?.remove();
+        }
+    }
+
     function injectStyles() {
         if (document.getElementById('page-navigation-styles')) return;
 
         const style = document.createElement('style');
         style.id = 'page-navigation-styles';
         style.textContent = `
-            .page-navigation-sidebar {
+            .${SEL.container} {
                 position: absolute;
                 top: 90vh;
                 right: 1px;
@@ -29,12 +45,12 @@
                 transition: all 0.3s ease;
             }
 
-            .page-navigation-sidebar:not(.expanded) {
+            .${SEL.container}:not(.expanded) {
                 width: 22px;
                 height: 22px;
             }
 
-            .page-navigation-sidebar.expanded {
+            .${SEL.container}.expanded {
                 right: 0;
                 width: auto;
                 max-width: 95%;
@@ -66,7 +82,7 @@
                 box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
             }
 
-            .page-navigation-sidebar.expanded .page-nav-tab {
+            .${SEL.container}.expanded .page-nav-tab {
                 display: none;
             }
 
@@ -88,7 +104,7 @@
                 padding: 1px;
             }
 
-            .page-navigation-sidebar.expanded .page-nav-content {
+            .${SEL.container}.expanded .page-nav-content {
                 display: flex;
                 justify-content: flex-end;
             }
@@ -128,11 +144,6 @@
                 background: rgba(0, 90, 158, 0.9);
             }
 
-            .page-nav-btn:focus {
-                outline: 1px solid rgba(0, 120, 212, 0.7);
-                outline-offset: 1px;
-            }
-
             .page-nav-close-btn {
                 width: 17px;
                 height: 20px;
@@ -154,12 +165,6 @@
                 border-color: rgba(200, 35, 51, 0.8);
                 transform: scale(1.15);
                 box-shadow: 0 1px 4px rgba(220, 53, 69, 0.4);
-                z-index: 1;
-            }
-
-            .page-nav-close-btn:active {
-                transform: scale(1.0);
-                background: rgba(200, 35, 51, 0.95);
             }
 
             .page-nav-content::-webkit-scrollbar {
@@ -183,140 +188,49 @@
         document.head.appendChild(style);
     }
 
-    // XHR-Interception
-    function interceptXHR() {
-        const originalOpen = XMLHttpRequest.prototype.open;
-        const originalSend = XMLHttpRequest.prototype.send;
+    function checkPageCount() {
+        const pageCountEl = document.querySelector(SEL.pageCount);
+        if (!pageCountEl) return;
 
-        XMLHttpRequest.prototype.open = function(method, url) {
-            this._url = url;
-            return originalOpen.apply(this, arguments);
-        };
+        const count = parseInt(pageCountEl.textContent.trim());
+        if (isNaN(count) || count <= 0) return;
 
-        XMLHttpRequest.prototype.send = function() {
-            this.addEventListener('load', function() {
-                if (this._url && (
-                    this._url.includes('/GetDocument') || 
-                    this._url.includes('/Documents/') ||
-                    this._url.includes('/Image')
-                )) {
-                    setTimeout(() => checkAndUpdatePageCount(), 500);
-                }
-            });
-            return originalSend.apply(this, arguments);
-        };
-    }
-
-    // Polling
-    function startPolling() {
-        if (checkInterval) clearInterval(checkInterval);
-        checkInterval = setInterval(() => checkAndUpdatePageCount(), 1000);
-    }
-
-    // Prüfung und Update
-    function checkAndUpdatePageCount() {
-        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
-        if (!pageCountElement) return;
-
-        const currentPageCount = parseInt(pageCountElement.textContent.trim());
-        if (isNaN(currentPageCount) || currentPageCount <= 0) return;
-
-        if (currentPageCount !== lastPageCount) {
-            console.log('Seitenzahl aktualisiert:', lastPageCount, '→', currentPageCount);
-            lastPageCount = currentPageCount;
-            updateNavigation();
+        if (count !== S.lastPageCount) {
+            log(`Seitenzahl: ${S.lastPageCount} → ${count}`);
+            S.lastPageCount = count;
+            updateNav();
         }
     }
 
-    // MutationObserver
-    function observePageCountChanges() {
-        observers.forEach(obs => obs.disconnect());
-        observers = [];
-
-        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
-        if (!pageCountElement) {
-            setTimeout(observePageCountChanges, 1000);
-            return;
-        }
-
-        const observer = new MutationObserver(() => checkAndUpdatePageCount());
-        observer.observe(pageCountElement, {
-            childList: true,
-            characterData: true,
-            subtree: true
-        });
-        observers.push(observer);
-
-        const parentContainer = pageCountElement.closest('.top-bar-nav-info');
-        if (parentContainer) {
-            const containerObserver = new MutationObserver(() => checkAndUpdatePageCount());
-            containerObserver.observe(parentContainer, {
-                childList: true,
-                subtree: true,
-                characterData: true
-            });
-            observers.push(containerObserver);
-        }
-    }
-
-    // Update Navigation
-    function updateNavigation() {
-        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
-        const inputElement = document.querySelector(INPUT_SELECTOR);
+    function updateNav() {
+        const pageCountEl = document.querySelector(SEL.pageCount);
+        const inputEl = document.querySelector(SEL.input);
         
-        if (!pageCountElement || !inputElement) return;
+        if (!pageCountEl || !inputEl) return;
 
-        const pageCount = parseInt(pageCountElement.textContent.trim());
+        const pageCount = parseInt(pageCountEl.textContent.trim());
         if (isNaN(pageCount) || pageCount <= 0) return;
 
-        createSidebar(pageCount, inputElement);
+        createSidebar(pageCount, inputEl);
     }
 
-    // Initialisierung
-    function init() {
-        injectStyles();
-        
-        const pageCountElement = document.querySelector(PAGE_COUNT_SELECTOR);
-        const inputElement = document.querySelector(INPUT_SELECTOR);
-        const viewerElement = document.querySelector(VIEWER_SELECTOR);
-        
-        if (!pageCountElement || !inputElement || !viewerElement) {
-            setTimeout(init, 500);
-            return;
-        }
+    function createSidebar(pageCount, inputEl) {
+        const viewerEl = document.querySelector(SEL.viewer);
+        if (!viewerEl) return;
 
-        const pageCount = parseInt(pageCountElement.textContent.trim());
-        if (isNaN(pageCount) || pageCount <= 0) return;
-
-        lastPageCount = pageCount;
-        createSidebar(pageCount, inputElement);
-        
-        if (!window.pageNavObserverInitialized) {
-            observePageCountChanges();
-            interceptXHR();
-            startPolling();
-            window.pageNavObserverInitialized = true;
-        }
-    }
-
-    // ÄNDERUNG: Dynamische Grid-Spalten basierend auf Seitenanzahl
-    function createSidebar(pageCount, inputElement) {
-        const viewerElement = document.querySelector(VIEWER_SELECTOR);
-        if (!viewerElement) return;
-
-        if (currentContainer) {
-            const wasExpanded = currentContainer.classList.contains('expanded');
-            currentContainer.remove();
-            isExpanded = wasExpanded;
+        if (S.container) {
+            const wasExpanded = S.container.classList.contains('expanded');
+            S.container.remove();
+            S.expanded = wasExpanded;
         }
 
         const container = document.createElement('div');
-        container.className = CONTAINER_CLASS;
-        if (isExpanded) container.classList.add('expanded');
+        container.className = SEL.container;
+        if (S.expanded) container.classList.add('expanded');
 
         const tab = document.createElement('button');
         tab.className = 'page-nav-tab';
-        tab.setAttribute('type', 'button');
+        tab.type = 'button';
         tab.setAttribute('aria-label', 'Seitennavigation ein/ausblenden');
         tab.addEventListener('click', () => toggleSidebar(container));
 
@@ -326,23 +240,20 @@
         const grid = document.createElement('div');
         grid.className = 'page-nav-grid';
         
-        // NEU: Dynamische Spaltenanzahl (max 20 pro Reihe, + 1 für Close-Button)
         const maxPerRow = 20;
-        const totalButtons = pageCount + 1; // +1 für Close-Button
+        const totalButtons = pageCount + 1;
         const columnsNeeded = Math.min(totalButtons, maxPerRow);
         grid.style.gridTemplateColumns = `repeat(${columnsNeeded}, 17px)`;
 
-        // Erst alle Seiten-Buttons erstellen
         for (let i = 1; i <= pageCount; i++) {
-            const button = createPageButton(i, inputElement);
-            grid.appendChild(button);
+            const btn = createPageButton(i, inputEl);
+            grid.appendChild(btn);
         }
 
-        // Schließen-Button als letztes Element nach allen Zahlen
         const closeBtn = document.createElement('button');
         closeBtn.textContent = '×';
         closeBtn.className = 'page-nav-close-btn';
-        closeBtn.setAttribute('type', 'button');
+        closeBtn.type = 'button';
         closeBtn.setAttribute('aria-label', 'Navigation schließen');
         closeBtn.addEventListener('click', () => toggleSidebar(container));
         grid.appendChild(closeBtn);
@@ -351,77 +262,113 @@
         container.appendChild(tab);
         container.appendChild(content);
 
-        viewerElement.appendChild(container);
-        currentContainer = container;
+        viewerEl.appendChild(container);
+        S.container = container;
     }
 
-    // Sidebar Toggle
     function toggleSidebar(container) {
-        isExpanded = !isExpanded;
-        if (isExpanded) {
-            container.classList.add('expanded');
-        } else {
-            container.classList.remove('expanded');
-        }
+        S.expanded = !S.expanded;
+        S.expanded ? container.classList.add('expanded') : container.classList.remove('expanded');
     }
 
-    // Button erstellen
-    function createPageButton(pageNumber, inputElement) {
-        const button = document.createElement('button');
-        button.textContent = pageNumber;
-        button.className = 'page-nav-btn';
-        button.setAttribute('type', 'button');
-        button.setAttribute('aria-label', `Zu Seite ${pageNumber} navigieren`);
+    function createPageButton(pageNum, inputEl) {
+        const btn = document.createElement('button');
+        btn.textContent = pageNum;
+        btn.className = 'page-nav-btn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', `Zu Seite ${pageNum} navigieren`);
+        btn.addEventListener('click', () => navigateToPage(pageNum, inputEl));
+        return btn;
+    }
+
+    function navigateToPage(pageNum, inputEl) {
+        inputEl.value = pageNum;
         
-        button.addEventListener('click', () => {
-            navigateToPage(pageNumber, inputElement);
+        ['input', 'change'].forEach(t => {
+            inputEl.dispatchEvent(new Event(t, { bubbles: true, cancelable: true }));
         });
         
-        return button;
-    }
-
-    // Navigation
-    function navigateToPage(pageNumber, inputElement) {
-        inputElement.value = pageNumber;
-        
-        const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-        inputElement.dispatchEvent(inputEvent);
-        
-        const changeEvent = new Event('change', { bubbles: true, cancelable: true });
-        inputElement.dispatchEvent(changeEvent);
-        
-        inputElement.focus();
+        inputEl.focus();
         
         setTimeout(() => {
-            const enterEvent = new KeyboardEvent('keydown', {
-                key: 'Enter',
-                code: 'Enter',
-                keyCode: 13,
-                which: 13,
-                bubbles: true,
-                cancelable: true
+            ['keydown', 'keyup'].forEach((t, i) => {
+                setTimeout(() => {
+                    inputEl.dispatchEvent(new KeyboardEvent(t, {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true
+                    }));
+                }, i * 50);
             });
-            inputElement.dispatchEvent(enterEvent);
-            
-            setTimeout(() => {
-                const keyupEvent = new KeyboardEvent('keyup', {
-                    key: 'Enter',
-                    code: 'Enter',
-                    keyCode: 13,
-                    which: 13,
-                    bubbles: true,
-                    cancelable: true
-                });
-                inputElement.dispatchEvent(keyupEvent);
-            }, 50);
         }, 100);
     }
 
-    // Auto-Start
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
+    // ÄNDERUNG: Throttled Observer statt Polling + XHR-Interception
+    function mkObs() {
+        let timeout;
+        const obs = new MutationObserver(() => {
+            clearTimeout(timeout);
+            timeout = setTimeout(checkPageCount, 300);
+        });
+        
+        // Beobachte nur relevante Container
+        const targetEl = document.querySelector('.top-bar-nav-info') || document.body;
+        obs.observe(targetEl, { 
+            childList: true, 
+            subtree: true,
+            characterData: true 
+        });
+        
+        return obs;
     }
 
+    function init() {
+        injectStyles();
+        
+        const pageCountEl = document.querySelector(SEL.pageCount);
+        const inputEl = document.querySelector(SEL.input);
+        const viewerEl = document.querySelector(SEL.viewer);
+        
+        if (!pageCountEl || !inputEl || !viewerEl) {
+            setTimeout(init, 500);
+            return;
+        }
+
+        const pageCount = parseInt(pageCountEl.textContent.trim());
+        if (isNaN(pageCount) || pageCount <= 0) {
+            setTimeout(init, 500);
+            return;
+        }
+
+        S.lastPageCount = pageCount;
+        createSidebar(pageCount, inputEl);
+        
+        S.obs = mkObs();
+        S.init = true;
+        log('✅ Initialisiert');
+    }
+
+    window[ID].api = {
+        refresh: () => {
+            checkPageCount();
+            return { pageCount: S.lastPageCount };
+        },
+        status: () => ({
+            init: S.init,
+            pageCount: S.lastPageCount,
+            expanded: S.expanded
+        })
+    };
+
+    function main() {
+        document.readyState === 'loading' ?
+            document.addEventListener('DOMContentLoaded', init, { once: true }) :
+            setTimeout(init, 300);
+    }
+
+    main();
 })();
+
