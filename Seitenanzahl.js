@@ -1,8 +1,7 @@
-// pageNavigation.js - ROBUST MIT WARTESCHLEIFE
 (function() {
     'use strict';
 
-    const ID = 'dw-page-navigation', V = '2.1', D = true;
+    const ID = 'dw-page-navigation', V = '2.2', D = true;
     
     const SEL = {
         input: '.top-bar-nav-info input[data-trackerevent="NavToPage"]',
@@ -17,7 +16,7 @@
         expanded: false,
         container: null,
         lastPageCount: 0,
-        initAttempts: 0
+        stabilityChecks: 0
     };
 
     if (window[ID]) cleanup();
@@ -189,21 +188,17 @@
         document.head.appendChild(style);
     }
 
-    // ÄNDERUNG: Prüft ob Seitenzahl wirklich geladen ist
     function getValidPageCount() {
         const pageCountEl = document.querySelector(SEL.pageCount);
         if (!pageCountEl) return null;
 
         const text = pageCountEl.textContent.trim();
         
-        // ÄNDERUNG: Ignoriere Platzhalter und ungültige Werte
         if (!text || text === '0' || text === '...' || text === '-' || text === '') {
             return null;
         }
 
         const count = parseInt(text);
-        
-        // ÄNDERUNG: Nur gültige Zahlen > 0 akzeptieren
         if (isNaN(count) || count <= 0) return null;
         
         return count;
@@ -321,29 +316,66 @@
         }, 100);
     }
 
+    // ÄNDERUNG: Aggressiver Observer der SOFORT reagiert
     function mkObs() {
-        let timeout;
-        const obs = new MutationObserver(() => {
-            clearTimeout(timeout);
-            timeout = setTimeout(checkPageCount, 400);
+        const obs = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                // Prüfe ob das pageCount-Element sich geändert hat
+                if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                    const target = mutation.target;
+                    const pageCountEl = document.querySelector(SEL.pageCount);
+                    
+                    // Wenn die Änderung im pageCount-Element oder dessen Parent war
+                    if (target === pageCountEl || target.parentNode === pageCountEl || pageCountEl?.contains(target)) {
+                        const newCount = getValidPageCount();
+                        if (newCount && newCount !== S.lastPageCount) {
+                            log(`🔄 MutationObserver erkannt: ${S.lastPageCount} → ${newCount}`);
+                            S.lastPageCount = newCount;
+                            updateNav();
+                        }
+                    }
+                }
+            }
         });
         
-        const targetEl = document.querySelector('.top-bar-nav-info') || document.body;
-        obs.observe(targetEl, { 
-            childList: true, 
-            subtree: true,
-            characterData: true 
-        });
+        const pageCountEl = document.querySelector(SEL.pageCount);
+        if (pageCountEl) {
+            // ÄNDERUNG: Beobachte direkt das pageCount-Element
+            obs.observe(pageCountEl, { 
+                childList: true, 
+                subtree: true,
+                characterData: true 
+            });
+            log('Observer auf pageCount-Element aktiviert');
+        }
+        
+        // ÄNDERUNG: Zusätzlich Parent-Container beobachten
+        const parentContainer = pageCountEl?.parentNode;
+        if (parentContainer) {
+            obs.observe(parentContainer, {
+                childList: true,
+                subtree: true,
+                characterData: true
+            });
+            log('Observer auf Parent-Container aktiviert');
+        }
         
         return obs;
     }
 
-    // ÄNDERUNG: Aggressive Warteschleife mit Retry-Logik
-    function waitForValidPageCount(callback, attempt = 0) {
-        const maxAttempts = 40; // 40 × 500ms = 20 Sekunden
+    // ÄNDERUNG: Warteschleife die auf STABILE Werte wartet
+    function waitForStablePageCount(callback, lastValue = null, stableCount = 0, attempt = 0) {
+        const maxAttempts = 60; // 60 × 300ms = 18 Sekunden
+        const requiredStability = 3; // Wert muss 3× gleich bleiben (900ms)
         
         if (attempt >= maxAttempts) {
-            log('⚠️ Timeout: Konnte keine gültige Seitenzahl finden');
+            log('⚠️ Timeout nach 18 Sekunden');
+            // Verwende letzten bekannten Wert als Fallback
+            if (lastValue && lastValue > 0) {
+                log(`Verwende letzten bekannten Wert: ${lastValue}`);
+                S.lastPageCount = lastValue;
+                callback();
+            }
             return;
         }
 
@@ -352,40 +384,50 @@
         const viewerEl = document.querySelector(SEL.viewer);
 
         if (!pageCountEl || !inputEl || !viewerEl) {
-            log(`Versuch ${attempt + 1}/${maxAttempts}: Warte auf DOM-Elemente...`);
-            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
+            setTimeout(() => waitForStablePageCount(callback, lastValue, 0, attempt + 1), 300);
             return;
         }
 
-        const pageCount = getValidPageCount();
+        const currentValue = getValidPageCount();
         
-        if (!pageCount) {
-            log(`Versuch ${attempt + 1}/${maxAttempts}: Warte auf Seitenzahl... (aktuell: "${pageCountEl.textContent.trim()}")`);
-            setTimeout(() => waitForValidPageCount(callback, attempt + 1), 500);
-            return;
+        // ÄNDERUNG: Warte bis Wert sich stabilisiert hat
+        if (currentValue && currentValue > 0) {
+            if (currentValue === lastValue) {
+                stableCount++;
+                log(`Stabilitätscheck ${stableCount}/${requiredStability}: Wert ${currentValue}`);
+                
+                if (stableCount >= requiredStability) {
+                    log(`✅ Stabile Seitenzahl gefunden: ${currentValue}`);
+                    S.lastPageCount = currentValue;
+                    callback();
+                    return;
+                }
+            } else {
+                // Wert hat sich geändert, Reset
+                log(`Wert geändert: ${lastValue} → ${currentValue}, Reset Stabilität`);
+                stableCount = 1;
+            }
+            
+            setTimeout(() => waitForStablePageCount(callback, currentValue, stableCount, attempt + 1), 300);
+        } else {
+            log(`Versuch ${attempt + 1}/${maxAttempts}: Warte auf gültigen Wert... (aktuell: "${pageCountEl.textContent.trim()}")`);
+            setTimeout(() => waitForStablePageCount(callback, lastValue, 0, attempt + 1), 300);
         }
-
-        // ERFOLG: Gültige Seitenzahl gefunden
-        log(`✅ Gültige Seitenzahl gefunden: ${pageCount} (nach ${attempt + 1} Versuchen)`);
-        S.lastPageCount = pageCount;
-        callback();
     }
 
     function init() {
         injectStyles();
         
-        // ÄNDERUNG: Warte aktiv auf gültige Seitenzahl
-        waitForValidPageCount(() => {
+        // ÄNDERUNG: Warte auf stabilen Wert
+        waitForStablePageCount(() => {
             const inputEl = document.querySelector(SEL.input);
             if (inputEl && S.lastPageCount > 0) {
                 createSidebar(S.lastPageCount, inputEl);
                 
-                // Observer erst nach erfolgreicher Initialisierung
-                setTimeout(() => {
-                    S.obs = mkObs();
-                    S.init = true;
-                    log(`✅ Vollständig initialisiert mit ${S.lastPageCount} Seiten`);
-                }, 500);
+                // Observer aktivieren
+                S.obs = mkObs();
+                S.init = true;
+                log(`✅ Initialisiert mit ${S.lastPageCount} Seiten`);
             }
         });
     }
@@ -398,8 +440,7 @@
         status: () => ({
             init: S.init,
             pageCount: S.lastPageCount,
-            expanded: S.expanded,
-            attempts: S.initAttempts
+            expanded: S.expanded
         }),
         forceUpdate: () => {
             const count = getValidPageCount();
@@ -408,7 +449,7 @@
                 updateNav();
                 log(`🔄 Force Update: ${count} Seiten`);
             } else {
-                log('⚠️ Force Update fehlgeschlagen: Keine gültige Seitenzahl');
+                log('⚠️ Keine gültige Seitenzahl gefunden');
             }
         }
     };
@@ -416,7 +457,7 @@
     function main() {
         document.readyState === 'loading' ?
             document.addEventListener('DOMContentLoaded', init, { once: true }) :
-            setTimeout(init, 800); // ÄNDERUNG: 800ms initiale Verzögerung
+            setTimeout(init, 1200); // ÄNDERUNG: 1.2 Sekunden initiale Verzögerung
     }
 
     main();
