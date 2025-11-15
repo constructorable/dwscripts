@@ -1,10 +1,8 @@
-// buttons-datum.js
-// ÄNDERUNG: Kompaktere Buttons mit reduziertem Abstand zum Datumsfeld
-
+// buttons-datum.js - OPTIMIERT
 (function () {
     'use strict';
 
-    const ID = 'dw-ko-buttons-datum', V = '1.0', SK = 'dw-ko-datum-state', D = true;
+    const ID = 'dw-ko-buttons-datum', V = '2.0', SK = 'dw-ko-datum-state', D = true;
 
     const CFG = {
         datumsfelder: {
@@ -54,9 +52,7 @@
     let S = {
         init: false,
         obs: null,
-        timeouts: new Set(),
-        dialogs: new Set(),
-        processed: new Set()
+        processed: new WeakSet()
     };
 
     if (window[ID]) cleanup();
@@ -65,9 +61,8 @@
     const log = (m, d) => D && console.log(`[DW-DATUM] ${m}`, d || '');
 
     function cleanup() {
-        if (window[ID] && window[ID].s) {
-            window[ID].s.obs && window[ID].s.obs.disconnect();
-            window[ID].s.timeouts && window[ID].s.timeouts.forEach(clearTimeout);
+        if (window[ID]?.s) {
+            window[ID].s.obs?.disconnect();
         }
     }
 
@@ -110,62 +105,44 @@
         typeof ko !== 'undefined' && ko.version ? cb() : i < 50 ? setTimeout(() => waitKO(cb, i + 1), 100) : cb();
     }
 
-    function waitKOBind(e, cb, i = 0) {
-        if (i >= 30) { cb(); return; }
-        const inp = e.querySelectorAll('input.dw-dateField');
-        const hasBind = Array.from(inp).some(f => f.hasAttribute('data-bind'));
-        hasBind ? setTimeout(() => waitKOBind(e, cb, i + 1), 150) : cb();
-    }
-
     function isProc(f) {
         if (!f) return false;
         const r = f.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && f.offsetParent !== null && f.closest('tr');
     }
 
-    function mkId(inp, txt, k, di = null) {
+    function mkId(inp, txt, k) {
         const nm = inp.name || inp.id || '';
         const tbl = inp.closest('table');
         const pos = tbl ? Array.from(tbl.querySelectorAll('input')).indexOf(inp) : 0;
-        const base = `${k}_${nm}_${txt.replace(/[^a-zA-Z0-9]/g, '')}_${pos}`;
-        return di ? `${di}_${base}` : base;
+        return `${k}_${nm}_${txt.replace(/[^a-zA-Z0-9]/g, '')}_${pos}`;
     }
 
-    function getDlgId(d) {
-        if (!d) return null;
-        const t = d.querySelector('.ui-dialog-title');
-        const tt = t && t.textContent ? t.textContent.trim() : '';
-        const c = d.querySelector('.ui-dialog-content');
-        const ci = c && c.id ? c.id : '';
-        const di = d.id || Math.random().toString(36).substr(2, 9);
-        return `dlg_${tt}_${ci}_${di}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    function hasButtons(row, pre) {
+        const next = row.nextElementSibling;
+        return next?.classList.contains(`${pre}-button-row`);
     }
 
-    function findDateInCont(cfg, k, c, di = null) {
+    function findDateInCont(cfg, k, c) {
         const found = [];
         const dates = c.querySelectorAll('input.dw-dateField');
 
         for (const inp of dates) {
-            if (!isProc(inp)) continue;
+            if (!isProc(inp) || S.processed.has(inp)) continue;
             const row = inp.closest('tr');
-            if (!row) continue;
+            if (!row || hasButtons(row, cfg.pre)) continue;
+            
             const lbl = row.querySelector('.dw-fieldLabel span');
-            const txt = lbl && lbl.textContent ? lbl.textContent.trim() : 'Datumsfeld';
+            const txt = lbl?.textContent?.trim() || 'Datumsfeld';
 
             if (cfg.inc) {
                 const isIncluded = cfg.inc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()));
                 if (!isIncluded) continue;
-            } else if (cfg.exc && cfg.exc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()))) {
+            } else if (cfg.exc?.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()))) {
                 continue;
             }
 
-            const fid = mkId(inp, txt, k, di);
-            const hasExistingButtons = row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`);
-            const alreadyProcessed = S.processed.has(fid);
-            const hasButtonsInDOM = document.querySelector(`[data-field-id="${fid}"]`);
-
-            if (hasExistingButtons || alreadyProcessed || hasButtonsInDOM) continue;
-
+            const fid = mkId(inp, txt, k);
             found.push({ inp, txt, row, k, fid });
         }
         return found;
@@ -180,7 +157,7 @@
         });
     }
 
-    function handleClick(e, opt, inp, fid) {
+    function handleClick(e, opt, inp) {
         e.preventDefault();
         e.stopPropagation();
         const val = getDate(opt.a);
@@ -196,7 +173,7 @@
         btn.setAttribute('data-value', opt.v);
         btn.setAttribute('data-field-id', fid);
         btn.setAttribute('data-action', opt.a || '');
-        btn.addEventListener('click', e => handleClick(e, opt, inp, fid), { passive: true });
+        btn.addEventListener('click', e => handleClick(e, opt, inp), { passive: true });
         return btn;
     }
 
@@ -215,25 +192,16 @@
         return cont;
     }
 
-    function inject(f, cfg, di = null) {
+    function inject(f, cfg) {
         const { inp, row, k, fid } = f;
 
-        if (row.nextElementSibling && row.nextElementSibling.classList.contains(`${cfg.pre}-button-row`)) {
-            log(`⚠️ Button-Reihe bereits vorhanden: ${fid}`);
-            return false;
-        }
-        if (document.querySelector(`[data-field-id="${fid}"]`)) {
-            log(`⚠️ Button bereits im DOM: ${fid}`);
-            return false;
-        }
+        if (hasButtons(row, cfg.pre)) return false;
 
         const br = document.createElement('tr');
         br.className = `${cfg.pre}-button-row dw-ko-btn-row`;
         br.setAttribute('data-field-id', fid);
         br.setAttribute('data-config-key', k);
-        di && br.setAttribute('data-dialog-id', di);
-        br.style.cssText = 'position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important;';
-
+        
         const lc = document.createElement('td');
         lc.className = 'dw-fieldLabel';
         const cc = document.createElement('td');
@@ -242,15 +210,10 @@
         cc.appendChild(bc);
         br.appendChild(lc);
         br.appendChild(cc);
-        br.classList.add('dw-btn-fade');
-
+        
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
-            setTimeout(() => {
-                br.style.display = 'table-row';
-                br.style.opacity = '1';
-                br.style.visibility = 'visible';
-            }, 50);
+            S.processed.add(inp);
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -259,36 +222,12 @@
         }
     }
 
-    function injectWithDelay(f, cfg, di) {
-        const delays = [50, 150, 300];
-        function attempt(i = 0) {
-            if (i >= delays.length) return false;
-            setTimeout(() => {
-                if (f.inp && f.inp.isConnected && f.inp.offsetParent !== null) {
-                    const success = inject(f, cfg, di);
-                    if (!success) attempt(i + 1);
-                }
-            }, delays[i]);
-        }
-        attempt();
-        return true;
-    }
-
-    function procCfgInEl(k, c, di = null) {
+    function procCfgInEl(k, c) {
         const cfg = CFG[k];
-        const fields = findDateInCont(cfg, k, c, di);
-        if (!fields.length) return 0;
-
+        const fields = findDateInCont(cfg, k, c);
         let added = 0;
         fields.forEach(f => {
-            if (!S.processed.has(f.fid)) {
-                requestAnimationFrame(() => {
-                    if (injectWithDelay(f, cfg, di)) {
-                        S.processed.add(f.fid);
-                        added++;
-                    }
-                });
-            }
+            if (inject(f, cfg)) added++;
         });
         return added;
     }
@@ -299,22 +238,8 @@
         return total;
     }
 
-    function addToDlg(d, di) {
-        if (S.dialogs.has(di)) return 0;
-        let total = 0;
-        Object.keys(CFG).forEach(k => { total += procCfgInEl(k, d, di); });
-        if (total > 0) S.dialogs.add(di);
-        return total;
-    }
-
-    function procAfterKO(e) {
-        const dlg = e.closest && e.closest('.ui-dialog') || e.querySelector && e.querySelector('.ui-dialog') || (e.classList && e.classList.contains('ui-dialog') ? e : null);
-        dlg ? setTimeout(() => addToDlg(dlg, getDlgId(dlg)), 100) : setTimeout(() => procStd(e), 100);
-    }
-
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
-        // ÄNDERUNG: Reduzierte Button-Größe, kompakteres Padding, verringerter Abstand zum Datumsfeld
         const css = `.dw-datum-button-row,.dw-datum-past-button-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="dw-datum"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:3px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-8px!important}[class*="dw-datum"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:1px 3px!important;min-height:16px!important;font-size:10px!important;margin:0!important;line-height:1.2!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row){min-width:500px!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialogContent.fields{max-height:400px!important;overflow-y:auto!important}.dw-datum-button-container{max-width:470px!important}`;
 
         const style = document.createElement('style');
@@ -324,14 +249,14 @@
     }
 
     function mkObs() {
+        let timeout;
         const obs = new MutationObserver(() => {
-            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-            dlgs.forEach(d => {
-                const di = getDlgId(d);
-                const hasBtns = d.querySelectorAll('[class*="dw-datum"][class*="-button-row"]').length > 0;
-                !hasBtns && waitKOBind(d, () => addToDlg(d, di));
-            });
-            procStd(document.body);
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                procStd(document.body);
+                const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+                dlgs.forEach(d => procStd(d));
+            }, 200);
         });
         obs.observe(document.body, { childList: true, subtree: true });
         return obs;
@@ -343,11 +268,8 @@
             setTimeout(() => {
                 procStd(document.body);
                 const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
-                dlgs.forEach(d => {
-                    const di = getDlgId(d);
-                    waitKOBind(d, () => addToDlg(d, di));
-                });
-            }, 500);
+                dlgs.forEach(d => procStd(d));
+            }, 300);
         });
         S.obs = mkObs();
         S.init = true;
