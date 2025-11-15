@@ -1,9 +1,9 @@
 // buttons-basis.js - OPTIMIERT
 (function () {
     'use strict';
-    
+
     const ID = 'dw-ko-buttons-basis', V = '2.0', SK = 'dw-ko-basis-state', D = true;
-    
+
     const CFG = {
         nebenkosten: {
             txt: 'für Nebenkosten relevant',
@@ -16,7 +16,7 @@
             ],
             map: { 'j': 'j', 'ja': 'j', 'n': 'n', 'nein': 'n' }
         },
-        
+
         wirtschaftsjahr: {
             txt: 'wirtschaftsjahr',
             type: 'includes_lower',
@@ -29,7 +29,7 @@
                 { v: '2025 / 2026', l: '2025 / 2026' }
             ]
         },
-        
+
         skonto: {
             txt: 'skonto in',
             type: 'includes_lower',
@@ -41,7 +41,19 @@
                 { v: '3', l: '3' }
             ]
         },
-        
+
+        steuersatz1: {
+            txt: 'steuersatz',
+            type: 'includes_lower',
+            pre: 'dw-sst',
+            gap: '20px',
+            opts: [
+                { v: '0', l: '0' },
+                { v: '7', l: '7' },
+                { v: '19', l: '19' }
+            ]
+        },
+
         zuweisen: {
             txt: 'zuweisen',
             type: 'includes_lower',
@@ -58,7 +70,7 @@
                 { v: 'cz', l: 'cz' }
             ]
         },
-        
+
         vnnr: {
             txt: 'vn-nummer',
             type: 'includes_lower',
@@ -155,7 +167,7 @@
     function findInCont(k, c) {
         const cfg = CFG[k];
         const found = [];
-        
+
         try {
             const labels = c.querySelectorAll('.dw-fieldLabel span');
             for (const lbl of labels) {
@@ -165,10 +177,10 @@
 
                 const row = lbl.closest('tr');
                 if (!row || hasButtons(row, cfg.pre)) continue;
-                
+
                 const inp = findInp(row);
                 if (!inp || !isProc(inp) || S.processed.has(inp)) continue;
-                
+
                 const fid = mkId(inp, txt, k);
                 if (!fid) continue;
 
@@ -220,7 +232,7 @@
         const saved = S.reg.get(fid);
         const match = saved?.sel || cur;
         if (!match) return;
-        
+
         btns.forEach(btn => {
             const val = btn.getAttribute('data-value');
             if (val === match || (cfg.map?.[match.toLowerCase()] === val)) {
@@ -255,7 +267,7 @@
         br.className = `${cfg.pre}-button-row dw-ko-btn-row`;
         br.setAttribute('data-field-id', fid);
         br.setAttribute('data-config-key', k);
-        
+
         const lc = document.createElement('td');
         lc.className = 'dw-fieldLabel';
         const cc = document.createElement('td');
@@ -264,7 +276,7 @@
         cc.appendChild(bc);
         br.appendChild(lc);
         br.appendChild(cc);
-        
+
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
             S.processed.add(inp);
@@ -289,8 +301,8 @@
 
     function injectCSS() {
         if (document.querySelector('style[data-dw-basis-btns]')) return;
-        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:4px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-6px!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:2px 6px!important;min-height:18px!important;font-size:10px!important;white-space:nowrap!important;line-height:1.2!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
-        
+        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:4px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-6px!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:5px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:2px 6px!important;min-height:8px!important;font-size:10px!important;white-space:nowrap!important;line-height:1.2!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
+
         const style = document.createElement('style');
         style.textContent = css;
         style.setAttribute('data-dw-basis-btns', 'true');
@@ -315,13 +327,13 @@
     function init() {
         injectCSS();
         loadState();
-        
+
         setTimeout(() => {
             procAll(document.body);
             const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
             dlgs.forEach(d => procAll(d));
         }, 300);
-        
+
         S.obs = mkObs();
         S.init = true;
         log('✅ Initialisierung abgeschlossen');
@@ -343,8 +355,8 @@
     };
 
     function main() {
-        document.readyState === 'loading' ? 
-            document.addEventListener('DOMContentLoaded', init, { once: true }) : 
+        document.readyState === 'loading' ?
+            document.addEventListener('DOMContentLoaded', init, { once: true }) :
             setTimeout(init, 300);
     }
 
