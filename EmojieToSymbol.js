@@ -16,7 +16,8 @@
         style.textContent = `
             .emoji-icon {
                 color: #555555;
-                margin-right: 4px;
+                margin-right: 2px;
+                margin-left: 4px;
             }
         `;
         document.head.appendChild(style);
@@ -147,3 +148,4 @@
         setTimeout(initReplacer, 2000);
     }
 })();
+
