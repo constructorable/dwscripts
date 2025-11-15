@@ -14,6 +14,7 @@
         'Emilienstr. 1',
         'Flugplatzstr. 80',
         'Friedrichstr. 9',
+         'Fürther Str. 45',
         'Fürther Str. 54-56',
         'Fürther Str. 54',
         'Fürther Str. 56',
@@ -92,68 +93,72 @@
 
     let activeObjektDropdown = null;
     let selectedObjektIndex = 0;
-    let objektAutoVervollstaendigungAktiv = false;
     let letzteObjektLoeschAktion = 0;
-    let objektLoeschBlockadeTimeout = null;
+    const attachedObjektFields = new WeakSet();
 
-    // NEU: Sternchen entfernen
     function bereinigeObjektEingabe(input) {
         if (!input) return '';
         return input.replace(/^[\s*]+/, '').trim();
     }
 
-    // NEU: Intelligente Objekt-Suche
     function findeObjektMatch(input) {
         input = bereinigeObjektEingabe(input);
         if (!input || input.length < 2) return null;
         const inputLower = input.toLowerCase().trim();
         const inputTeile = inputLower.split(/\s+/).filter(t => t.length > 0);
 
-        // 1) Breite Includes-Suche (alle Teile müssen vorkommen)
         let matches = OBJEKT_KATALOG.filter(typ =>
             inputTeile.every(teil => typ.toLowerCase().includes(teil))
         );
 
         if (matches.length === 1) return { typ: 'eindeutig', wert: matches[0] };
-        if (matches.length > 1 && matches.length <= 10) return { typ: 'mehrfach', wert: matches };
+        if (matches.length > 1 && matches.length <= 20) return { typ: 'mehrfach', wert: matches };
 
-        // 2) Wenn zu viele Matches: Versuche Präfix-/StartsWith-Filter
         const prefixMatches = OBJEKT_KATALOG.filter(typ =>
             typ.toLowerCase().startsWith(inputLower)
         );
         if (prefixMatches.length === 1) return { typ: 'eindeutig', wert: prefixMatches[0] };
-        if (prefixMatches.length > 1 && prefixMatches.length <= 10) return { typ: 'mehrfach', wert: prefixMatches };
+        if (prefixMatches.length > 1 && prefixMatches.length <= 20) return { typ: 'mehrfach', wert: prefixMatches };
 
-        // 3) Falls immer noch zu viele Matches: gib erste 10 zurück
-        if (matches.length > 10) {
-            return { typ: 'mehrfach', wert: matches.slice(0, 10), mehr: true, total: matches.length };
+        if (matches.length > 20) {
+            return { typ: 'mehrfach', wert: matches.slice(0, 20), mehr: true, total: matches.length };
         }
 
         return null;
     }
 
-    // NEU: Dropdown erstellen
     function zeigeObjektDropdown(inputField, optionenMeta) {
         entferneObjektDropdown();
         selectedObjektIndex = 0;
 
-        // DocuWare-Dropdowns ausblenden
         document.querySelectorAll('.dw-MultiControlList').forEach(el => el.style.display = 'none');
 
         const dropdown = document.createElement('div');
         dropdown.className = 'objekt-dropdown';
         dropdown.style.cssText = `
-        position: absolute;
-        background: #f6f9fc;
-        border: 1px solid #c7d6e9;
-        border-radius: 6px;
-        box-shadow: 0 4px 14px rgba(45,66,91,0.08);
-        z-index: 10000;
-        max-height: 280px;
-        overflow-y: auto;
-        min-width: ${inputField.offsetWidth}px;
-        font-family: Arial, sans-serif;
-    `;
+            position: absolute;
+            background: #f6f9fc;
+            border: 1px solid #c7d6e9;
+            border-radius: 6px;
+            box-shadow: 0 4px 14px rgba(45,66,91,0.08);
+            z-index: 10000;
+            max-height: 280px;
+            overflow-y: auto;
+            min-width: ${inputField.offsetWidth}px;
+            font-family: Arial, sans-serif;
+        `;
+
+        const style = document.createElement('style');
+        style.textContent = `
+            .objekt-dropdown::-webkit-scrollbar { width: 8px; }
+            .objekt-dropdown::-webkit-scrollbar-track { background: #e6edf6; border-radius: 4px; }
+            .objekt-dropdown::-webkit-scrollbar-thumb { background: #4b70a6; border-radius: 4px; }
+            .objekt-dropdown::-webkit-scrollbar-thumb:hover { background: #3d5a87; }
+        `;
+        if (!document.getElementById('objekt-scrollbar-style')) {
+            style.id = 'objekt-scrollbar-style';
+            document.head.appendChild(style);
+        }
 
         const rect = inputField.getBoundingClientRect();
         dropdown.style.left = rect.left + window.scrollX + 'px';
@@ -168,12 +173,12 @@
             item.className = 'objekt-dropdown-item';
             item.textContent = option;
             item.style.cssText = `
-            padding: 8px 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #e6edf6;
-            font-size: 13px;
-            transition: background 0.14s;
-        `;
+                padding: 2px 12px;
+                cursor: pointer;
+                border-bottom: 1px solid #e6edf6;
+                font-size: 13px;
+                transition: background 0.14s;
+            `;
             item.addEventListener('mouseenter', () => {
                 selectedObjektIndex = index;
                 markiereObjektAuswahl(dropdown, selectedObjektIndex);
@@ -189,36 +194,37 @@
             dropdown.appendChild(item);
         });
 
-        // NEU: Footer anzeigen, wenn es mehr Treffer gibt
         if (hatMehr) {
             const footer = document.createElement('div');
-            footer.className = 'objekt-dropdown-footer';
             footer.style.cssText = `
-            padding: 8px 12px;
-            font-size: 12px;
-            color: #4b6b8f;
-            background: linear-gradient(to top, rgba(255,255,255,0.6), transparent);
-        `;
-            footer.textContent = `Zeige ${optionen.length} von ${total} Ergebnissen — bitte weiter tippen, um zu verfeinern.`;
+                padding: 2px 12px;
+                font-size: 12px;
+                color: #4b6b8f;
+                background: linear-gradient(to top, rgba(255,255,255,0.6), transparent);
+            `;
+            footer.textContent = `Zeige ${optionen.length} von ${total} Ergebnissen — bitte weiter tippen.`;
             dropdown.appendChild(footer);
         }
 
         document.body.appendChild(dropdown);
         activeObjektDropdown = { dropdown, inputField, optionen };
-
         markiereObjektAuswahl(dropdown, selectedObjektIndex);
 
-        setTimeout(() => inputField.focus(), 0);
+        setTimeout(() => {
+            inputField.focus();
+            inputField.setSelectionRange(inputField.value.length, inputField.value.length);
+        }, 0);
+
         setTimeout(() => document.addEventListener('click', handleObjektOutsideClick), 100);
     }
 
-    // NEU: Auswahl markieren
     function markiereObjektAuswahl(dropdown, index) {
         const items = dropdown.querySelectorAll('.objekt-dropdown-item');
         items.forEach((item, i) => {
             if (i === index) {
                 item.style.background = '#4b70a6';
                 item.style.color = 'white';
+                item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             } else {
                 item.style.background = 'transparent';
                 item.style.color = '#2d2d2d';
@@ -226,7 +232,6 @@
         });
     }
 
-    // NEU: Dropdown entfernen
     function entferneObjektDropdown() {
         const existing = document.querySelector('.objekt-dropdown');
         if (existing) existing.remove();
@@ -239,16 +244,22 @@
         if (!e.target.closest('.objekt-dropdown')) entferneObjektDropdown();
     }
 
-    // NEU: Tastatursteuerung
     function handleObjektKeyDown(e) {
         if (!activeObjektDropdown) return;
+
+        const { dropdown, inputField, optionen } = activeObjektDropdown;
+        const items = dropdown.querySelectorAll('.objekt-dropdown-item');
+
+        const navigationKeys = ['ArrowDown', 'ArrowUp', 'Tab', 'Enter', 'Escape'];
+
+        if (!navigationKeys.includes(e.key)) {
+            return;
+        }
 
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
 
-        const { dropdown, inputField, optionen } = activeObjektDropdown;
-        const items = dropdown.querySelectorAll('.objekt-dropdown-item');
         if (!items || items.length === 0) return;
 
         const gotoIndex = (idx) => {
@@ -277,100 +288,32 @@
                 inputField.value = chosen;
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
                 entferneObjektDropdown();
-
-                const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer');
-                if (dwDropdown) {
-                    dwDropdown.style.display = 'none';
-                    dwDropdown.setAttribute('data-suppressed', 'true');
-
-                    const koData = ko.dataFor(dwDropdown);
-                    if (koData && koData.visible) {
-                        koData.visible(false);
-                    }
-                }
-
-                fokussiereNaechstesObjektFeldDocuWare(inputField);
+                suppressDocuWareDropdown();
+                fokussiereNaechstesObjektFeld(inputField);
             }
         }
 
         if (e.key === 'Escape') {
             entferneObjektDropdown();
-            return;
         }
     }
 
-    function fokussiereNaechstesObjektFeldDocuWare(currentField) {
-        const currentTr = currentField.closest('tr');
-        const rootTable = currentTr ? currentTr.closest('tbody, table, .dw-dialog, form, .dw-section') : null;
-
-        const isValid = (el) => {
-            if (!el) return false;
-            if (el.readOnly) return false;
-            if (el.disabled) return false;
-            const rects = el.getClientRects();
-            if (!rects || rects.length === 0) return false;
-            return true;
-        };
-
-        const findInSiblingTrs = () => {
-            if (!currentTr) return null;
-            let tr = currentTr.nextElementSibling;
-            while (tr) {
-                const candidate = tr.querySelector('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]');
-                if (candidate && isValid(candidate)) return candidate;
-                tr = tr.nextElementSibling;
-            }
-            return null;
-        };
-
-        const findInRoot = () => {
-            if (!rootTable) return null;
-            const candidates = Array.from(rootTable.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
-            const idx = candidates.indexOf(currentField);
-            if (idx >= 0) {
-                for (let i = idx + 1; i < candidates.length; i++) {
-                    if (isValid(candidates[i])) return candidates[i];
-                }
-            }
-            return null;
-        };
-
-        const findGlobally = () => {
-            const all = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select, input[type="text"]'));
-            const idx = all.indexOf(currentField);
-            if (idx >= 0) {
-                for (let i = idx + 1; i < all.length; i++) {
-                    if (isValid(all[i])) return all[i];
-                }
-            }
-            return null;
-        };
-
-        let next = findInSiblingTrs() || findInRoot() || findGlobally();
-
-        if (next) {
-            setTimeout(() => {
-                try {
-                    next.focus();
-                    if (typeof next.select === 'function') {
-                        next.select();
-                    }
-                    next.dispatchEvent(new Event('focus', { bubbles: true }));
-                } catch (err) {
-                    // Fallback
-                }
-            }, 60);
+    function suppressDocuWareDropdown() {
+        const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer, .dw-scroll-content.scroll-content');
+        if (dwDropdown) {
+            dwDropdown.style.display = 'none';
+            dwDropdown.setAttribute('data-suppressed', 'true');
+            const koData = ko?.dataFor?.(dwDropdown);
+            if (koData?.visible) koData.visible(false);
         }
     }
 
-    // ÄNDERUNG: Input-Handler mit korrekter Delete-Behandlung
     function handleObjektInput(e) {
         const inputField = e.target;
 
         if (e.inputType === 'deleteContentBackward' || e.inputType === 'deleteContentForward') {
             letzteObjektLoeschAktion = Date.now();
             entferneObjektDropdown();
-
             if (inputField.value.trim() === '') {
                 inputField.value = '';
                 return;
@@ -400,7 +343,6 @@
         } else entferneObjektDropdown();
     }
 
-    // ÄNDERUNG: Jedes Label, das "Objekt" enthält, wird erkannt
     function istObjektFeld(inputField) {
         const tr = inputField.closest('tr');
         if (!tr) return false;
@@ -410,58 +352,64 @@
         return labelText.includes('objekt');
     }
 
-    // ÄNDERUNG: Verbesserte Fokus-Steuerung für DocuWare-Felder
     function fokussiereNaechstesObjektFeld(currentField) {
-        const bereich = currentField.closest('table, .dw-section, form') || document;
-        const felder = Array.from(bereich.querySelectorAll('input[type="text"], textarea, select'))
-            .filter(el => !el.disabled && el.offsetParent !== null);
+        const bereich = currentField.closest('tbody, table, .dw-section, form') || document;
+
+        const isValid = (el) => {
+            if (!el || el.readOnly || el.disabled) return false;
+            const rects = el.getClientRects();
+            return rects && rects.length > 0;
+        };
+
+        const felder = Array.from(bereich.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select'))
+            .filter(isValid);
 
         const index = felder.indexOf(currentField);
+        let nextField = null;
+
         if (index >= 0 && index < felder.length - 1) {
-            const next = felder[index + 1];
-            setTimeout(() => next.focus(), 80);
-            return;
+            nextField = felder[index + 1];
+        } else {
+            const alleFelder = Array.from(document.querySelectorAll('input.dw-textField, input.dw-dateField, textarea, select'))
+                .filter(isValid);
+            const globalIndex = alleFelder.indexOf(currentField);
+            if (globalIndex >= 0 && globalIndex < alleFelder.length - 1) {
+                nextField = alleFelder[globalIndex + 1];
+            }
         }
 
-        const alleFelder = Array.from(document.querySelectorAll('input[type="text"], textarea, select'))
-            .filter(el => !el.disabled && el.offsetParent !== null);
-
-        const globalIndex = alleFelder.indexOf(currentField);
-        if (globalIndex >= 0 && globalIndex < alleFelder.length - 1) {
-            const nextGlobal = alleFelder[globalIndex + 1];
-            setTimeout(() => nextGlobal.focus(), 80);
+        if (nextField) {
+            setTimeout(() => {
+                nextField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                nextField.focus();
+                if (typeof nextField.select === 'function') nextField.select();
+            }, 80);
         }
     }
 
-    // NEU: Handler anhängen
     function attachObjektHandler(inputField) {
-        if (inputField.dataset.objektAttached) return;
+        if (attachedObjektFields.has(inputField)) return;
         if (!istObjektFeld(inputField)) return;
+
         inputField.addEventListener('input', handleObjektInput);
         inputField.addEventListener('keydown', handleObjektKeyDown, true);
-        inputField.dataset.objektAttached = 'true';
+        attachedObjektFields.add(inputField);
     }
 
-    // NEU: Scannen
     function scanObjekte() {
         document.querySelectorAll('input.dw-textField').forEach(attachObjektHandler);
     }
 
+    let objektObserverTimeout;
     const objektObserver = new MutationObserver(() => {
-        const dwDropdown = document.querySelector('.dw-scroll-content.scroll-content');
-        const customDropdown = document.querySelector('.objekt-dropdown');
-
-        if (dwDropdown && customDropdown && customDropdown.style.display !== 'none') {
-            dwDropdown.style.display = 'none';
-            dwDropdown.setAttribute('data-suppressed', 'true');
-        } else if (dwDropdown && dwDropdown.getAttribute('data-suppressed')) {
-            dwDropdown.style.display = '';
-            dwDropdown.removeAttribute('data-suppressed');
-        }
-
-        scanObjekte();
+        clearTimeout(objektObserverTimeout);
+        objektObserverTimeout = setTimeout(() => {
+            suppressDocuWareDropdown();
+            scanObjekte();
+        }, 150);
     });
 
     objektObserver.observe(document.body, { childList: true, subtree: true });
+    scanObjekte();
 
 })();
