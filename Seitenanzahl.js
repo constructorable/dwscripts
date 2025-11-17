@@ -37,10 +37,11 @@
         style.textContent = `
             .page-navigation-sidebar {
                 position: absolute;
-                top: 90vh;
                 right: 1px;
                 z-index: 1000;
                 transition: all 0.3s ease;
+                position:fixed;
+                margin-top:1px
             }
 
             .page-navigation-sidebar:not(.expanded) {
@@ -64,7 +65,7 @@
             .page-nav-tab {
                 width: 15px;
                 height: 15px;
-                background: rgba(50, 50, 50, 0.75);
+                background: rgba(121, 121, 121, 0.75);
                 backdrop-filter: blur(6px);
                 border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: 5px;
@@ -409,3 +410,4 @@
     }
 
 })();
+
