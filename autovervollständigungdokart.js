@@ -147,7 +147,7 @@
     ];
 
 
-   let activeDokTypDropdown = null;
+    let activeDokTypDropdown = null;
     let selectedDokTypIndex = 0;
     let letzteLoeschAktion = 0;
     const attachedFields = new WeakSet();
@@ -157,34 +157,34 @@
         return input.replace(/^[\s*]+/, '').trim();
     }
 
-function findeDokumententypMatch(input) {
-    input = bereinigeEingabe(input);
-    if (!input || input.length < 2) return null;
-    const inputLower = input.toLowerCase().trim();
-    const inputTeile = inputLower.split(/\s+/).filter(t => t.length > 0);
+    function findeDokumententypMatch(input) {
+        input = bereinigeEingabe(input);
+        if (!input || input.length < 2) return null;
+        const inputLower = input.toLowerCase().trim();
+        const inputTeile = inputLower.split(/\s+/).filter(t => t.length > 0);
 
-    let matches = DOKUMENTENTYP_KATALOG.filter(typ =>
-        inputTeile.every(teil => typ.toLowerCase().includes(teil))
-    );
+        let matches = DOKUMENTENTYP_KATALOG.filter(typ =>
+            inputTeile.every(teil => typ.toLowerCase().includes(teil))
+        );
 
-    if (matches.length === 1) return { typ: 'eindeutig', wert: matches[0] };
-    // ÄNDERUNG: Limit von 10 auf 20 erhöht
-    if (matches.length > 1 && matches.length <= 35) return { typ: 'mehrfach', wert: matches };
+        if (matches.length === 1) return { typ: 'eindeutig', wert: matches[0] };
+        // ÄNDERUNG: Limit von 10 auf 20 erhöht
+        if (matches.length > 1 && matches.length <= 35) return { typ: 'mehrfach', wert: matches };
 
-    const prefixMatches = DOKUMENTENTYP_KATALOG.filter(typ =>
-        typ.toLowerCase().startsWith(inputLower)
-    );
-    if (prefixMatches.length === 1) return { typ: 'eindeutig', wert: prefixMatches[0] };
-    // ÄNDERUNG: Limit von 10 auf 20 erhöht
-    if (prefixMatches.length > 1 && prefixMatches.length <= 35) return { typ: 'mehrfach', wert: prefixMatches };
+        const prefixMatches = DOKUMENTENTYP_KATALOG.filter(typ =>
+            typ.toLowerCase().startsWith(inputLower)
+        );
+        if (prefixMatches.length === 1) return { typ: 'eindeutig', wert: prefixMatches[0] };
+        // ÄNDERUNG: Limit von 10 auf 20 erhöht
+        if (prefixMatches.length > 1 && prefixMatches.length <= 35) return { typ: 'mehrfach', wert: prefixMatches };
 
-    // ÄNDERUNG: Zeige erste 20 statt 10
-    if (matches.length > 35) {
-        return { typ: 'mehrfach', wert: matches.slice(0, 35), mehr: true, total: matches.length };
+        // ÄNDERUNG: Zeige erste 20 statt 10
+        if (matches.length > 35) {
+            return { typ: 'mehrfach', wert: matches.slice(0, 35), mehr: true, total: matches.length };
+        }
+
+        return null;
     }
-
-    return null;
-}
 
     function zeigeDropdown(inputField, optionenMeta) {
         entferneDropdown();
@@ -206,7 +206,7 @@ function findeDokumententypMatch(input) {
             min-width: ${inputField.offsetWidth}px;
             font-family: Arial, sans-serif;
         `;
-        
+
         const style = document.createElement('style');
         style.textContent = `
             .dokumententyp-dropdown::-webkit-scrollbar { width: 8px; }
@@ -275,7 +275,7 @@ function findeDokumententypMatch(input) {
             // ÄNDERUNG: Cursor ans Ende setzen
             inputField.setSelectionRange(inputField.value.length, inputField.value.length);
         }, 0);
-        
+
         setTimeout(() => document.addEventListener('click', handleOutsideClick), 100);
     }
 
@@ -311,16 +311,13 @@ function findeDokumententypMatch(input) {
 
         const { dropdown, inputField, optionen } = activeDokTypDropdown;
         const items = dropdown.querySelectorAll('.dropdown-item');
-        
-        // ÄNDERUNG: Nur Navigationstasten abfangen, Buchstaben durchlassen
+
         const navigationKeys = ['ArrowDown', 'ArrowUp', 'Tab', 'Enter', 'Escape'];
-        
+
         if (!navigationKeys.includes(e.key)) {
-            // Normale Eingabe erlauben (Buchstaben, Zahlen, Leerzeichen etc.)
             return;
         }
 
-        // Nur bei Navigationstasten Event blockieren
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -353,7 +350,7 @@ function findeDokumententypMatch(input) {
                 inputField.value = chosen;
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
                 entferneDropdown();
-                suppressDocuWareDropdown();
+                suppressDocuWareDropdown(inputField); // ÄNDERUNG: inputField übergeben
                 fokussiereNaechstesFeld(inputField);
             }
         }
@@ -363,7 +360,9 @@ function findeDokumententypMatch(input) {
         }
     }
 
-    function suppressDocuWareDropdown() {
+    function suppressDocuWareDropdown(inputField) {
+        if (!inputField || !istDokumententypFeld(inputField)) return;
+
         const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer, .dw-scroll-content.scroll-content');
         if (dwDropdown) {
             dwDropdown.style.display = 'none';
@@ -415,12 +414,22 @@ function findeDokumententypMatch(input) {
         const label = tr.querySelector('.dw-fieldLabel span');
         if (!label) return false;
         const labelText = label.textContent.trim().toLowerCase();
-        return labelText.includes('dokument');
+
+        // ÄNDERUNG: Präzise Prüfung auf Dokumententyp-Felder
+        return labelText.startsWith('dokumententyp') ||
+            labelText.startsWith('dokumentenart') ||
+            labelText.startsWith('dokumentenunterart') ||
+            labelText === 'dokumententyp' ||
+            labelText === 'dokumentenart' ||
+            labelText === 'dokumentenunterart' ||
+            labelText.includes('dokumententyp (') ||
+            labelText.includes('dokumentenart (') ||
+            labelText.includes('dokumentenunterart (');
     }
 
     function fokussiereNaechstesFeld(currentField) {
         const bereich = currentField.closest('tbody, table, .dw-section, form') || document;
-        
+
         const isValid = (el) => {
             if (!el || el.readOnly || el.disabled) return false;
             const rects = el.getClientRects();
@@ -456,7 +465,7 @@ function findeDokumententypMatch(input) {
     function attachHandler(inputField) {
         if (attachedFields.has(inputField)) return;
         if (!istDokumententypFeld(inputField)) return;
-        
+
         inputField.addEventListener('input', handleInput);
         inputField.addEventListener('keydown', handleKeyDown, true);
         attachedFields.add(inputField);
@@ -470,7 +479,7 @@ function findeDokumententypMatch(input) {
     const observer = new MutationObserver(() => {
         clearTimeout(observerTimeout);
         observerTimeout = setTimeout(() => {
-            suppressDocuWareDropdown();
+            // suppressDocuWareDropdown(); // ENTFERNT - nicht mehr global aufrufen
             scan();
         }, 150);
     });
@@ -479,3 +488,4 @@ function findeDokumententypMatch(input) {
     scan();
 
 })();
+
