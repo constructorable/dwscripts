@@ -17,7 +17,9 @@
         style.textContent = `
             .dw-store-btn-under-zuweisen {
                 display: inline-block !important;
-                margin-top: 8px !important;
+                margin-top: 5px !important;
+                margin-bottom: 4px !important;
+                margin-left: 31px !important;
                 padding: 6px 20px !important;
                 background: #5984c9 !important;
                 color: #ffffff !important;
