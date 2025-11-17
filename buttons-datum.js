@@ -123,6 +123,10 @@
         return next?.classList.contains(`${pre}-button-row`);
     }
 
+    function istInModal(inp) {
+        return inp.closest('.ui-dialog') !== null;
+    }
+
     function findDateInCont(cfg, k, c) {
         const found = [];
         const dates = c.querySelectorAll('input.dw-dateField');
@@ -164,7 +168,7 @@
         setVal(inp, val);
     }
 
-    function mkBtn(opt, cfg, inp, fid) {
+    function mkBtn(opt, cfg, inp, fid, inModal) {
         const btn = document.createElement('button');
         btn.className = `${cfg.pre}-action-button`;
         btn.type = 'button';
@@ -173,23 +177,50 @@
         btn.setAttribute('data-value', opt.v);
         btn.setAttribute('data-field-id', fid);
         btn.setAttribute('data-action', opt.a || '');
+        
+        if (inModal) {
+            btn.classList.add('in-modal');
+        }
+        
         btn.addEventListener('click', e => handleClick(e, opt, inp), { passive: true });
         return btn;
     }
 
     function mkBtnCont(inp, k, fid) {
         const cfg = CFG[k];
+        const inModal = istInModal(inp);
+        
         const cont = document.createElement('div');
         cont.className = `${cfg.pre}-button-container`;
         cont.setAttribute('data-field-id', fid);
+        
+        if (inModal) {
+            cont.classList.add('in-modal');
+        }
 
         const frag = document.createDocumentFragment();
         cfg.opts.forEach(opt => {
-            const btn = mkBtn(opt, cfg, inp, fid);
+            const btn = mkBtn(opt, cfg, inp, fid, inModal);
             frag.appendChild(btn);
         });
         cont.appendChild(frag);
         return cont;
+    }
+
+    // ÄNDERUNG: Modal per JavaScript vergrößern
+    function vergroessereModal(inp) {
+        const modal = inp.closest('.ui-dialog');
+        if (!modal) return;
+        
+        const content = modal.querySelector('.dw-dialogContent.fields');
+        if (!content) return;
+        
+        modal.style.setProperty('max-height', 'none', 'important');
+        modal.style.setProperty('height', 'auto', 'important');
+        content.style.setProperty('max-height', '600px', 'important');
+        content.style.setProperty('height', 'auto', 'important');
+        
+        log('🔧 Modal vergrößert');
     }
 
     function inject(f, cfg) {
@@ -214,6 +245,11 @@
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
             S.processed.add(inp);
+            
+            if (istInModal(inp)) {
+                setTimeout(() => vergroessereModal(inp), 100);
+            }
+            
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -238,9 +274,16 @@
         return total;
     }
 
+    // ÄNDERUNG: Kompaktes CSS ohne redundante Modal-Regeln
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
-        const css = `.dw-datum-button-row,.dw-datum-past-button-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="dw-datum"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:3px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-8px!important}[class*="dw-datum"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:1px 3px!important;min-height:16px!important;font-size:10px!important;margin:0!important;line-height:1.2!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row){min-width:500px!important}.ui-dialog.dw-dialogs:has(.dw-datum-button-row) .dw-dialogContent.fields{max-height:400px!important;overflow-y:auto!important}.dw-datum-button-container{max-width:470px!important}`;
+        const css = `
+.dw-datum-button-row,.dw-datum-past-button-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}
+[class*="dw-datum"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:5px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-8px!important}
+[class*="dw-datum"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:4px 8px!important;min-height:12px!important; border-radius:22px !important; font-size:11px!important;margin:0!important;line-height:1.2!important;white-space:nowrap!important}
+[class*="dw-datum"][class*="-action-button"]:hover{background:#f3f4f6!important;border-color:#9ca3af!important}
+[class*="dw-datum"][class*="-button-container"].in-modal{gap:4px!important;padding:7px 1px 4px 10px!important}
+[class*="dw-datum"][class*="-action-button"].in-modal{padding:3px 6px!important;font-size:10px!important;min-height:15px!important;flex:0 0 calc(25% - 4px)!important; border-radius:22px !important; justify-content:center!important}`;
 
         const style = document.createElement('style');
         style.textContent = css;
@@ -283,4 +326,3 @@
 
     main();
 })();
-
