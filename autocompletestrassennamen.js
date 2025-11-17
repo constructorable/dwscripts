@@ -1,7 +1,7 @@
 (function () {
     // NEU: Objekt-Katalog
     const OBJEKT_KATALOG = [
-     'Amalienstr. 38',
+        'Amalienstr. 38',
         'Ammonstr. 2-4',
         'Ammonstr. 2',
         'Ammonstr. 4',
@@ -14,7 +14,7 @@
         'Emilienstr. 1',
         'Flugplatzstr. 80',
         'Friedrichstr. 9',
-         'Fürther Str. 45',
+        'Fürther Str. 45',
         'Fürther Str. 54-56',
         'Fürther Str. 54',
         'Fürther Str. 56',
@@ -52,7 +52,7 @@
         'Lorenzer Str. 11',
         'Lorenzer Str. 25',
         'Mondstr. 8',
-    
+
         'Neubleiche 8',
         'Neutormauer 2',
         'Obere Turnstr. 9',
@@ -288,7 +288,7 @@
                 inputField.value = chosen;
                 inputField.dispatchEvent(new Event('input', { bubbles: true }));
                 entferneObjektDropdown();
-                suppressDocuWareDropdown();
+                suppressDocuWareDropdown(inputField); // ÄNDERUNG: Parameter hinzugefügt
                 fokussiereNaechstesObjektFeld(inputField);
             }
         }
@@ -298,7 +298,9 @@
         }
     }
 
-    function suppressDocuWareDropdown() {
+    function suppressDocuWareDropdown(inputField) {
+        if (!inputField || !istObjektFeld(inputField)) return;
+
         const dwDropdown = document.querySelector('.dw-autocompleteColumnContainer, .dw-scroll-content.scroll-content');
         if (dwDropdown) {
             dwDropdown.style.display = 'none';
@@ -307,6 +309,7 @@
             if (koData?.visible) koData.visible(false);
         }
     }
+
 
     function handleObjektInput(e) {
         const inputField = e.target;
@@ -349,7 +352,14 @@
         const label = tr.querySelector('.dw-fieldLabel span');
         if (!label) return false;
         const labelText = label.textContent.trim().toLowerCase();
-        return labelText.includes('objekt');
+
+        // Nur exakte Objekt-Felder, nicht "Objektnummer" o.ä.
+        return labelText === 'objekt' ||
+            labelText === 'objekt *' ||
+            labelText.startsWith('objekt (') ||
+            labelText === 'objektadresse' ||
+            labelText === 'objektadresse *' ||
+            labelText.startsWith('objektadresse (');
     }
 
     function fokussiereNaechstesObjektFeld(currentField) {
@@ -404,7 +414,7 @@
     const objektObserver = new MutationObserver(() => {
         clearTimeout(objektObserverTimeout);
         objektObserverTimeout = setTimeout(() => {
-            suppressDocuWareDropdown();
+            // suppressDocuWareDropdown(); // ENTFERNT
             scanObjekte();
         }, 150);
     });
@@ -413,3 +423,4 @@
     scanObjekte();
 
 })();
+
