@@ -7,31 +7,31 @@
         fieldLabel: 'Betreff',
         prefix: 'dw-betreff',
         gap: '2px',
-keywords: [
-    { value: '(tags: ', label: '(tags: ' },
-    { value: ')', label: ')' },
-    { value: 'Abrechnung', label: 'Abrechnung' },
-    { value: 'Anwalt / Klage', label: 'Anwalt / Klage' },
-    { value: 'Betriebskostenabrechnung / Nebenkostenabrechnung', label: 'BK-Abrechnung' },
-    { value: 'Einspruch / Widerspruch', label: 'Einspruch / Widerspruch' },
-    { value: 'Feuchtigkeit', label: 'Feuchtigkeit' },
-    { value: 'Heizung', label: 'Heizung' },
-    { value: 'Kündigung', label: 'Kündigung' },
-    { value: 'Mieterhöhung / Mietanpassung', label: 'Mieterhöhung' },
-    { value: 'Mietkürzung / Mietminderung', label: 'Mietkürzung / Mietminderung' },
-    { value: 'Nass / Nässe', label: 'Nass / Nässe' },
-    { value: 'Ratenzahlungsvereinbarung', label: 'Ratenzahlung' },
-    { value: 'Schädlingsbekämpfung (Ratten, Mäuse, Schaben)', label: 'Schädlingsbekämpfung' },
-    { value: 'Schimmel', label: 'Schimmel' },
-    { value: 'Strom / Elektrik / Elektro', label: 'Strom / Elektrik' },
-    { value: 'Versicherung', label: 'Versicherung' },
-    { value: 'Warmwasser', label: 'Warmwasser' },
-    { value: 'Wartung / Prüfung', label: 'Wartung / Prüfung' },
-    { value: 'Wasser', label: 'Wasser' },
-    { value: 'Wasserschaden', label: 'Wasserschaden' },
-    { value: 'Zahlungserinnerung / Mahnung', label: 'Mahnung' },
-    { value: 'Zähler', label: 'Zähler' }
-]
+        keywords: [
+            { value: '(tags: ', label: '(tags: ' },
+            { value: ')', label: ')' },
+            { value: 'Abrechnung', label: 'Abrechnung' },
+            { value: 'Anwalt / Klage', label: 'Anwalt / Klage' },
+            { value: 'Betriebskostenabrechnung / Nebenkostenabrechnung', label: 'BK-Abrechnung' },
+            { value: 'Einspruch / Widerspruch', label: 'Einspruch / Widerspruch' },
+            { value: 'Feuchtigkeit', label: 'Feuchtigkeit' },
+            { value: 'Heizung', label: 'Heizung' },
+            { value: 'Kündigung', label: 'Kündigung' },
+            { value: 'Mieterhöhung / Mietanpassung', label: 'Mieterhöhung' },
+            { value: 'Mietkürzung / Mietminderung', label: 'Mietkürzung / Mietminderung' },
+            { value: 'Nass / Nässe', label: 'Nass / Nässe' },
+            { value: 'Ratenzahlungsvereinbarung', label: 'Ratenzahlung' },
+            { value: 'Schädlingsbekämpfung (Ratten, Mäuse, Schaben)', label: 'Schädlingsbekämpfung' },
+            { value: 'Schimmel', label: 'Schimmel' },
+            { value: 'Strom / Elektrik / Elektro', label: 'Strom / Elektrik' },
+            { value: 'Versicherung', label: 'Versicherung' },
+            { value: 'Warmwasser', label: 'Warmwasser' },
+            { value: 'Wartung / Prüfung', label: 'Wartung / Prüfung' },
+            { value: 'Wasser', label: 'Wasser' },
+            { value: 'Wasserschaden', label: 'Wasserschaden' },
+            { value: 'Zahlungserinnerung / Mahnung', label: 'Mahnung' },
+            { value: 'Zähler', label: 'Zähler' }
+        ]
     };
 
     // ÄNDERUNG: Einheitliche State-Struktur wie andere Button-Scripts
@@ -74,6 +74,8 @@ keywords: [
                 padding: 4px 1px 8px 29px !important;
                 gap: ${BETREFF_CONFIG.gap} !important;
                 flex-wrap: wrap !important;
+                margin-top:-6px !important;
+                margin-bottom:5px !important;
             }
             
             .${BETREFF_CONFIG.prefix}-action-button {
@@ -81,11 +83,11 @@ keywords: [
                 align-items: center !important;
                 justify-content: center !important;
                 cursor: pointer !important;
-                border-radius: 3px !important;
+                border-radius: 22px !important;
                 border: 1px solid #d1d5db !important;
                 background: #fff !important;
                 color: #374151 !important;
-                padding: 3px 8px !important;
+                padding: 1px 8px !important;
                 min-height: 20px !important;
                 font-size: 11px !important;
                 white-space: nowrap !important;
