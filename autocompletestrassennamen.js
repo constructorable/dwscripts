@@ -351,15 +351,18 @@
         if (!tr) return false;
         const label = tr.querySelector('.dw-fieldLabel span');
         if (!label) return false;
-        const labelText = label.textContent.trim().toLowerCase();
 
-        // Nur exakte Objekt-Felder, nicht "Objektnummer" o.ä.
+        // ÄNDERUNG: Bereinige Label-Text von Sternchen und Klammern
+        const labelText = label.textContent
+            .trim()
+            .replace(/\s*\*\s*$/, '')  // Entfernt Sternchen am Ende
+            .replace(/\s*\(.*?\)\s*$/, '')  // Entfernt Klammern am Ende
+            .toLowerCase();
+
+        // ÄNDERUNG: Erweiterte Prüfung – Label muss nur "objekt" enthalten
         return labelText === 'objekt' ||
-            labelText === 'objekt *' ||
-            labelText.startsWith('objekt (') ||
             labelText === 'objektadresse' ||
-            labelText === 'objektadresse *' ||
-            labelText.startsWith('objektadresse (');
+            labelText.includes('objekt');
     }
 
     function fokussiereNaechstesObjektFeld(currentField) {
