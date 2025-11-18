@@ -1,9 +1,9 @@
 // buttons-verwaltung.js - OPTIMIERT
 (function () {
     'use strict';
-    
+
     const ID = 'dw-ko-buttons-verwaltung', V = '2.0', SK = 'dw-ko-verwaltung-state', D = true;
-    
+
     const CFG = {
         vwz: {
             txt: 'verwendungszweck 4',
@@ -26,7 +26,7 @@
                 { v: 'Sonstige Instandhaltung ', l: 'Sonstige Instandhaltung ' }
             ]
         },
-        
+
         bauteile: {
             txt: 'bauteil',
             type: 'exact_bauteil_only',
@@ -46,7 +46,7 @@
                 { v: 'Zähler - Wasserzähler (kalt)', l: 'Wasserzähler' }
             ]
         },
-        
+
         gewerk: {
             txt: 'Thema - Gewerk',
             type: 'includes_lower',
@@ -69,7 +69,7 @@
                 { v: 'Versicherung', l: 'Versicherung' }
             ]
         },
-        
+
         zahlungsart: {
             txt: 'zahlungsart',
             type: 'includes_lower',
@@ -84,7 +84,24 @@
                 { v: 'Dauerauftrag', l: 'Dauerauftrag' }
             ]
         },
-        
+
+        versendet: {
+            txt: 'versendet per',
+            type: 'includes_lower',
+            pre: 'dw-versendet',
+            gap: '15px',
+            opts: [
+                { v: 'E-Mail', l: 'E-Mail' },
+                { v: 'Post', l: 'Post' },
+                { v: 'Post (Einwurfeinschreiben)', l: 'Post (Einwurfeinschreiben)' },
+                { v: 'persönlich übergeben', l: 'persönlich übergeben' },
+                { v: 'persönlich in Briefkasten eingeworfen', l: 'persönlich in Briefkasten eingeworfen' },
+                { v: 'nicht erforderlich', l: 'nicht erforderlich' },
+                { v: 'nicht erforderlich (Entwurf)', l: 'nicht erforderlich (Entwurf)' },
+            ]
+        },
+
+
         buchungskonto: {
             txt: 'Buchungskonto',
             type: 'includes_lower',
@@ -170,7 +187,7 @@
         if (!cfg.txt) return false;
         switch (cfg.type) {
             case 'includes_lower': return txt.toLowerCase().includes(cfg.txt.toLowerCase());
-            case 'exact_bauteil_only': 
+            case 'exact_bauteil_only':
                 const t = txt.trim();
                 return t === 'Bauteil' || t === 'Bauteil:';
             default: return txt.toLowerCase().includes(cfg.txt.toLowerCase());
@@ -189,7 +206,7 @@
     function findInCont(k, c) {
         const cfg = CFG[k];
         const found = [];
-        
+
         try {
             const labels = c.querySelectorAll('.dw-fieldLabel span');
             for (const lbl of labels) {
@@ -199,10 +216,10 @@
 
                 const row = lbl.closest('tr');
                 if (!row || hasButtons(row, cfg.pre)) continue;
-                
+
                 const inp = findInp(row);
                 if (!inp || !isProc(inp) || S.processed.has(inp)) continue;
-                
+
                 const fid = mkId(inp, txt, k);
                 found.push({ inp, txt, row, k, fid });
                 if (!cfg.multi) break;
@@ -252,7 +269,7 @@
         const saved = S.reg.get(fid);
         const match = saved?.sel || cur;
         if (!match) return;
-        
+
         btns.forEach(btn => {
             const val = btn.getAttribute('data-value');
             if (val === match || (cfg.valueMapping?.[match.toLowerCase()] === val)) {
@@ -288,7 +305,7 @@
         br.className = `${cfg.pre}-button-row dw-ko-btn-row`;
         br.setAttribute('data-field-id', fid);
         br.setAttribute('data-config-key', k);
-        
+
         const lc = document.createElement('td');
         lc.className = 'dw-fieldLabel';
         const cc = document.createElement('td');
@@ -297,7 +314,7 @@
         cc.appendChild(bc);
         br.appendChild(lc);
         br.appendChild(cc);
-        
+
         try {
             row.parentNode.insertBefore(br, row.nextSibling);
             S.processed.add(inp);
@@ -329,7 +346,7 @@
     function injectCSS() {
         if (document.querySelector('style[data-dw-verw-btns]')) return;
         const css = `[class*="dw-vwz-button-row"],[class*="dw-bauteile-button-row"],[class*="dw-gewerk-button-row"],[class*="dw-zahlungsart-button-row"],[class*="dw-buchungskonto-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="dw-vwz-"][class*="-button-container"],[class*="dw-bauteile-"][class*="-button-container"],[class*="dw-gewerk-"][class*="-button-container"],[class*="dw-zahlungsart-"][class*="-button-container"],[class*="dw-buchungskonto-"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:3px!important;padding:0px 1px 10px 29px!important;flex-wrap:wrap!important}[class*="dw-vwz-"][class*="-action-button"],[class*="dw-bauteile-"][class*="-action-button"],[class*="dw-gewerk-"][class*="-action-button"],[class*="dw-zahlungsart-"][class*="-action-button"],[class*="dw-buchungskonto-"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:22px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:15px!important;font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}`;
-        
+
         const style = document.createElement('style');
         style.textContent = css;
         style.setAttribute('data-dw-verw-btns', 'true');
@@ -380,8 +397,8 @@
     };
 
     function main() {
-        document.readyState === 'loading' ? 
-            document.addEventListener('DOMContentLoaded', init, { once: true }) : 
+        document.readyState === 'loading' ?
+            document.addEventListener('DOMContentLoaded', init, { once: true }) :
             setTimeout(init, 300);
     }
 
