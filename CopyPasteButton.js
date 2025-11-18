@@ -49,15 +49,24 @@
         document.head.appendChild(l);
     }
 
-    // CSS Styles - Buttons innerhalb der Inputfelder positioniert
+    // CSS Styles
     const s = document.createElement('style');
     s.setAttribute('data-dw-enhancement', 'true');
-    s.textContent = `.dw-field-buttons{position:absolute;left:30px!important;top:2px!important;bottom:2px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:2px!important;z-index:1000;background:rgba(137, 250, 106, 0);border-radius:4px;padding:1px 3px!important;width:auto!important;height:auto!important;min-height:16px!important;max-height:calc(100% - 4px)!important}.dw-field-wrapper .dw-dateField+.dw-field-buttons,.dw-field-wrapper .is-dateEntry+.dw-field-buttons,.dw-field-wrapper .hasCalendarsPicker+.dw-field-buttons{left:30px!important}.keyword-row.dw-field-wrapper{position:relative!important;display:table-row!important;width:100%!important}.keyword-row .dw-field-buttons{position:absolute!important;left:15px!important;top:50%!important;transform:translateY(-50%)!important;bottom:auto!important;display:flex!important;background:rgba(255,255,255,0.9)!important;border-radius:3px!important;padding:2px!important}.keyword-value-span{position:relative!important;padding-left:65px!important;display:inline-block!important;min-width:200px!important}.dw-cell-copy-btn{position:fixed!important;width:18px!important;height:18px!important;border:1px solid rgb(255,255,255)!important;background:rgba(255,255,255,0.95)!important;border-radius:3px!important;cursor:pointer!important;display:none!important;align-items:center!important;justify-content:center!important;font-size:11px!important;color:rgb(81,81,81)!important;z-index:9999!important;transition:all 0.15s ease!important;margin:0!important;padding:0!important;pointer-events:auto!important;opacity:0.7}.dw-cell-copy-btn:hover{background:#d4edda!important;color:rgb(62,62,62)!important;border-color:rgb(255,255,255)!important;transform:scale(1.3)!important;box-shadow:0 3px 12px rgba(0,0,0,0.25)!important;opacity:.7}.dw-cell-copy-btn.show{display:flex!important}.dw-cell-copy-btn.success{background:#d4edda!important;color:rgb(64,64,64)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-cell-copy-btn.error{background:#f8d7da!important;color:#721c24!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;max-width:16px!important;max-height:16px!important;border:1px solid rgb(255,255,255)!important;background:#ffffff!important;border-radius:2px!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;color:#6c757d!important;transition:all 0.15s ease!important;flex-shrink:0!important;margin:0!important;padding:0!important;position:relative!important;float:none!important;opacity:0.3}.dw-field-btn:hover{border-color:rgb(255,255,255)!important;transform:scale(1.3)!important;z-index:1001!important;opacity:.7}.dw-field-btn.copy-btn:hover{background:#d4edda!important;color:rgba(91,91,91,0.8)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn.paste-btn:hover{background:#cce5ff!important;color:rgba(110,110,110,0.83)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn.clear-btn:hover{background:#f5c6cb!important;color:rgba(113,113,113,0.71)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-wrapper{position:relative!important;display:inline-block!important;width:100%!important;vertical-align:top!important;margin:0!important;padding:0!important;line-height:0!important}.dw-field-wrapper .dw-textField,.dw-field-wrapper .dw-numericField,.dw-field-wrapper .dw-memoField{padding-left:65px!important}.dw-field-wrapper .dw-dateField,.dw-field-wrapper .is-dateEntry,.dw-field-wrapper .hasCalendarsPicker{padding-left:65px!important}.dw-field-wrapper textarea.dw-memoField+.dw-field-buttons{top:5px!important;bottom:auto!important;left:30px!important}`;
+    s.textContent = `.dw-field-buttons{position:absolute;left:30px!important;top:2px!important;bottom:2px!important;display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:center!important;gap:2px!important;z-index:1000;background:rgba(137, 250, 106, 0);border-radius:4px;padding:1px 3px!important;width:auto!important;height:auto!important;min-height:16px!important;max-height:calc(100% - 4px)!important}.dw-field-wrapper .dw-dateField+.dw-field-buttons,.dw-field-wrapper .is-dateEntry+.dw-field-buttons,.dw-field-wrapper .hasCalendarsPicker+.dw-field-buttons{left:30px!important}.keyword-row.dw-field-wrapper{position:relative!important;display:table-row!important;width:100%!important}.keyword-row .dw-field-buttons{position:absolute!important;left:15px!important;top:50%!important;transform:translateY(-50%)!important;bottom:auto!important;display:flex!important;background:rgba(255,255,255,0.9)!important;border-radius:3px!important;padding:2px!important}.keyword-value-span{position:relative!important;padding-left:65px!important;display:inline-block!important;min-width:200px!important}.dw-cell-copy-btn{position:fixed!important;width:18px!important;height:18px!important;border:1px solid rgb(255,255,255)!important;background:rgba(255,255,255,0.95)!important;border-radius:3px!important;cursor:pointer!important;display:none!important;align-items:center!important;justify-content:center!important;font-size:11px!important;color:rgb(81,81,81)!important;z-index:9999!important;transition:all 0.15s ease!important;margin:0!important;padding:0!important;pointer-events:auto!important;opacity:0.7}.dw-cell-copy-btn:hover{background:#d4edda!important;color:rgb(62,62,62)!important;border-color:rgb(255,255,255)!important;transform:scale(1.3)!important;box-shadow:0 3px 12px rgba(0,0,0,0.25)!important;opacity:.7}.dw-cell-copy-btn.show{display:flex!important}.dw-cell-copy-btn.success{background:#d4edda!important;color:rgb(64,64,64)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-cell-copy-btn.error{background:#f8d7da!important;color:#721c24!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important;max-width:16px!important;max-height:16px!important;border:1px solid rgb(255,255,255)!important;background:#ffffff!important;border-radius:2px!important;cursor:pointer!important;display:flex!important;align-items:center!important;justify-content:center!important;font-size:9px!important;color:#6c757d!important;transition:all 0.15s ease!important;flex-shrink:0!important;margin:0!important;padding:0!important;position:relative!important;float:none!important;opacity:0.3}.dw-field-btn:hover{border-color:rgb(255,255,255)!important;transform:scale(1.3)!important;z-index:1001!important;opacity:.7}.dw-field-btn.copy-btn:hover{background:#d4edda!important;color:rgba(91,91,91,0.8)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn.paste-btn:hover{background:#cce5ff!important;color:rgba(110,110,110,0.83)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-btn.clear-btn:hover{background:#f5c6cb!important;color:rgba(113,113,113,0.71)!important;border-color:rgb(255,255,255)!important;opacity:.7}.dw-field-wrapper{position:relative!important;display:inline-block!important;width:100%!important;vertical-align:top!important;margin:0!important;padding:0!important;line-height:0!important}.dw-field-wrapper .dw-textField,.dw-field-wrapper .dw-numericField{padding-left:65px!important}.dw-field-wrapper .dw-dateField,.dw-field-wrapper .is-dateEntry,.dw-field-wrapper .hasCalendarsPicker{padding-left:65px!important}`;
     document.head.appendChild(s);
 
     // Variablen
     let clipboardStorage = '', currentCellButton = null, currentHoveredCell = null, buttonVisible = false;
-    const supportedFieldTypes = { textField: '.dw-textField', numericField: '.dw-numericField', memoField: '.dw-memoField', dateField: '.dw-dateField', dateEntry: '.is-dateEntry', calendarPicker: '.hasCalendarsPicker', keywordSpan: 'span[data-bind*="text: value"]' };
+    
+    // ÄNDERUNG: dw-memoField entfernt
+    const supportedFieldTypes = { 
+        textField: '.dw-textField', 
+        numericField: '.dw-numericField', 
+        dateField: '.dw-dateField', 
+        dateEntry: '.is-dateEntry', 
+        calendarPicker: '.hasCalendarsPicker', 
+        keywordSpan: 'span[data-bind*="text: value"]' 
+    };
 
     // Hilfsfunktionen
     const addTrackedEventListener = (element, event, handler) => {
@@ -65,7 +74,15 @@
         window[SCRIPT_ID].listeners.push({ element, event, handler });
     };
 
+    // ÄNDERUNG: Prüfung ob Element ein Bemerkungsfeld ist
+    const isMemoField = (element) => {
+        return element.tagName === 'TEXTAREA' && element.classList.contains('dw-memoField');
+    };
+
     const isSupportedField = (element) => {
+        // ÄNDERUNG: Bemerkungsfelder ausschließen
+        if (isMemoField(element)) return false;
+        
         for (const fieldType in supportedFieldTypes) {
             const selector = supportedFieldTypes[fieldType];
             if (selector.startsWith('.')) {
@@ -137,8 +154,7 @@
         const rect = cell.getBoundingClientRect();
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-        // Zurück zu rechtsbündiger Positionierung für Zellen-Copy-Button
-        button.style.left = (rect.right - 25 + scrollLeft) + 'px'; // Rechtsbündig wie vorher
+        button.style.left = (rect.right - 25 + scrollLeft) + 'px';
         button.style.top = (rect.top + (rect.height / 2) - 9 + scrollTop) + 'px';
         button.style.opacity = 0.6;
         button.classList.add('show');
@@ -234,7 +250,6 @@
         buttonContainer.className = 'dw-field-buttons';
         const isKeyword = isKeywordSpan(element);
 
-        // Buttons werden innerhalb der Inputfelder positioniert
         let leftPosition = isKeyword ? '15px' : '30px';
         buttonContainer.style.cssText = `position:absolute!important;left:${leftPosition}!important;top:${isKeyword ? '50%' : '2px'}!important;${isKeyword ? 'transform:translateY(-50%)!important;' : 'bottom:2px!important;'}display:flex!important;flex-direction:row!important;align-items:center!important;gap:2px!important;z-index:1000!important;background:rgba(137, 250, 106, 0)!important;border-radius:4px!important;padding:1px 3px!important;`;
 
@@ -309,7 +324,10 @@
     };
 
     const enhanceElement = (element) => {
+        // ÄNDERUNG: Bemerkungsfelder früh ausschließen
+        if (isMemoField(element)) return;
         if (element.closest('.dw-field-wrapper') || !isSupportedField(element)) return;
+        
         const isKeyword = isKeywordSpan(element);
         if (isKeyword) {
             const keywordRow = element.closest('tr.keyword-row');
@@ -333,7 +351,8 @@
     };
 
     const enhanceAllElements = () => {
-        const inputSelectors = ['.dw-textField', '.dw-numericField', '.dw-memoField', '.dw-dateField', '.is-dateEntry', '.hasCalendarsPicker'];
+        // ÄNDERUNG: dw-memoField aus der Liste entfernt
+        const inputSelectors = ['.dw-textField', '.dw-numericField', '.dw-dateField', '.is-dateEntry', '.hasCalendarsPicker'];
         inputSelectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(field => {
                 if (field.type !== 'hidden' && !field.readOnly && !field.disabled && field.offsetWidth > 0 && field.offsetHeight > 0) {
@@ -353,7 +372,8 @@
         mutations.forEach((mutation) => {
             mutation.addedNodes.forEach((node) => {
                 if (node.nodeType === 1) {
-                    const inputSelectors = ['.dw-textField', '.dw-numericField', '.dw-memoField', '.dw-dateField', '.is-dateEntry', '.hasCalendarsPicker'];
+                    // ÄNDERUNG: dw-memoField aus der Liste entfernt
+                    const inputSelectors = ['.dw-textField', '.dw-numericField', '.dw-dateField', '.is-dateEntry', '.hasCalendarsPicker'];
                     inputSelectors.forEach(selector => {
                         const newInputs = node.querySelectorAll ? node.querySelectorAll(selector) : [];
                         newInputs.forEach(input => {
@@ -398,8 +418,7 @@
     setTimeout(enhanceAllElements, 1000);
     setTimeout(enhanceAllElements, 3000);
 
-    console.log('✅ DocuWare Enhancement: Buttons innerhalb der Inputfelder positioniert');
+    console.log('✅ DocuWare Enhancement: Bemerkungsfelder (dw-memoField) ausgeschlossen');
     console.log('🔧 Unterstützte Feldtypen:', Object.keys(supportedFieldTypes));
-    console.log('🔄 Script kann durch erneute Ausführung zurückgesetzt werden');
 })();
 
