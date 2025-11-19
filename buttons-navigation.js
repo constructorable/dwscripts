@@ -2,16 +2,19 @@
 (function () {
     'use strict';
 
-    const ID = 'dw-ko-buttons-navigation', V = '2.1', D = true;
+    const ID = 'dw-ko-buttons-navigation', V = '2.4', D = true;
+
+    // ÄNDERUNG: Spezifische Felder definieren
+    const TARGET_FIELDS = [
+        'Leistungszeitraum bis *',
+        'Begünstigter IBAN *',
+        'Objekt-Einheit-Miet-Nummer *'
+    ];
 
     const CFG = {
         leistungszeitraumbis: {
-            txt: 'Rechnungsnummer *',
-            type: 'exact',
             pre: 'dw-lzb',
-            gap: '12px',
             isNav: true,
-            interval: 1,
             btnCfg: {
                 l: '↓',
                 a: 'scrollToNext'
@@ -19,13 +22,17 @@
         }
     };
 
-    function findAllePflichtfelder() {
+    // ÄNDERUNG: Nur spezifische Pflichtfelder finden
+    function findTargetPflichtfelder() {
         const labels = document.querySelectorAll('.dw-fieldLabel span');
         const pflichtfelder = [];
 
         labels.forEach(lbl => {
             const txt = lbl.textContent?.trim() || '';
-            if (!txt.includes('*')) return;
+            
+            // ÄNDERUNG: Nur TARGET_FIELDS berücksichtigen
+            const isTargetField = TARGET_FIELDS.some(targetField => txt === targetField);
+            if (!isTargetField) return;
 
             const row = lbl.closest('tr');
             if (!row) return;
@@ -33,7 +40,10 @@
             const inp = row.querySelector('input.dw-textField, input.dw-dateField, textarea, select');
             if (!inp || !isProc(inp)) return;
 
-            pflichtfelder.push({ row, inp, txt });
+            const labelCell = row.querySelector('.dw-fieldLabel');
+            if (!labelCell) return;
+
+            pflichtfelder.push({ row, inp, txt, labelCell });
         });
 
         return pflichtfelder;
@@ -101,13 +111,8 @@
         }
     }
 
-    function findInp(row) {
-        return row.querySelector('input.dw-textField, input[type="text"]');
-    }
-
-    function hasButtons(row, pre) {
-        const next = row.nextElementSibling;
-        return next?.classList.contains(`${pre}-button-row`);
+    function hasButtons(labelCell, pre) {
+        return labelCell?.querySelector(`.${pre}-nav-button`) !== null;
     }
 
     function findInCont(k, c) {
@@ -115,26 +120,20 @@
         const found = [];
 
         try {
-            const labels = c.querySelectorAll('.dw-fieldLabel span');
-            const hasRechnungsnummer = Array.from(labels).some(label =>
-                label.textContent.trim() === 'Rechnungsnummer *'
-            );
-            if (!hasRechnungsnummer) return found;
-
-            const pflichtfelder = findAllePflichtfelder();
+            // ÄNDERUNG: Nur noch spezifische Felder finden
+            const pflichtfelder = findTargetPflichtfelder();
             if (pflichtfelder.length === 0) return found;
 
-            log(`Gefunden: ${pflichtfelder.length} Pflichtfelder`);
+            log(`Gefunden: ${pflichtfelder.length} Zielfelder`);
 
-            const interval = cfg.interval || 1;
-            for (let i = interval - 1; i < pflichtfelder.length; i += interval) {
-                const { row, inp, txt } = pflichtfelder[i];
+            pflichtfelder.forEach((field, i) => {
+                const { row, inp, txt, labelCell } = field;
 
-                if (hasButtons(row, cfg.pre) || S.processed.has(inp)) continue;
+                if (hasButtons(labelCell, cfg.pre) || S.processed.has(inp)) return;
 
                 const fid = mkId(inp, txt, k) + `_${i}`;
-                found.push({ inp, txt, row, k, fid });
-            }
+                found.push({ inp, txt, row, labelCell, k, fid });
+            });
 
             log(`Buttons werden an ${found.length} Stellen eingefügt`);
 
@@ -142,44 +141,33 @@
         return found;
     }
 
-    function mkBtnCont(fid) {
+    function mkNavBtn(fid) {
         const cfg = CFG.leistungszeitraumbis;
-        const cont = document.createElement('div');
-        cont.className = `${cfg.pre}-button-container`;
-        cont.setAttribute('data-field-id', fid);
-
+        
         const navBtn = document.createElement('button');
         navBtn.className = `${cfg.pre}-nav-button`;
         navBtn.type = 'button';
         navBtn.textContent = cfg.btnCfg.l;
         navBtn.title = 'Springt zum nächsten unvollständigen Pflichtfeld';
-        navBtn.addEventListener('click', scrollToNextInvalid, { passive: true });
-        cont.appendChild(navBtn);
+        navBtn.setAttribute('data-field-id', fid);
+        navBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            scrollToNextInvalid();
+        }, { passive: false });
 
-        return cont;
+        return navBtn;
     }
 
     function inject(f, cfg) {
-        const { row, k, fid, inp } = f;
+        const { inp, labelCell, fid } = f;
 
-        if (hasButtons(row, cfg.pre)) return false;
-
-        const br = document.createElement('tr');
-        br.className = `${cfg.pre}-button-row dw-ko-btn-row`;
-        br.setAttribute('data-field-id', fid);
-        br.setAttribute('data-config-key', k);
-
-        const lc = document.createElement('td');
-        lc.className = 'dw-fieldLabel';
-        const cc = document.createElement('td');
-        cc.className = `table-fields-content ${cfg.pre}-button-content`;
-        const bc = mkBtnCont(fid);
-        cc.appendChild(bc);
-        br.appendChild(lc);
-        br.appendChild(cc);
+        if (hasButtons(labelCell, cfg.pre)) return false;
 
         try {
-            row.parentNode.insertBefore(br, row.nextSibling);
+            const navBtn = mkNavBtn(fid);
+            labelCell.appendChild(navBtn);
+
             S.processed.add(inp);
             log(`✅ Navigation-Button eingefügt: ${fid}`);
             return true;
@@ -207,13 +195,44 @@
 
     function injectCSS() {
         if (document.querySelector('style[data-dw-nav-btns]')) return;
-        // ÄNDERUNG: Angepasste CSS-Werte
         const css = `
-            [class*="dw-lzb-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}
-            [class*="dw-lzb-"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:0px 1px 6px 29px!important;margin-top:-5px!important}
-            [class*="dw-lzb-"][class*="-nav-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #8a8a8a!important;background:#dbeafe!important;color:#7d7d7d!important;padding:0!important;width:15px!important;height:15px!important;font-size:8px!important;font-weight:bold!important;line-height:1!important;transition:all 0.2s ease!important;margin-top:-4px!important;margin-left:2px!important}
-            [class*="dw-lzb-"][class*="-nav-button"]:hover{background:#bfdbfe!important;border-color:#2563eb!important;transform:scale(1.15)!important;box-shadow:0 2px 4px rgba(37,99,235,0.3)!important}
-            .ui-dialog [class*="dw-lzb-"][class*="-nav-button"]{width:15px!important;height:15px!important;font-size:8px!important}`;
+            .dw-fieldLabel {
+                position: relative !important;
+            }
+            
+            .dw-lzb-nav-button {
+   display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  border-radius: 2px !important;
+  border: 1px solid #8a8a8a !important;
+  background: #dbeafe !important;
+  color: #7d7d7d !important;
+  padding: 0 !important;
+  width: 12px !important;
+  height: 12px !important;
+  font-size: 8px !important;
+  font-weight: bold !important;
+  line-height: 1 !important;
+  transition: all 0.2s ease !important;
+  margin-left: 4px !important;
+  margin-top: -20px !important;
+  vertical-align: middle !important;
+            }
+            
+            .dw-lzb-nav-button:hover {
+                background: #bfdbfe !important;
+                border-color: #2563eb !important;
+                transform: scale(1.15) !important;
+                box-shadow: 0 2px 4px rgba(37,99,235,0.3) !important;
+            }
+            
+            .ui-dialog .dw-lzb-nav-button {
+                width: 15px !important;
+                height: 15px !important;
+                font-size: 8px !important;
+            }`;
 
         const style = document.createElement('style');
         style.textContent = css;
@@ -258,7 +277,8 @@
         },
         status: () => ({
             init: S.init,
-            btns: document.querySelectorAll('.dw-lzb-button-row').length
+            btns: document.querySelectorAll('.dw-lzb-nav-button').length,
+            targetFields: TARGET_FIELDS
         }),
         scrollToNext: scrollToNextInvalid
     };
