@@ -11,7 +11,7 @@
             pre: 'dw-lzb',
             gap: '12px',
             isNav: true,
-            interval: 5, // NEU: Button alle 5 Pflichtfelder
+            interval: 7, // NEU: Button alle 5 Pflichtfelder
             btnCfg: {
                 l: '→ Nächstes leeres Pflichtfeld',
                 a: 'scrollToNext'
@@ -273,5 +273,6 @@
 
     main();
 })();
+
 
 
