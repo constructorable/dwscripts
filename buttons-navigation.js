@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    const ID = 'dw-ko-buttons-navigation', V = '2.0', D = true;
+    const ID = 'dw-ko-buttons-navigation', V = '2.1', D = true;
 
     const CFG = {
         leistungszeitraumbis: {
@@ -11,9 +11,9 @@
             pre: 'dw-lzb',
             gap: '12px',
             isNav: true,
-            interval: 7, // NEU: Button alle 5 Pflichtfelder
+            interval: 1,
             btnCfg: {
-                l: '→ Nächstes leeres Pflichtfeld',
+                l: '↓',
                 a: 'scrollToNext'
             }
         }
@@ -115,21 +115,18 @@
         const found = [];
 
         try {
-            // Prüfen ob wir im richtigen Kontext sind (Rechnungsnummer vorhanden)
             const labels = c.querySelectorAll('.dw-fieldLabel span');
             const hasRechnungsnummer = Array.from(labels).some(label =>
                 label.textContent.trim() === 'Rechnungsnummer *'
             );
             if (!hasRechnungsnummer) return found;
 
-            // Alle Pflichtfelder finden
             const pflichtfelder = findAllePflichtfelder();
             if (pflichtfelder.length === 0) return found;
 
             log(`Gefunden: ${pflichtfelder.length} Pflichtfelder`);
 
-            // Button alle X Pflichtfelder einfügen
-            const interval = cfg.interval || 5;
+            const interval = cfg.interval || 1;
             for (let i = interval - 1; i < pflichtfelder.length; i += interval) {
                 const { row, inp, txt } = pflichtfelder[i];
 
@@ -210,12 +207,13 @@
 
     function injectCSS() {
         if (document.querySelector('style[data-dw-nav-btns]')) return;
+        // ÄNDERUNG: Angepasste CSS-Werte
         const css = `
             [class*="dw-lzb-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}
-            [class*="dw-lzb-"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:12px!important;padding:0px 1px 12px 29px!important;border-top:1px solid #e5e7eb!important;margin-top:0px!important}
-            [class*="dw-lzb-"][class*="-nav-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:4px!important;border:1px solid #3b82f6!important;background:#dbeafe!important;color:#1e40af!important;padding:4px 16px!important;min-height:12px!important;font-size:12px!important;font-weight:500!important;white-space:nowrap!important;transition:all 0.2s ease!important}
-            [class*="dw-lzb-"][class*="-nav-button"]:hover{background:#bfdbfe!important;border-color:#2563eb!important;transform:translateY(-1px)!important;box-shadow:0 2px 4px rgba(37,99,235,0.2)!important}
-            .ui-dialog [class*="dw-lzb-"][class*="-nav-button"]{font-size:11px!important;padding:4px 10px!important;min-height:22px!important}`;
+            [class*="dw-lzb-"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:0px 1px 6px 29px!important;margin-top:-5px!important}
+            [class*="dw-lzb-"][class*="-nav-button"]{display:inline-flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #8a8a8a!important;background:#dbeafe!important;color:#7d7d7d!important;padding:0!important;width:15px!important;height:15px!important;font-size:8px!important;font-weight:bold!important;line-height:1!important;transition:all 0.2s ease!important;margin-top:-4px!important;margin-left:2px!important}
+            [class*="dw-lzb-"][class*="-nav-button"]:hover{background:#bfdbfe!important;border-color:#2563eb!important;transform:scale(1.15)!important;box-shadow:0 2px 4px rgba(37,99,235,0.3)!important}
+            .ui-dialog [class*="dw-lzb-"][class*="-nav-button"]{width:15px!important;height:15px!important;font-size:8px!important}`;
 
         const style = document.createElement('style');
         style.textContent = css;
@@ -273,6 +271,4 @@
 
     main();
 })();
-
-
 
