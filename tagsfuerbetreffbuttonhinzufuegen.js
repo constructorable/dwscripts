@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const ID = 'dw-betreff-buttons', V = '2.0', SK = 'dw-betreff-state', D = true;
+    const ID = 'dw-betreff-buttons', V = '2.1', SK = 'dw-betreff-state', D = true;
 
     const BETREFF_CONFIG = {
         fieldLabel: 'Betreff',
@@ -34,11 +34,12 @@
         ]
     };
 
-    // ÄNDERUNG: Einheitliche State-Struktur wie andere Button-Scripts
+    // ÄNDERUNG: Toggle-Status in State speichern
     let S = {
         init: false,
         obs: null,
-        processed: new WeakSet()
+        processed: new WeakSet(),
+        toggleStates: new Map() // NEU: Speichert Toggle-Zustand pro Feld
     };
 
     if (window[ID]) cleanup();
@@ -67,6 +68,57 @@
                 visibility: visible !important;
             }
             
+            /* NEU: Toggle-Button Container */
+            .${BETREFF_CONFIG.prefix}-toggle-container {
+                display: flex !important;
+                align-items: center !important;
+                3px 1px 2px 41px !important;
+                margin-top: -3px !important;
+            }
+            
+            /* NEU: Toggle-Button Styling */
+            .${BETREFF_CONFIG.prefix}-toggle-button {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                border-radius: 4px !important;
+                border: 1px solid #3b82f6 !important;
+                background: #dbeafe !important;
+                color: #1e40af !important;
+                padding: 4px 12px !important;
+                min-height: 24px !important;
+                font-size: 12px !important;
+                font-weight: 500 !important;
+                white-space: nowrap !important;
+                transition: all 0.2s ease !important;
+                gap: 6px !important;
+                border: 1px solid #7d7d7d6e !important;
+background: #e7edf600 !important;
+color: #3f4148 !important;
+padding: 0px 10px !important;
+min-height: 20px !important;
+margin-left: 30px;
+            }
+            
+            .${BETREFF_CONFIG.prefix}-toggle-button:hover {
+                background: #bfdbfe !important;
+                border-color: #2563eb !important;
+                transform: translateY(-1px) !important;
+                box-shadow: 0 2px 4px rgba(37,99,235,0.2) !important;
+            }
+            
+            /* NEU: Toggle-Icon Animation */
+            .${BETREFF_CONFIG.prefix}-toggle-icon {
+                transition: transform 0.3s ease !important;
+                font-size: 10px !important;
+            }
+            
+            .${BETREFF_CONFIG.prefix}-toggle-button.expanded .${BETREFF_CONFIG.prefix}-toggle-icon {
+                transform: rotate(180deg) !important;
+            }
+            
+            /* NEU: Button-Container versteckt/sichtbar */
             .${BETREFF_CONFIG.prefix}-button-container {
                 display: flex !important;
                 align-items: center !important;
@@ -74,8 +126,17 @@
                 padding: 4px 1px 8px 29px !important;
                 gap: ${BETREFF_CONFIG.gap} !important;
                 flex-wrap: wrap !important;
-                margin-top:-6px !important;
-                margin-bottom:5px !important;
+                margin-bottom: 5px !important;
+                max-height: 0 !important;
+                overflow: hidden !important;
+                opacity: 0 !important;
+                transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease !important;
+            }
+            
+            .${BETREFF_CONFIG.prefix}-button-container.visible {
+                max-height: 500px !important;
+                opacity: 1 !important;
+                margin-top: -6px !important;
             }
             
             .${BETREFF_CONFIG.prefix}-action-button {
@@ -103,6 +164,12 @@
                 font-size: 10px !important;
                 padding: 2px 6px !important;
                 min-height: 18px !important;
+            }
+            
+            .ui-dialog .${BETREFF_CONFIG.prefix}-toggle-button {
+                font-size: 11px !important;
+                padding: 4px 10px !important;
+                min-height: 22px !important;
             }
         `;
 
@@ -192,10 +259,48 @@
         return btn;
     }
 
+    // NEU: Toggle-Button erstellen
+    function mkToggleBtn(fid, container) {
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = `${BETREFF_CONFIG.prefix}-toggle-button`;
+        toggleBtn.type = 'button';
+        toggleBtn.setAttribute('data-field-id', fid);
+        toggleBtn.innerHTML = `
+            <span>Tags anzeigen</span>
+            <span class="${BETREFF_CONFIG.prefix}-toggle-icon">▼</span>
+        `;
+
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const isExpanded = container.classList.contains('visible');
+
+            if (isExpanded) {
+                container.classList.remove('visible');
+                toggleBtn.classList.remove('expanded');
+                toggleBtn.querySelector('span:first-child').textContent = 'Tags anzeigen';
+                S.toggleStates.set(fid, false);
+            } else {
+                container.classList.add('visible');
+                toggleBtn.classList.add('expanded');
+                toggleBtn.querySelector('span:first-child').textContent = 'Tags ausblenden';
+                S.toggleStates.set(fid, true);
+            }
+        });
+
+        return toggleBtn;
+    }
+
     function mkBtnCont(inp, fid) {
         const cont = document.createElement('div');
         cont.className = `${BETREFF_CONFIG.prefix}-button-container`;
         cont.setAttribute('data-field-id', fid);
+
+        // ÄNDERUNG: Gespeicherten Toggle-Status wiederherstellen
+        if (S.toggleStates.get(fid)) {
+            cont.classList.add('visible');
+        }
 
         const frag = document.createDocumentFragment();
         BETREFF_CONFIG.keywords.forEach(kw => {
@@ -211,21 +316,44 @@
 
         if (hasButtons(row, BETREFF_CONFIG.prefix)) return false;
 
-        const br = document.createElement('tr');
-        br.className = `${BETREFF_CONFIG.prefix}-button-row`;
-        br.setAttribute('data-field-id', fid);
+        // NEU: Zwei Reihen erstellen - Toggle und Buttons
+        const toggleRow = document.createElement('tr');
+        toggleRow.className = `${BETREFF_CONFIG.prefix}-button-row ${BETREFF_CONFIG.prefix}-toggle-row`;
+        toggleRow.setAttribute('data-field-id', fid);
 
-        const lc = document.createElement('td');
-        lc.className = 'dw-fieldLabel';
-        const cc = document.createElement('td');
-        cc.className = `table-fields-content ${BETREFF_CONFIG.prefix}-button-content`;
-        const bc = mkBtnCont(inp, fid);
-        cc.appendChild(bc);
-        br.appendChild(lc);
-        br.appendChild(cc);
+        const toggleLc = document.createElement('td');
+        toggleLc.className = 'dw-fieldLabel';
+        const toggleCc = document.createElement('td');
+        toggleCc.className = `table-fields-content ${BETREFF_CONFIG.prefix}-toggle-container`;
+
+        const buttonContainer = mkBtnCont(inp, fid);
+        const toggleButton = mkToggleBtn(fid, buttonContainer);
+
+        // ÄNDERUNG: Toggle-Button Status wiederherstellen
+        if (S.toggleStates.get(fid)) {
+            toggleButton.classList.add('expanded');
+            toggleButton.querySelector('span:first-child').textContent = 'Tags ausblenden';
+        }
+
+        toggleCc.appendChild(toggleButton);
+        toggleRow.appendChild(toggleLc);
+        toggleRow.appendChild(toggleCc);
+
+        const buttonRow = document.createElement('tr');
+        buttonRow.className = `${BETREFF_CONFIG.prefix}-button-row`;
+        buttonRow.setAttribute('data-field-id', fid);
+
+        const buttonLc = document.createElement('td');
+        buttonLc.className = 'dw-fieldLabel';
+        const buttonCc = document.createElement('td');
+        buttonCc.className = `table-fields-content ${BETREFF_CONFIG.prefix}-button-content`;
+        buttonCc.appendChild(buttonContainer);
+        buttonRow.appendChild(buttonLc);
+        buttonRow.appendChild(buttonCc);
 
         try {
-            row.parentNode.insertBefore(br, row.nextSibling);
+            row.parentNode.insertBefore(toggleRow, row.nextSibling);
+            row.parentNode.insertBefore(buttonRow, toggleRow.nextSibling);
             S.processed.add(inp);
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
@@ -244,7 +372,6 @@
         return added;
     }
 
-    // ÄNDERUNG: Throttled Observer wie andere Button-Scripts
     function mkObs() {
         let timeout;
         const obs = new MutationObserver(() => {
@@ -270,7 +397,7 @@
         });
         S.obs = mkObs();
         S.init = true;
-        log('✅ Initialisiert');
+        log('✅ Initialisiert mit Toggle-Funktion');
     }
 
     window[ID].api = {
@@ -284,7 +411,8 @@
         status: () => ({
             init: S.init,
             btns: document.querySelectorAll(`.${BETREFF_CONFIG.prefix}-button-row`).length,
-            keywords: BETREFF_CONFIG.keywords.length
+            keywords: BETREFF_CONFIG.keywords.length,
+            toggleStates: S.toggleStates.size
         })
     };
 
@@ -296,4 +424,3 @@
 
     main();
 })();
-
