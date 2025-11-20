@@ -16,6 +16,7 @@
                 { v: 'Repa Tür ', l: 'Repa Tür ' },
                 { v: 'Repa Sanitär', l: 'Repa Sanitär ' },
                 { v: 'Repa Heizung', l: 'Repa Heizung ' },
+                { v: 'Repa Elektrik', l: 'Repa Elektrik ' },
                 { v: 'Wartung ', l: 'Wartung ' },
                 { v: 'Prüfung ', l: 'Prüfung ' },
                 { v: 'Energieversorgung ', l: 'Energieversorgung ' },
@@ -34,6 +35,7 @@
             gap: '8px',
             opts: [
                 { v: 'Aufzug (Personen)', l: 'Aufzug' },
+                { v: 'Elektrik', l: 'Elektrik' },
                 { v: 'Gebäudeteil - Fenster', l: 'Fenster' },
                 { v: 'Gebäudeteil - Kanal- & Entwässerungsleitungen', l: 'Kanal' },
                 { v: 'Hausanschluss - Telekom (APL)', l: 'Hausanschluss' },
@@ -404,4 +406,5 @@
 
     main();
 })();
+
 
