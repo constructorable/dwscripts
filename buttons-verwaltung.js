@@ -114,14 +114,17 @@
                 { v: '800201 - Heizungswartung (inkl. Messtechnik, Ableseservice, HKV, Heizkostenverteiler usw.)', l: 'Heizungswartung (inkl. Messtechnik, Ableseservice, HKV, Heizkostenverteiler usw.)' },
                 { v: '801400 - Hausmeister', l: 'Hausmeister' },
                 { v: '800204 - Heizung - Direktkosten', l: 'Heizung Direktkosten' },
-                { v: '801101 - Strom/ Gas für Leerstände', l: 'Strom/Gas Leerstände' }
+                { v: '801101 - Strom/ Gas für Leerstände', l: 'Strom/Gas Leerstände' },
+                { v: '800501 - Winterdienst', l: 'Winterdienst' }
+                800501 - Winterdienst
             ],
             valueMapping: {
                 '807000': '807000', 'instandhaltung': '807000', 'reparatur': '807000', 'instandsetzung': '807000',
                 '800201': '800201', 'heizungswartung': '800201', 'wartung': '800201', 'messtechnik': '800201', 'hkv': '800201', 'heizkostenverteiler': '800201',
                 '801400': '801400', 'hausmeister': '801400',
                 '800204': '800204', 'heizung direktkosten': '800204', 'direktkosten': '800204',
-                '801101': '801101', 'strom': '801101', 'gas': '801101', 'leerstände': '801101', 'leerstand': '801101'
+                '801101': '801101', 'strom': '801101', 'gas': '801101', 'leerstände': '801101', 'leerstand': '801101',
+                '800501': '800501', 'winterdienst': '800501' 
             }
         }
     };
@@ -406,5 +409,6 @@
 
     main();
 })();
+
 
 
