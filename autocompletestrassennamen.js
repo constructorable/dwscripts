@@ -15,7 +15,7 @@
         'Flugplatzstr. 80',
         'Friedrichstr. 9',
         'Fürther Str. 45',
-        'Fürther Str. 54-56',
+        'Fürther Str. 54 - 56',
         'Fürther Str. 54',
         'Fürther Str. 56',
         'Fürther Str. 99',
@@ -426,4 +426,5 @@
     scanObjekte();
 
 })();
+
 
