@@ -99,7 +99,7 @@
                 { v: 'persönlich übergeben', l: 'persönlich übergeben' },
                 { v: 'persönlich in Briefkasten eingeworfen', l: 'persönlich in Briefkasten eingeworfen' },
                 { v: 'nicht erforderlich', l: 'nicht erforderlich' },
-                { v: 'nicht erforderlich (Entwurf)', l: 'nicht erforderlich (Entwurf)' },
+                { v: 'nicht erforderlich (Entwurf)', l: 'nicht erforderlich (Entwurf)' }
             ]
         },
 
@@ -116,7 +116,7 @@
                 { v: '800204 - Heizung - Direktkosten', l: 'Heizung Direktkosten' },
                 { v: '801101 - Strom/ Gas für Leerstände', l: 'Strom/Gas Leerstände' },
                 { v: '800501 - Winterdienst', l: 'Winterdienst' }
-                800501 - Winterdienst
+               
             ],
             valueMapping: {
                 '807000': '807000', 'instandhaltung': '807000', 'reparatur': '807000', 'instandsetzung': '807000',
@@ -409,6 +409,7 @@
 
     main();
 })();
+
 
 
 
