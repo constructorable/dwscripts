@@ -8,7 +8,8 @@
     const TARGET_FIELDS = [
         'Leistungszeitraum bis *',
         'Begünstigter IBAN *',
-        'Objekt-Einheit-Miet-Nummer *'
+        'Objekt-Einheit-Nummer *',
+        'für Nebenkosten relevant *'
     ];
 
     const CFG = {
@@ -293,4 +294,3 @@
 
     main();
 })();
-
