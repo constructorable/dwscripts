@@ -186,8 +186,26 @@
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+
+                // ÄNDERUNG: Vollständige Event-Kette für DocuWare
                 inputField.value = option;
-                inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                inputField.focus();
+
+                // Alle relevanten Events triggern
+                ['input', 'change', 'blur', 'keyup'].forEach(eventType => {
+                    inputField.dispatchEvent(new Event(eventType, { bubbles: true }));
+                });
+
+                // KnockoutJS explizit aktualisieren
+                if (window.ko && ko.dataFor) {
+                    try {
+                        const koData = ko.dataFor(inputField);
+                        if (koData && koData.value && ko.isObservable(koData.value)) {
+                            koData.value(option);
+                        }
+                    } catch (e) { }
+                }
+
                 entferneObjektDropdown();
                 fokussiereNaechstesObjektFeld(inputField);
             });
@@ -285,10 +303,26 @@
         if (e.key === 'Enter') {
             const chosen = optionen[selectedObjektIndex];
             if (chosen) {
+                // ÄNDERUNG: Vollständige Event-Kette
                 inputField.value = chosen;
-                inputField.dispatchEvent(new Event('input', { bubbles: true }));
+                inputField.focus();
+
+                ['input', 'change', 'blur', 'keyup'].forEach(eventType => {
+                    inputField.dispatchEvent(new Event(eventType, { bubbles: true }));
+                });
+
+                // KnockoutJS explizit aktualisieren
+                if (window.ko && ko.dataFor) {
+                    try {
+                        const koData = ko.dataFor(inputField);
+                        if (koData && koData.value && ko.isObservable(koData.value)) {
+                            koData.value(chosen);
+                        }
+                    } catch (e) { }
+                }
+
                 entferneObjektDropdown();
-                suppressDocuWareDropdown(inputField); // ÄNDERUNG: Parameter hinzugefügt
+                suppressDocuWareDropdown(inputField);
                 fokussiereNaechstesObjektFeld(inputField);
             }
         }
@@ -426,5 +460,6 @@
     scanObjekte();
 
 })();
+
 
 
