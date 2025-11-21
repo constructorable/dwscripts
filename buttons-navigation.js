@@ -227,7 +227,6 @@
             .dw-lzb-nav-button:hover {
                 background: #bfdbfe !important;
                 border-color: #2563eb !important;
-                transform: scale(1.15) !important;
                 box-shadow: 0 2px 4px rgba(37,99,235,0.3) !important;
             }
             
@@ -294,3 +293,4 @@
 
     main();
 })();
+
