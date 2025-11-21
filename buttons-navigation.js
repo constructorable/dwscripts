@@ -29,7 +29,7 @@
 
         labels.forEach(lbl => {
             const txt = lbl.textContent?.trim() || '';
-            
+
             // ÄNDERUNG: Nur TARGET_FIELDS berücksichtigen
             const isTargetField = TARGET_FIELDS.some(targetField => txt === targetField);
             if (!isTargetField) return;
@@ -143,7 +143,7 @@
 
     function mkNavBtn(fid) {
         const cfg = CFG.leistungszeitraumbis;
-        
+
         const navBtn = document.createElement('button');
         navBtn.className = `${cfg.pre}-nav-button`;
         navBtn.type = 'button';
@@ -201,24 +201,27 @@
             }
             
             .dw-lzb-nav-button {
-   display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  border-radius: 2px !important;
-  border: 1px solid #8a8a8a !important;
-  background: #dbeafe !important;
-  color: #7d7d7d !important;
-  padding: 0 !important;
-  width: 12px !important;
-  height: 12px !important;
-  font-size: 8px !important;
-  font-weight: bold !important;
-  line-height: 1 !important;
-  transition: all 0.2s ease !important;
-  margin-left: 4px !important;
-  margin-top: -20px !important;
-  vertical-align: middle !important;
+                position: absolute !important;
+                right: -16px !important;
+                top: 39% !important;
+                transform: translateY(-50%) !important;
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                cursor: pointer !important;
+                border-radius: 2px !important;
+                border: 1px solid #8a8a8a !important;
+                background: #dbeafe !important;
+                color: #7d7d7d !important;
+                padding: 0 !important;
+                width: 12px !important;
+                height: 12px !important;
+                font-size: 8px !important;
+                font-weight: bold !important;
+                line-height: 1 !important;
+                transition: all 0.2s ease !important;
+                margin: 0 !important;
+                z-index: 10 !important;
             }
             
             .dw-lzb-nav-button:hover {
@@ -291,4 +294,3 @@
 
     main();
 })();
-
