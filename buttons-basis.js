@@ -313,7 +313,7 @@
 
     function injectCSS() {
         if (document.querySelector('style[data-dw-basis-btns]')) return;
-        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:2px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-47px!important;margin-left:75px!important;position:absolute!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:1px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 6px!important;min-height:8px!important;font-size:12px!important;white-space:nowrap!important;line-height:1.4!important;margin-top:0px !important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #486eacff!important}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
+        const css = `[class*="dw-nk-button-row"],[class*="dw-wj-button-row"],[class*="dw-sk-button-row"],[class*="dw-zuw-button-row"],[class*="dw-vnnr-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:4px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-3px!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:22px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 6px!important;min-height:8px!important;font-size:12px!important;white-space:nowrap!important;line-height:1.4!important;margin-top:0px !important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #486eacff!important}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
 
         const style = document.createElement('style');
         style.textContent = css;
@@ -374,5 +374,4 @@
 
     main();
 })();
-
 
