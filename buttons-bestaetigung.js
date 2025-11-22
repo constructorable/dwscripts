@@ -1,8 +1,8 @@
-// buttons-bestaetigung.js - OPTIMIERT
+// buttons-bestaetigung.js - MIT BASIS-CSS-STYLES
 (function () {
     'use strict';
     
-    const ID = 'dw-ko-buttons-bestaetigung', V = '2.0', SK = 'dw-ko-bestaetigung-state', D = true;
+    const ID = 'dw-ko-buttons-bestaetigung', V = '2.1', SK = 'dw-ko-bestaetigung-state', D = true;
     
     const CFG = {
         objbestaet: {
@@ -259,9 +259,10 @@
         return total;
     }
 
+    // ÄNDERUNG: CSS-Styles vom Basis-Code übernommen
     function injectCSS() {
         if (document.querySelector('style[data-dw-best-btns]')) return;
-        const css = `[class*="dw-ob-button-row"],[class*="dw-rb-button-row"],[class*="dw-rnrb-button-row"],[class*="dw-rst-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="dw-ob-"][class*="-button-container"],[class*="dw-rb-"][class*="-button-container"],[class*="dw-rnrb-"][class*="-button-container"],[class*="dw-rst-"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:0px 1px 6px 31px!important;flex-wrap:wrap!important}[class*="dw-ob-"][class*="-action-button"],[class*="dw-rb-"][class*="-action-button"],[class*="dw-rnrb-"][class*="-action-button"],[class*="dw-rst-"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:3px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 8px!important;min-height:15px!important; border-radius:22px !important; margin-top: -5px !important; font-size:11px!important;white-space:nowrap!important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #3b82f6!important}.ui-dialog [class*="-action-button"]{font-size:10px!important;padding:2px 6px!important;min-height:18px!important}`;
+        const css = `[class*="dw-ob-button-row"],[class*="dw-rb-button-row"],[class*="dw-rnrb-button-row"],[class*="dw-rst-button-row"]{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}[class*="-button-container"]{display:flex!important;align-items:center!important;gap:2px!important;padding:2px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-47px!important;margin-left:75px!important;position:absolute!important}[class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:1px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:3px 6px!important;min-height:8px!important;font-size:12px!important;white-space:nowrap!important;line-height:1.4!important;margin-top:0px !important}[class*="-action-button"].selected{background:#eff6ff!important;border-color:#3b82f6!important;box-shadow:0 0 0 1px #486eacff!important}.ui-dialog [class*="-action-button"]{font-size:9px!important;padding:1px 5px!important;min-height:16px!important}`;
         
         const style = document.createElement('style');
         style.textContent = css;
@@ -295,6 +296,7 @@
         });
         S.obs = mkObs();
         S.init = true;
+        log('✅ Initialisierung abgeschlossen');
     }
 
     window[ID].api = {
