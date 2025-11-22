@@ -1,15 +1,31 @@
-// buttons-datum.js - OPTIMIERT
+// buttons-datum.js - OPTIMIERT MIT MANUELLER POSITIONSKONTROLLE
 (function () {
     'use strict';
 
     const ID = 'dw-ko-buttons-datum', V = '2.0', SK = 'dw-ko-datum-state', D = true;
+
+    // NEU: Zentrale Positionierungs-Konfiguration
+    const POSITION = {
+        // Standard-Positionierung (außerhalb Modal)
+        standard: {
+            marginTop: '-47px',      // Vertikaler Offset
+            marginLeft: '75px',      // Horizontaler Offset von links
+            position: 'absolute'      // CSS Position
+        },
+        // Modal-Positionierung (innerhalb Dialogen)
+        modal: {
+            marginTop: '-45px',
+            marginLeft: '70px',
+            position: 'absolute'
+        }
+    };
 
     const CFG = {
         datumsfelder: {
             txt: '',
             type: 'date_field',
             pre: 'dw-datum',
-            gap: '8px',
+            gap: '6px',
             wrap: true,
             isDate: true,
             exc: [
@@ -33,7 +49,7 @@
             txt: '',
             type: 'date_field_past',
             pre: 'dw-datum-past',
-            gap: '8px',
+            gap: '6px',
             wrap: true,
             isDate: true,
             inc: ['Eingangsdatum', 'Erstellungsdatum'],
@@ -207,7 +223,6 @@
         return cont;
     }
 
-    // ÄNDERUNG: Modal per JavaScript vergrößern
     function vergroessereModal(inp) {
         const modal = inp.closest('.ui-dialog');
         if (!modal) return;
@@ -274,16 +289,58 @@
         return total;
     }
 
-    // ÄNDERUNG: Kompaktes CSS ohne redundante Modal-Regeln
+    // ÄNDERUNG: Eigenständiges CSS mit konfigurierbarer Positionierung
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
+        
+        // NEU: Dynamisches CSS basierend auf POSITION-Konfiguration
         const css = `
 .dw-datum-button-row,.dw-datum-past-button-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}
-[class*="dw-datum"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:5px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-8px!important}
-[class*="dw-datum"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:4px 8px!important;min-height:12px!important; border-radius:22px !important; font-size:11px!important;margin:0!important;line-height:1.2!important;white-space:nowrap!important}
-[class*="dw-datum"][class*="-action-button"]:hover{background:#f3f4f6!important;border-color:#9ca3af!important}
-[class*="dw-datum"][class*="-button-container"].in-modal{gap:4px!important;padding:7px 1px 4px 10px!important}
-[class*="dw-datum"][class*="-action-button"].in-modal{padding:3px 6px!important;font-size:10px!important;min-height:15px!important;flex:0 0 calc(25% - 4px)!important; border-radius:22px !important; justify-content:center!important}`;
+
+[class*="dw-datum"][class*="-button-container"]{
+    display:flex!important;
+    align-items:center!important;
+    gap:2px!important;
+    padding:2px 1px 4px 29px!important;
+    flex-wrap:wrap!important;
+    margin-top:${POSITION.standard.marginTop}!important;
+    margin-left:${POSITION.standard.marginLeft}!important;
+    position:${POSITION.standard.position}!important;
+}
+
+[class*="dw-datum"][class*="-button-container"].in-modal{
+    margin-top:${POSITION.modal.marginTop}!important;
+    margin-left:${POSITION.modal.marginLeft}!important;
+    position:${POSITION.modal.position}!important;
+}
+
+[class*="dw-datum"][class*="-action-button"]{
+    display:inline-flex!important;
+    cursor:pointer!important;
+    border-radius:1px!important;
+    border:1px solid #d1d5db!important;
+    background:#fff!important;
+    color:#374151!important;
+    padding:3px 6px!important;
+    min-height:8px!important;
+    border-radius:22px!important;
+    font-size:12px!important;
+    margin:0!important;
+    line-height:1.4!important;
+    white-space:nowrap!important;
+    margin-top:0px!important;
+}
+
+[class*="dw-datum"][class*="-action-button"]:hover{
+    background:#f3f4f6!important;
+    border-color:#9ca3af!important;
+}
+
+[class*="dw-datum"][class*="-action-button"].in-modal{
+    padding:3px 6px!important;
+    font-size:10px!important;
+    min-height:15px!important;
+}`;
 
         const style = document.createElement('style');
         style.textContent = css;
@@ -326,3 +383,4 @@
 
     main();
 })();
+
