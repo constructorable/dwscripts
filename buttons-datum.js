@@ -1,4 +1,3 @@
-// buttons-datum.js - MIT INDIVIDUELLER POSITIONSKONTROLLE
 (function () {
     'use strict';
 
@@ -21,7 +20,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         // NEU: Spezifische Positionen für Zukunfts-Datumsfelder
         datumsfelder: {
             standard: {
@@ -37,7 +36,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         // NEU: Spezifische Positionen für Vergangenheits-Datumsfelder
         datumsfelderpast: {
             standard: {
@@ -53,7 +52,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         // NEU: Optionale individuelle Positionen pro Label (Beispiele)
         'Fälligkeitsdatum': {
             standard: {
@@ -69,7 +68,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         'Leistungszeitraum von': {
             standard: {
                 position: 'absolute',
@@ -84,7 +83,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         'Leistungszeitraum bis': {
             standard: {
                 position: 'absolute',
@@ -230,13 +229,13 @@
 
         for (const inp of dates) {
             if (!isProc(inp) || S.processed.has(inp)) continue;
-            
+
             const contentCell = inp.closest('td.table-fields-content');
             if (!contentCell || hasButtons(contentCell, cfg.pre)) continue;
 
             const row = inp.closest('tr');
             if (!row) continue;
-            
+
             const lbl = row.querySelector('.dw-fieldLabel span');
             const txt = lbl?.textContent?.trim().replace(/\s*\*\s*$/, '') || 'Datumsfeld';
 
@@ -286,13 +285,13 @@
     function mkBtnCont(inp, k, fid, labelText) {
         const cfg = CFG[k];
         const inModal = istInModal(inp);
-        
+
         const cont = document.createElement('div');
         cont.className = `${cfg.pre}-button-container dw-datum-inline-buttons`;
         cont.setAttribute('data-field-id', fid);
         cont.setAttribute('data-field-type', k);
         cont.setAttribute('data-field-label', labelText); // NEU: Label für CSS-Selektor
-        
+
         if (inModal) {
             cont.classList.add('in-modal');
         }
@@ -347,7 +346,7 @@
     // ÄNDERUNG: Dynamisches CSS mit individuellen Positionen
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
-        
+
         // Basis-Styles
         let css = `
 /* Content-Cell Vorbereitung */
@@ -381,12 +380,12 @@ td.table-fields-content {
         // NEU: Individuelle Positionen für jeden Feld-Typ
         Object.keys(POSITION).forEach(fieldKey => {
             if (fieldKey === 'default') return;
-            
+
             const pos = POSITION[fieldKey];
-            
+
             // Prüfen ob es ein Config-Key (datumsfelder/datumsfelderpast) oder Label ist
             const isConfigKey = CFG.hasOwnProperty(fieldKey);
-            
+
             if (isConfigKey) {
                 // Standard Position für Feld-Typ
                 css += `
@@ -453,7 +452,7 @@ td.table-fields-content {
 [class*="dw-datum"][class*="-action-button"]:hover {
     background: rgba(249, 250, 251, 0.98) !important;
     border-color: #9ca3af !important;
-    
+
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
 }
 
