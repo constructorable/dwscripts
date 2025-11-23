@@ -1,4 +1,3 @@
-// buttons-navigation.js - OPTIMIERT
 (function () {
     'use strict';
 
@@ -200,7 +199,7 @@
             .dw-fieldLabel {
                 position: relative !important;
             }
-            
+
             .dw-lzb-nav-button {
                 position: absolute !important;
                 right: -16px !important;
@@ -224,13 +223,13 @@
                 margin: 0 !important;
                 z-index: 10 !important;
             }
-            
+
             .dw-lzb-nav-button:hover {
                 background: #bfdbfe !important;
                 border-color: #2563eb !important;
                 box-shadow: 0 2px 4px rgba(37,99,235,0.3) !important;
             }
-            
+
             .ui-dialog .dw-lzb-nav-button {
                 width: 15px !important;
                 height: 15px !important;
