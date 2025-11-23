@@ -1,7 +1,6 @@
-// AutocompleteIBANuOEMN.js - OPTIMIERT MIT INDIVIDUELLER POSITIONSKONTROLLE
 (function () {
     'use strict';
-    const SCRIPT_ID = 'docuware-autocomplete-helper';
+    const SCRIPT_ID = '03autocomplete';
 
     // NEU: Individuelle Positionierung pro Feld-Typ
     const POSITION = {
@@ -19,7 +18,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         IBAN: {
             standard: {
                 position: 'absolute',
@@ -34,7 +33,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         'Objekt-Einheit-Nummer': {
             standard: {
                 position: 'absolute',
@@ -49,7 +48,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         'Objekt-Einheit-Miet-Nummer': {
             standard: {
                 position: 'absolute',
@@ -64,7 +63,7 @@
                 zIndex: '1000'
             }
         },
-        
+
         'betrifft Mieter': {
             standard: {
                 position: 'absolute',
@@ -82,37 +81,37 @@
     };
 
     const CONFIG = {
-        IBAN: { 
-            buttons: [{ triggerText: 'DE', buttonLabel: 'DE' }], 
-            cssPrefix: 'dw-autocomplete-iban', 
-            autoSelectRule: 'single_only' 
+        IBAN: {
+            buttons: [{ triggerText: 'DE', buttonLabel: 'DE' }],
+            cssPrefix: 'dw-autocomplete-iban',
+            autoSelectRule: 'single_only'
         },
-        'Objekt-Einheit-Nummer': { 
+        'Objekt-Einheit-Nummer': {
             buttons: [
-                { triggerText: 'M', buttonLabel: 'M' }, 
-                { triggerText: 'W', buttonLabel: 'W' }, 
-                { triggerText: 'C', buttonLabel: 'C' }, 
-                { triggerText: 'P', buttonLabel: 'P' }, 
+                { triggerText: 'M', buttonLabel: 'M' },
+                { triggerText: 'W', buttonLabel: 'W' },
+                { triggerText: 'C', buttonLabel: 'C' },
+                { triggerText: 'P', buttonLabel: 'P' },
                 { triggerText: 'E', buttonLabel: 'E' }
-            ], 
-            cssPrefix: 'dw-autocomplete-oem', 
-            autoSelectRule: 'always' 
+            ],
+            cssPrefix: 'dw-autocomplete-oem',
+            autoSelectRule: 'always'
         },
-        'Objekt-Einheit-Miet-Nummer': { 
+        'Objekt-Einheit-Miet-Nummer': {
             buttons: [
-                { triggerText: 'M', buttonLabel: 'M' }, 
-                { triggerText: 'W', buttonLabel: 'W' }, 
-                { triggerText: 'C', buttonLabel: 'C' }, 
-                { triggerText: 'P', buttonLabel: 'P' }, 
+                { triggerText: 'M', buttonLabel: 'M' },
+                { triggerText: 'W', buttonLabel: 'W' },
+                { triggerText: 'C', buttonLabel: 'C' },
+                { triggerText: 'P', buttonLabel: 'P' },
                 { triggerText: 'E', buttonLabel: 'E' }
-            ], 
-            cssPrefix: 'dw-autocomplete-oemn', 
-            autoSelectRule: 'always' 
+            ],
+            cssPrefix: 'dw-autocomplete-oemn',
+            autoSelectRule: 'always'
         },
-        'betrifft Mieter': { 
-            buttons: [{ triggerText: 'Allgemein (', buttonLabel: 'Allgemein' }], 
-            cssPrefix: 'dw-autocomplete-mieter', 
-            autoSelectRule: 'single_only' 
+        'betrifft Mieter': {
+            buttons: [{ triggerText: 'Allgemein (', buttonLabel: 'Allgemein' }],
+            cssPrefix: 'dw-autocomplete-mieter',
+            autoSelectRule: 'single_only'
         }
     };
 
@@ -133,7 +132,7 @@
     // ÄNDERUNG: Dynamisches CSS mit individuellen Positionen
     function injectCSS() {
         if (document.querySelector('style[data-autocomplete-helper]')) return;
-        
+
         let css = `
 /* Content-Cell Vorbereitung */
 td.table-fields-content {
@@ -165,10 +164,10 @@ td.table-fields-content {
         // NEU: Individuelle Positionen für jeden Feld-Typ
         Object.keys(POSITION).forEach(fieldType => {
             if (fieldType === 'default') return;
-            
+
             const pos = POSITION[fieldType];
             const safeClass = fieldType.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase();
-            
+
             css += `
 /* ${fieldType} - Standard */
 .dw-autocomplete-inline-buttons[data-field-type="${fieldType}"] {
@@ -343,7 +342,7 @@ td.table-fields-content {
 
         // NEU: Container direkt in Content-Cell einfügen (nicht als neue Zeile)
         contentCell.appendChild(container);
-        
+
         log(`✅ Inline-Buttons eingefügt für: ${configKey}`);
         return true;
     };
@@ -354,11 +353,11 @@ td.table-fields-content {
         document.querySelectorAll('input.dw-textField').forEach(input => {
             try {
                 const label = input.closest('tr')?.querySelector('.dw-fieldLabel span')?.textContent?.trim() || '';
-                
+
                 // NEU: configKey mit übergeben
                 const configEntry = Object.entries(CONFIG).find(([name]) => label.includes(name));
                 if (!configEntry) return;
-                
+
                 const [configKey, config] = configEntry;
 
                 if (config && input.closest('.right-inner-addons')?.querySelector('button.ac-button')) {
@@ -380,12 +379,12 @@ td.table-fields-content {
     window[SCRIPT_ID].observer.observe(document.body, { childList: true, subtree: true });
 
     // Initialize
-    const init = () => { 
-        log('🚀 Started'); 
+    const init = () => {
+        log('🚀 Started');
         injectCSS(); // NEU: CSS injizieren
-        processFields(); 
+        processFields();
     };
-    
+
     document.readyState === 'loading' ? track(document, 'DOMContentLoaded', init) : init();
     [500, 1500, 3000, 5000].forEach((ms, i) => delay(() => processFields(), ms));
 
