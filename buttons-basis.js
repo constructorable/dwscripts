@@ -73,7 +73,7 @@
             standard: {
                 position: 'absolute',
                 top: '2px',
-                left: '75px',
+                left: '175px',
                 zIndex: '1000'
             },
             modal: {
@@ -88,7 +88,7 @@
             standard: {
                 position: 'absolute',
                 top: '2px',
-                left: '75px',
+                left: '175px',
                 zIndex: '1000'
             },
             modal: {
@@ -600,3 +600,4 @@ td.table-fields-content:has(.dw-basis-inline-buttons) input.dw-numericField {
 
     main();
 })();
+
