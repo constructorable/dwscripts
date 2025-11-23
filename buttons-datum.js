@@ -1,15 +1,112 @@
-// buttons-datum.js - OPTIMIERT
+// buttons-datum.js - MIT INDIVIDUELLER POSITIONSKONTROLLE
 (function () {
     'use strict';
 
     const ID = 'dw-ko-buttons-datum', V = '2.0', SK = 'dw-ko-datum-state', D = true;
+
+    // NEU: Individuelle Positionierung pro Datumsfeld-Typ
+    const POSITION = {
+        // Standard-Position für alle Datumsfelder
+        default: {
+            standard: {
+                position: 'absolute',
+                top: '2px',
+                left: '232px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        // NEU: Spezifische Positionen für Zukunfts-Datumsfelder
+        datumsfelder: {
+            standard: {
+                position: 'absolute',
+                top: '2px',
+                left: '232px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        // NEU: Spezifische Positionen für Vergangenheits-Datumsfelder
+        datumsfelderpast: {
+            standard: {
+                position: 'absolute',
+                top: '2px',
+                left: '232px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        // NEU: Optionale individuelle Positionen pro Label (Beispiele)
+        'Fälligkeitsdatum': {
+            standard: {
+                position: 'absolute',
+                top: '2px',
+                left: '125px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        'Leistungszeitraum von': {
+            standard: {
+                position: 'absolute',
+                top: '2px',
+                left: '232px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        'Leistungszeitraum bis': {
+            standard: {
+                position: 'absolute',
+                top: '2px',
+                left: '232px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        }
+    };
 
     const CFG = {
         datumsfelder: {
             txt: '',
             type: 'date_field',
             pre: 'dw-datum',
-            gap: '8px',
+            gap: '2px',
             wrap: true,
             isDate: true,
             exc: [
@@ -33,7 +130,7 @@
             txt: '',
             type: 'date_field_past',
             pre: 'dw-datum-past',
-            gap: '8px',
+            gap: '2px',
             wrap: true,
             isDate: true,
             inc: ['Eingangsdatum', 'Erstellungsdatum'],
@@ -108,7 +205,7 @@
     function isProc(f) {
         if (!f) return false;
         const r = f.getBoundingClientRect();
-        return r.width > 0 && r.height > 0 && f.offsetParent !== null && f.closest('tr');
+        return r.width > 0 && r.height > 0 && f.offsetParent !== null;
     }
 
     function mkId(inp, txt, k) {
@@ -118,26 +215,30 @@
         return `${k}_${nm}_${txt.replace(/[^a-zA-Z0-9]/g, '')}_${pos}`;
     }
 
-    function hasButtons(row, pre) {
-        const next = row.nextElementSibling;
-        return next?.classList.contains(`${pre}-button-row`);
+    function hasButtons(contentCell, pre) {
+        return contentCell.querySelector(`.${pre}-button-container`) !== null;
     }
 
     function istInModal(inp) {
         return inp.closest('.ui-dialog') !== null;
     }
 
+    // ÄNDERUNG: Gibt auch Label-Text zurück für Positions-Lookup
     function findDateInCont(cfg, k, c) {
         const found = [];
         const dates = c.querySelectorAll('input.dw-dateField');
 
         for (const inp of dates) {
             if (!isProc(inp) || S.processed.has(inp)) continue;
+            
+            const contentCell = inp.closest('td.table-fields-content');
+            if (!contentCell || hasButtons(contentCell, cfg.pre)) continue;
+
             const row = inp.closest('tr');
-            if (!row || hasButtons(row, cfg.pre)) continue;
+            if (!row) continue;
             
             const lbl = row.querySelector('.dw-fieldLabel span');
-            const txt = lbl?.textContent?.trim() || 'Datumsfeld';
+            const txt = lbl?.textContent?.trim().replace(/\s*\*\s*$/, '') || 'Datumsfeld';
 
             if (cfg.inc) {
                 const isIncluded = cfg.inc.some(x => txt.includes(x) || txt.toLowerCase().includes(x.toLowerCase()));
@@ -147,7 +248,7 @@
             }
 
             const fid = mkId(inp, txt, k);
-            found.push({ inp, txt, row, k, fid });
+            found.push({ inp, txt, contentCell, k, fid, cfg });
         }
         return found;
     }
@@ -168,7 +269,7 @@
         setVal(inp, val);
     }
 
-    function mkBtn(opt, cfg, inp, fid, inModal) {
+    function mkBtn(opt, cfg, inp, fid) {
         const btn = document.createElement('button');
         btn.className = `${cfg.pre}-action-button`;
         btn.type = 'button';
@@ -177,22 +278,20 @@
         btn.setAttribute('data-value', opt.v);
         btn.setAttribute('data-field-id', fid);
         btn.setAttribute('data-action', opt.a || '');
-        
-        if (inModal) {
-            btn.classList.add('in-modal');
-        }
-        
         btn.addEventListener('click', e => handleClick(e, opt, inp), { passive: true });
         return btn;
     }
 
-    function mkBtnCont(inp, k, fid) {
+    // ÄNDERUNG: Label-Text für individuelle Positionierung
+    function mkBtnCont(inp, k, fid, labelText) {
         const cfg = CFG[k];
         const inModal = istInModal(inp);
         
         const cont = document.createElement('div');
-        cont.className = `${cfg.pre}-button-container`;
+        cont.className = `${cfg.pre}-button-container dw-datum-inline-buttons`;
         cont.setAttribute('data-field-id', fid);
+        cont.setAttribute('data-field-type', k);
+        cont.setAttribute('data-field-label', labelText); // NEU: Label für CSS-Selektor
         
         if (inModal) {
             cont.classList.add('in-modal');
@@ -200,56 +299,27 @@
 
         const frag = document.createDocumentFragment();
         cfg.opts.forEach(opt => {
-            const btn = mkBtn(opt, cfg, inp, fid, inModal);
+            const btn = mkBtn(opt, cfg, inp, fid);
             frag.appendChild(btn);
         });
         cont.appendChild(frag);
         return cont;
     }
 
-    // ÄNDERUNG: Modal per JavaScript vergrößern
-    function vergroessereModal(inp) {
-        const modal = inp.closest('.ui-dialog');
-        if (!modal) return;
-        
-        const content = modal.querySelector('.dw-dialogContent.fields');
-        if (!content) return;
-        
-        modal.style.setProperty('max-height', 'none', 'important');
-        modal.style.setProperty('height', 'auto', 'important');
-        content.style.setProperty('max-height', '600px', 'important');
-        content.style.setProperty('height', 'auto', 'important');
-        
-        log('🔧 Modal vergrößert');
-    }
+    function inject(f) {
+        const { inp, contentCell, k, fid, txt, cfg } = f;
 
-    function inject(f, cfg) {
-        const { inp, row, k, fid } = f;
+        if (hasButtons(contentCell, cfg.pre)) return false;
 
-        if (hasButtons(row, cfg.pre)) return false;
+        if (getComputedStyle(contentCell).position === 'static') {
+            contentCell.style.position = 'relative';
+        }
 
-        const br = document.createElement('tr');
-        br.className = `${cfg.pre}-button-row dw-ko-btn-row`;
-        br.setAttribute('data-field-id', fid);
-        br.setAttribute('data-config-key', k);
-        
-        const lc = document.createElement('td');
-        lc.className = 'dw-fieldLabel';
-        const cc = document.createElement('td');
-        cc.className = `table-fields-content ${cfg.pre}-button-content`;
-        const bc = mkBtnCont(inp, k, fid);
-        cc.appendChild(bc);
-        br.appendChild(lc);
-        br.appendChild(cc);
-        
+        const bc = mkBtnCont(inp, k, fid, txt);
+        contentCell.appendChild(bc);
+
         try {
-            row.parentNode.insertBefore(br, row.nextSibling);
             S.processed.add(inp);
-            
-            if (istInModal(inp)) {
-                setTimeout(() => vergroessereModal(inp), 100);
-            }
-            
             log(`✅ Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
@@ -263,7 +333,7 @@
         const fields = findDateInCont(cfg, k, c);
         let added = 0;
         fields.forEach(f => {
-            if (inject(f, cfg)) added++;
+            if (inject(f)) added++;
         });
         return added;
     }
@@ -274,16 +344,128 @@
         return total;
     }
 
-    // ÄNDERUNG: Kompaktes CSS ohne redundante Modal-Regeln
+    // ÄNDERUNG: Dynamisches CSS mit individuellen Positionen
     function injectCSS() {
         if (document.querySelector('style[data-dw-datum-btns]')) return;
-        const css = `
-.dw-datum-button-row,.dw-datum-past-button-row{position:relative!important;display:table-row!important;opacity:1!important;visibility:visible!important}
-[class*="dw-datum"][class*="-button-container"]{display:flex!important;align-items:center!important;gap:6px!important;padding:5px 1px 4px 29px!important;flex-wrap:wrap!important;margin-top:-8px!important}
-[class*="dw-datum"][class*="-action-button"]{display:inline-flex!important;cursor:pointer!important;border-radius:2px!important;border:1px solid #d1d5db!important;background:#fff!important;color:#374151!important;padding:4px 8px!important;min-height:12px!important; border-radius:22px !important; font-size:11px!important;margin:0!important;line-height:1.2!important;white-space:nowrap!important}
-[class*="dw-datum"][class*="-action-button"]:hover{background:#f3f4f6!important;border-color:#9ca3af!important}
-[class*="dw-datum"][class*="-button-container"].in-modal{gap:4px!important;padding:7px 1px 4px 10px!important}
-[class*="dw-datum"][class*="-action-button"].in-modal{padding:3px 6px!important;font-size:10px!important;min-height:15px!important;flex:0 0 calc(25% - 4px)!important; border-radius:22px !important; justify-content:center!important}`;
+        
+        // Basis-Styles
+        let css = `
+/* Content-Cell Vorbereitung */
+td.table-fields-content {
+    position: relative !important;
+}
+
+/* Standard Button-Container */
+.dw-datum-inline-buttons {
+    position: ${POSITION.default.standard.position} !important;
+    top: ${POSITION.default.standard.top} !important;
+    left: ${POSITION.default.standard.left} !important;
+    z-index: ${POSITION.default.standard.zIndex} !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+    flex-wrap: nowrap !important;
+    pointer-events: auto !important;
+}
+
+/* Modal Standard */
+.dw-datum-inline-buttons.in-modal {
+    position: ${POSITION.default.modal.position} !important;
+    top: ${POSITION.default.modal.top} !important;
+    left: ${POSITION.default.modal.left} !important;
+    z-index: ${POSITION.default.modal.zIndex} !important;
+}
+
+`;
+
+        // NEU: Individuelle Positionen für jeden Feld-Typ
+        Object.keys(POSITION).forEach(fieldKey => {
+            if (fieldKey === 'default') return;
+            
+            const pos = POSITION[fieldKey];
+            
+            // Prüfen ob es ein Config-Key (datumsfelder/datumsfelderpast) oder Label ist
+            const isConfigKey = CFG.hasOwnProperty(fieldKey);
+            
+            if (isConfigKey) {
+                // Standard Position für Feld-Typ
+                css += `
+/* ${fieldKey} - Standard */
+.dw-datum-inline-buttons[data-field-type="${fieldKey}"] {
+    position: ${pos.standard.position} !important;
+    top: ${pos.standard.top} !important;
+    left: ${pos.standard.left} !important;
+    z-index: ${pos.standard.zIndex} !important;
+}
+
+/* ${fieldKey} - Modal */
+.dw-datum-inline-buttons[data-field-type="${fieldKey}"].in-modal {
+    position: ${pos.modal.position} !important;
+    top: ${pos.modal.top} !important;
+    left: ${pos.modal.left} !important;
+    z-index: ${pos.modal.zIndex} !important;
+}
+`;
+            } else {
+                // Individuelle Position für spezifisches Label
+                css += `
+/* Label: ${fieldKey} - Standard */
+.dw-datum-inline-buttons[data-field-label="${fieldKey}"] {
+    position: ${pos.standard.position} !important;
+    top: ${pos.standard.top} !important;
+    left: ${pos.standard.left} !important;
+    z-index: ${pos.standard.zIndex} !important;
+}
+
+/* Label: ${fieldKey} - Modal */
+.dw-datum-inline-buttons[data-field-label="${fieldKey}"].in-modal {
+    position: ${pos.modal.position} !important;
+    top: ${pos.modal.top} !important;
+    left: ${pos.modal.left} !important;
+    z-index: ${pos.modal.zIndex} !important;
+}
+`;
+            }
+        });
+
+        // Button-Styles
+        css += `
+/* Button-Styling */
+[class*="dw-datum"][class*="-action-button"] {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    border-radius: 1px !important;
+    border: 1px solid #d1d5db !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #374151 !important;
+    padding: 2px 6px !important;
+    min-height: 18px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+[class*="dw-datum"][class*="-action-button"]:hover {
+    background: rgba(249, 250, 251, 0.98) !important;
+    border-color: #9ca3af !important;
+    
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04) !important;
+}
+
+.ui-dialog [class*="dw-datum"][class*="-action-button"] {
+    font-size: 10px !important;
+    padding: 2px 5px !important;
+    min-height: 16px !important;
+}
+
+td.table-fields-content:has(.dw-datum-inline-buttons) input.dw-dateField {
+    padding-left: 5px !important;
+}`;
 
         const style = document.createElement('style');
         style.textContent = css;
@@ -316,7 +498,22 @@
         });
         S.obs = mkObs();
         S.init = true;
+        log('✅ Initialisierung abgeschlossen');
     }
+
+    window[ID].api = {
+        refresh: () => {
+            const bodyCount = procStd(document.body);
+            let dlgCount = 0;
+            const dlgs = document.querySelectorAll('.ui-dialog.dw-dialogs:not([style*="display: none"])');
+            dlgs.forEach(d => { dlgCount += procStd(d); });
+            return { body: bodyCount, dialogs: dlgCount };
+        },
+        status: () => ({
+            init: S.init,
+            btns: document.querySelectorAll('.dw-datum-inline-buttons').length
+        })
+    };
 
     function main() {
         document.readyState === 'loading' ?
