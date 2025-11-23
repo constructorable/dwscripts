@@ -43,7 +43,7 @@
             standard: {
                 position: 'absolute',
                 top: '2px',
-                left: '75px',
+                left: '110px',
                 zIndex: '1000'
             },
             modal: {
@@ -118,13 +118,13 @@
             standard: {
                 position: 'absolute',
                 top: '2px',
-                left: '75px',
+                left: '110px',
                 zIndex: '1000'
             },
             modal: {
                 position: 'absolute',
                 top: '2px',
-                left: '70px',
+                left: '170px',
                 zIndex: '1000'
             }
         }
