@@ -1,4 +1,3 @@
-// buttons-basis.js - OPTIMIERT MIT INDIVIDUELLER POSITIONSKONTROLLE
 (function () {
     'use strict';
 
@@ -10,120 +9,120 @@
         default: {
             standard: {
                 position: 'absolute',
-                top: '2px',
+                top: '0px',
                 left: '75px',
                 zIndex: '1000'
             },
             modal: {
                 position: 'absolute',
-                top: '2px',
+                top: '0px',
                 left: '70px',
                 zIndex: '1000'
             }
         },
-        
+
         // NEU: Individuelle Position für Wirtschaftsjahr
         wirtschaftsjahr: {
             standard: {
                 position: 'absolute',
-                top: '2px',           // Anpassbar
-                left: '125px',         // Anpassbar
+                top: '0px',           // Anpassbar
+                left: '175px',         // Anpassbar
                 zIndex: '1000'
             },
             modal: {
                 position: 'absolute',
-                top: '2px',
+                top: '0px',
                 left: '70px',
                 zIndex: '1000'
             }
         },
-        
+
         // NEU: Individuelle Positionen für weitere Felder (optional)
         nebenkosten: {
             standard: {
                 position: 'absolute',
-                top: '2px',
-                left: '110px',
-                zIndex: '1000'
-            },
-            modal: {
-                position: 'absolute',
-                top: '2px',
-                left: '70px',
-                zIndex: '1000'
-            }
-        },
-        
-        skonto: {
-            standard: {
-                position: 'absolute',
-                top: '2px',
-                left: '75px',
-                zIndex: '1000'
-            },
-            modal: {
-                position: 'absolute',
-                top: '2px',
-                left: '70px',
-                zIndex: '1000'
-            }
-        },
-        
-        steuersatz1: {
-            standard: {
-                position: 'absolute',
-                top: '2px',
-                left: '175px',
-                zIndex: '1000'
-            },
-            modal: {
-                position: 'absolute',
-                top: '2px',
-                left: '70px',
-                zIndex: '1000'
-            }
-        },
-        
-        steuerbetrag: {
-            standard: {
-                position: 'absolute',
-                top: '2px',
-                left: '175px',
-                zIndex: '1000'
-            },
-            modal: {
-                position: 'absolute',
-                top: '2px',
-                left: '70px',
-                zIndex: '1000'
-            }
-        },
-        
-        zuweisen: {
-            standard: {
-                position: 'absolute',
-                top: '2px',
+                top: '0px',
                 left: '125px',
                 zIndex: '1000'
             },
             modal: {
                 position: 'absolute',
-                top: '2px',
+                top: '0px',
                 left: '70px',
                 zIndex: '1000'
             }
         },
-        
+
+        skonto: {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '125px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '0px',
+                left: '80px',
+                zIndex: '1000'
+            }
+        },
+
+        steuersatz1: {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '150px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '0px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+
+        steuerbetrag: {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '150px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '0px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+
+        zuweisen: {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '150px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '0px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+
         vnnr: {
             standard: {
                 position: 'absolute',
-                top: '2px',
+                top: '0px',
                 left: '110px',
                 zIndex: '1000'
             },
             modal: {
                 position: 'absolute',
-                top: '2px',
+                top: '0px',
                 left: '170px',
                 zIndex: '1000'
             }
@@ -135,7 +134,7 @@
             txt: 'für Nebenkosten relevant',
             type: 'includes',
             pre: 'dw-nk',
-            gap: '2px',
+            gap: '0px',
             opts: [
                 { v: 'j', l: 'Ja' },
                 { v: 'n', l: 'Nein' }
@@ -147,7 +146,7 @@
             txt: 'wirtschaftsjahr',
             type: 'includes_lower',
             pre: 'dw-wj',
-            gap: '2px',
+            gap: '0px',
             opts: [
                 { v: '2025', l: '2025' },
                 { v: '2024 / 2025', l: '2024 / 2025' },
@@ -162,7 +161,7 @@
             txt: 'skonto in',
             type: 'includes_lower',
             pre: 'dw-sk',
-            gap: '2px',
+            gap: '0px',
             opts: [
                 { v: '0', l: '0' },
                 { v: '2', l: '2' },
@@ -174,7 +173,7 @@
             txt: 'steuersatz',
             type: 'includes_lower',
             pre: 'dw-sst',
-            gap: '2px',
+            gap: '0px',
             opts: [
                 { v: '0', l: '0' },
                 { v: '7', l: '7' },
@@ -186,9 +185,9 @@
             txt: 'steuerbetrag',
             type: 'includes_lower',
             pre: 'dw-stb',
-            gap: '2px',
+            gap: '0px',
             opts: [
-                { v: '0', l: '0' },                
+                { v: '0', l: '0' },
             ]
         },
 
@@ -196,7 +195,7 @@
             txt: 'zuweisen',
             type: 'includes_lower',
             pre: 'dw-zuw',
-            gap: '2px',
+            gap: '0px',
             opts: [
                 { v: 'oa', l: 'oa' },
                 { v: 'ca', l: 'ca' },
@@ -213,7 +212,7 @@
             txt: 'vn-nummer',
             type: 'includes_lower',
             pre: 'dw-vnnr',
-            gap: '2px',
+            gap: '0px',
             opts: [
                 { v: '0', l: '0' }
             ]
@@ -386,7 +385,7 @@
         cont.className = `${cfg.pre}-button-container dw-basis-inline-buttons`;
         cont.setAttribute('data-field-id', fid);
         cont.setAttribute('data-field-type', k); // NEU: Feld-Typ speichern
-        
+
         const inModal = inp.closest('.ui-dialog') !== null;
         if (inModal) {
             cont.classList.add('in-modal');
@@ -440,7 +439,7 @@
     // ÄNDERUNG: Dynamisches CSS mit individuellen Positionen
     function injectCSS() {
         if (document.querySelector('style[data-dw-basis-btns]')) return;
-        
+
         // Basis-Styles
         let css = `
 /* Content-Cell Vorbereitung */
@@ -474,7 +473,7 @@ td.table-fields-content {
         // NEU: Individuelle Positionen für jeden Feld-Typ
         Object.keys(POSITION).forEach(fieldType => {
             if (fieldType === 'default') return;
-            
+
             const pos = POSITION[fieldType];
             css += `
 /* ${fieldType} - Standard */
@@ -539,7 +538,7 @@ td.table-fields-content {
 
 td.table-fields-content:has(.dw-basis-inline-buttons) input.dw-textField,
 td.table-fields-content:has(.dw-basis-inline-buttons) input.dw-numericField {
-    padding-left: 5px !important;
+    padding-left: 62px !important;
 }`;
 
         const style = document.createElement('style');
