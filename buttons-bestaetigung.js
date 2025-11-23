@@ -1,62 +1,56 @@
-// buttons-bestaetigung.js - OPTIMIERT MIT POSITIONSKONTROLLE
 (function () {
     'use strict';
-    
-    const ID = 'dw-ko-buttons-bestaetigung', V = '2.0', SK = 'dw-ko-bestaetigung-state', D = true;
-    
-    // NEU: Zentrale Positionierungs-Konfiguration
+
+    const ID = 'dw-ko-buttons-bestaetigung', V = '2.1', SK = 'dw-ko-bestaetigung-state', D = true;
+
+    // NEU: Individuelle Positionierung pro Feld-Typ
     const POSITION = {
-        standard: {
-            marginTop: '-47px',
-            marginLeft: '26px',
-            position: 'absolute'
+        default: {
+            standard: { top: '0px', left: '75px' },
+            modal: { top: '0px', left: '70px' }
         },
-        modal: {
-            marginTop: '-45px',
-            marginLeft: '70px',
-            position: 'absolute'
+        objbestaet: {
+            standard: { top: '0px', left: '125px' },
+            modal: { top: '0px', left: '70px' }
+        },
+        rebestaet: {
+            standard: { top: '0px', left: '95px' },
+            modal: { top: '0px', left: '70px' }
+        },
+        renrbestaet: {
+            standard: { top: '0px', left: '125px' },
+            modal: { top: '0px', left: '70px' }
+        },
+        restbestaet: {
+            standard: { top: '0px', left: '110px' },
+            modal: { top: '0px', left: '70px' }
         }
     };
-    
+
     const CFG = {
         objbestaet: {
             txt: 'objekt best',
             type: 'includes_lower',
             pre: 'dw-ob',
-            gap: '20px',
-            opts: [
-                { v: 'j', l: 'j' }
-            ]
+            opts: [{ v: 'j', l: 'j' }]
         },
-        
         rebestaet: {
             txt: 'ungssteller 🧑',
             type: 'includes_lower',
             pre: 'dw-rb',
-            gap: '20px',
-            opts: [
-                { v: 'j', l: 'j' }
-            ]
+            opts: [{ v: 'j', l: 'j' }]
         },
-        
         renrbestaet: {
             txt: 'RE-Nr.',
             type: 'includes_lower',
             pre: 'dw-rnrb',
-            gap: '20px',
-            opts: [
-                { v: 'j', l: 'j' }
-            ]
+            opts: [{ v: 'j', l: 'j' }]
         },
-        
         restbestaet: {
             txt: 'RE-Steller',
             type: 'includes_lower',
             pre: 'dw-rst',
-            gap: '20px',
-            opts: [
-                { v: 'j', l: 'j' }
-            ]
+            opts: [{ v: 'j', l: 'j' }]
         }
     };
 
@@ -80,10 +74,7 @@
 
     function saveState() {
         try {
-            const data = {
-                reg: Array.from(S.reg.entries()),
-                ts: Date.now()
-            };
+            const data = { reg: Array.from(S.reg.entries()), ts: Date.now() };
             sessionStorage.setItem(SK, JSON.stringify(data));
         } catch (e) { log('Save err:', e); }
     }
@@ -128,15 +119,15 @@
         return row.querySelector('input.dw-textField, input.dw-numericField, input[type="text"]');
     }
 
-    function hasButtons(row, pre) {
-        const next = row.nextElementSibling;
-        return next?.classList.contains(`${pre}-button-row`);
+    // ÄNDERUNG: Prüft ob Buttons bereits in Content-Cell existieren
+    function hasButtons(contentCell, pre) {
+        return contentCell.querySelector(`.${pre}-button-container`) !== null;
     }
 
     function findInCont(k, c) {
         const cfg = CFG[k];
         const found = [];
-        
+
         try {
             const labels = c.querySelectorAll('.dw-fieldLabel span');
             for (const lbl of labels) {
@@ -145,13 +136,16 @@
                 if (!matches(txt, cfg)) continue;
 
                 const row = lbl.closest('tr');
-                if (!row || hasButtons(row, cfg.pre)) continue;
-                
+                if (!row) continue;
+
                 const inp = findInp(row);
                 if (!inp || !isProc(inp) || S.processed.has(inp)) continue;
-                
+
+                const contentCell = inp.closest('td.table-fields-content');
+                if (!contentCell || hasButtons(contentCell, cfg.pre)) continue;
+
                 const fid = mkId(inp, txt, k);
-                found.push({ inp, txt, row, k, fid });
+                found.push({ inp, txt, row, contentCell, k, fid, cfg });
                 if (!cfg.multi) break;
             }
         } catch (e) { log(`Err find ${k}:`, e); }
@@ -199,7 +193,7 @@
         const saved = S.reg.get(fid);
         const match = saved?.sel || cur;
         if (!match) return;
-        
+
         btns.forEach(btn => {
             const val = btn.getAttribute('data-value');
             if (val === match) {
@@ -208,14 +202,15 @@
         });
     }
 
-    function mkBtnCont(inp, k, fid) {
-        const cfg = CFG[k];
+    // ÄNDERUNG: Container mit Feld-Typ für individuelle Positionierung
+    function mkBtnCont(inp, k, fid, cfg) {
         const cont = document.createElement('div');
-        cont.className = `${cfg.pre}-button-container`;
+        cont.className = `${cfg.pre}-button-container dw-best-inline-buttons`;
         cont.setAttribute('data-field-id', fid);
-        
-        // NEU: Modal-Klasse hinzufügen
-        if (inp.closest('.ui-dialog')) {
+        cont.setAttribute('data-field-type', k);
+
+        const inModal = inp.closest('.ui-dialog') !== null;
+        if (inModal) {
             cont.classList.add('in-modal');
         }
 
@@ -231,29 +226,23 @@
         return cont;
     }
 
-    function inject(f, cfg) {
-        const { inp, row, k, fid } = f;
+    // ÄNDERUNG: Inline-Injection statt neue Zeile
+    function inject(f) {
+        const { inp, contentCell, k, fid, cfg } = f;
 
-        if (hasButtons(row, cfg.pre)) return false;
+        if (hasButtons(contentCell, cfg.pre)) return false;
 
-        const br = document.createElement('tr');
-        br.className = `${cfg.pre}-button-row dw-ko-btn-row`;
-        br.setAttribute('data-field-id', fid);
-        br.setAttribute('data-config-key', k);
-        
-        const lc = document.createElement('td');
-        lc.className = 'dw-fieldLabel';
-        const cc = document.createElement('td');
-        cc.className = `table-fields-content ${cfg.pre}-button-content`;
-        const bc = mkBtnCont(inp, k, fid);
-        cc.appendChild(bc);
-        br.appendChild(lc);
-        br.appendChild(cc);
-        
+        // Content-Cell für relative Positionierung vorbereiten
+        if (getComputedStyle(contentCell).position === 'static') {
+            contentCell.style.position = 'relative';
+        }
+
+        const bc = mkBtnCont(inp, k, fid, cfg);
+        contentCell.appendChild(bc);
+
         try {
-            row.parentNode.insertBefore(br, row.nextSibling);
             S.processed.add(inp);
-            log(`✅ Buttons eingefügt: ${fid}`);
+            log(`✅ Inline-Buttons eingefügt: ${fid}`);
             return true;
         } catch (e) {
             log(`❌ Inject fail: ${fid}`, e);
@@ -266,7 +255,7 @@
         const fields = findInCont(k, c);
         let added = 0;
         fields.forEach(f => {
-            if (inject(f, cfg)) added++;
+            if (inject(f)) added++;
         });
         return added;
     }
@@ -278,73 +267,99 @@
         return total;
     }
 
-    // ÄNDERUNG: Dynamisches CSS mit POSITION-Konfiguration
+    // ÄNDERUNG: Dynamisches CSS mit individuellen Positionen
     function injectCSS() {
         if (document.querySelector('style[data-dw-best-btns]')) return;
-        const css = `
-[class*="dw-ob-button-row"],
-[class*="dw-rb-button-row"],
-[class*="dw-rnrb-button-row"],
-[class*="dw-rst-button-row"]{
-    position:relative!important;
-    display:table-row!important;
-    opacity:1!important;
-    visibility:visible!important;
+
+        let css = `
+/* Content-Cell Vorbereitung */
+td.table-fields-content {
+    position: relative !important;
 }
 
-[class*="dw-ob-"][class*="-button-container"],
-[class*="dw-rb-"][class*="-button-container"],
-[class*="dw-rnrb-"][class*="-button-container"],
-[class*="dw-rst-"][class*="-button-container"]{
-    display:flex!important;
-    align-items:center!important;
-    gap:2px!important;
-    padding:2px 1px 4px 29px!important;
-    flex-wrap:wrap!important;
-    margin-top:${POSITION.standard.marginTop}!important;
-    margin-left:${POSITION.standard.marginLeft}!important;
-    position:${POSITION.standard.position}!important;
+/* Standard Inline-Button Container */
+.dw-best-inline-buttons {
+    position: absolute !important;
+    top: ${POSITION.default.standard.top} !important;
+    left: ${POSITION.default.standard.left} !important;
+    z-index: 1000 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 2px !important;
+    flex-wrap: nowrap !important;
+    pointer-events: auto !important;
 }
 
-[class*="dw-ob-"][class*="-button-container"].in-modal,
-[class*="dw-rb-"][class*="-button-container"].in-modal,
-[class*="dw-rnrb-"][class*="-button-container"].in-modal,
-[class*="dw-rst-"][class*="-button-container"].in-modal{
-    margin-top:${POSITION.modal.marginTop}!important;
-    margin-left:${POSITION.modal.marginLeft}!important;
-    position:${POSITION.modal.position}!important;
+/* Modal Standard */
+.dw-best-inline-buttons.in-modal {
+    top: ${POSITION.default.modal.top} !important;
+    left: ${POSITION.default.modal.left} !important;
+}
+`;
+
+        // Individuelle Positionen pro Feld-Typ
+        Object.keys(POSITION).forEach(fieldType => {
+            if (fieldType === 'default') return;
+
+            const pos = POSITION[fieldType];
+            css += `
+/* ${fieldType} - Standard */
+.dw-best-inline-buttons[data-field-type="${fieldType}"] {
+    top: ${pos.standard.top} !important;
+    left: ${pos.standard.left} !important;
 }
 
-[class*="dw-ob-"][class*="-action-button"],
-[class*="dw-rb-"][class*="-action-button"],
-[class*="dw-rnrb-"][class*="-action-button"],
-[class*="dw-rst-"][class*="-action-button"]{
-    display:inline-flex!important;
-    cursor:pointer!important;
-    border-radius:1px!important;
-    border:1px solid #d1d5db!important;
-    background:#fff!important;
-    color:#374151!important;
-    padding:3px 6px!important;
-    min-height:8px!important;
-    font-size:12px!important;
-    white-space:nowrap!important;
-    line-height:1.4!important;
-    margin-top:0px!important;
+/* ${fieldType} - Modal */
+.dw-best-inline-buttons[data-field-type="${fieldType}"].in-modal {
+    top: ${pos.modal.top} !important;
+    left: ${pos.modal.left} !important;
+}
+`;
+        });
+
+        // Button-Styling
+        css += `
+/* Button-Styling */
+.dw-best-inline-buttons button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    border-radius: 2px !important;
+    border: 1px solid #d1d5db !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #374151 !important;
+    padding: 2px 6px !important;
+    min-height: 18px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
-[class*="-action-button"].selected{
-    background:#eff6ff!important;
-    border-color:#3b82f6!important;
-    box-shadow:0 0 0 1px #3b82f6!important;
+.dw-best-inline-buttons button:hover {
+    background: rgba(249, 250, 251, 0.98) !important;
+    border-color: #9ca3af !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
-.ui-dialog [class*="-action-button"]{
-    font-size:9px!important;
-    padding:1px 5px!important;
-    min-height:16px!important;
-}`;
-        
+.dw-best-inline-buttons button.selected {
+    background: #eff6ff !important;
+    border-color: #3b82f6 !important;
+    color: #1e40af !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+.ui-dialog .dw-best-inline-buttons button {
+    font-size: 10px !important;
+    padding: 2px 5px !important;
+    min-height: 16px !important;
+}
+`;
+
         const style = document.createElement('style');
         style.textContent = css;
         style.setAttribute('data-dw-best-btns', 'true');
@@ -377,6 +392,7 @@
         });
         S.obs = mkObs();
         S.init = true;
+        log('✅ Initialisiert (Inline-Modus)');
     }
 
     window[ID].api = {
@@ -389,17 +405,16 @@
         },
         status: () => ({
             init: S.init,
-            btns: document.querySelectorAll('.dw-ko-btn-row').length,
+            btns: document.querySelectorAll('.dw-best-inline-buttons').length,
             reg: S.reg.size
         })
     };
 
     function main() {
-        document.readyState === 'loading' ? 
-            document.addEventListener('DOMContentLoaded', init, { once: true }) : 
+        document.readyState === 'loading' ?
+            document.addEventListener('DOMContentLoaded', init, { once: true }) :
             setTimeout(init, 300);
     }
 
     main();
 })();
-
