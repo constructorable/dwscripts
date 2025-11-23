@@ -1,20 +1,126 @@
+// AutocompleteIBANuOEMN.js - OPTIMIERT MIT INDIVIDUELLER POSITIONSKONTROLLE
 (function () {
     'use strict';
     const SCRIPT_ID = 'docuware-autocomplete-helper';
 
-    // ÄNDERN: Im CONFIG Objekt, füge diese neue Konfiguration hinzu:
+    // NEU: Individuelle Positionierung pro Feld-Typ
+    const POSITION = {
+        default: {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '210px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        IBAN: {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '240px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '0px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        'Objekt-Einheit-Nummer': {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '210px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        'Objekt-Einheit-Miet-Nummer': {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '210px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '2px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        },
+        
+        'betrifft Mieter': {
+            standard: {
+                position: 'absolute',
+                top: '0px',
+                left: '300px',
+                zIndex: '1000'
+            },
+            modal: {
+                position: 'absolute',
+                top: '0px',
+                left: '70px',
+                zIndex: '1000'
+            }
+        }
+    };
+
     const CONFIG = {
-        IBAN: { buttons: [{ triggerText: 'DE', buttonLabel: 'DE' }], cssPrefix: 'dw-autocomplete-iban', autoSelectRule: 'single_only' },
-        'Objekt-Einheit-Nummer': { buttons: [{ triggerText: 'M', buttonLabel: 'M' }, { triggerText: 'W', buttonLabel: 'W' }, { triggerText: 'C', buttonLabel: 'C' }, { triggerText: 'P', buttonLabel: 'P' }, { triggerText: 'E', buttonLabel: 'E' }], cssPrefix: 'dw-autocomplete-oem', autoSelectRule: 'always' },
-        'Objekt-Einheit-Miet-Nummer': { buttons: [{ triggerText: 'M', buttonLabel: 'M' }, { triggerText: 'W', buttonLabel: 'W' }, { triggerText: 'C', buttonLabel: 'C' }, { triggerText: 'P', buttonLabel: 'P' }, { triggerText: 'E', buttonLabel: 'E' }], cssPrefix: 'dw-autocomplete-oemn', autoSelectRule: 'always' },
-        'betrifft Mieter': { buttons: [{ triggerText: 'Allgemein (', buttonLabel: 'Allgemein' }], cssPrefix: 'dw-autocomplete-mieter', autoSelectRule: 'single_only' } // NEU
+        IBAN: { 
+            buttons: [{ triggerText: 'DE', buttonLabel: 'DE' }], 
+            cssPrefix: 'dw-autocomplete-iban', 
+            autoSelectRule: 'single_only' 
+        },
+        'Objekt-Einheit-Nummer': { 
+            buttons: [
+                { triggerText: 'M', buttonLabel: 'M' }, 
+                { triggerText: 'W', buttonLabel: 'W' }, 
+                { triggerText: 'C', buttonLabel: 'C' }, 
+                { triggerText: 'P', buttonLabel: 'P' }, 
+                { triggerText: 'E', buttonLabel: 'E' }
+            ], 
+            cssPrefix: 'dw-autocomplete-oem', 
+            autoSelectRule: 'always' 
+        },
+        'Objekt-Einheit-Miet-Nummer': { 
+            buttons: [
+                { triggerText: 'M', buttonLabel: 'M' }, 
+                { triggerText: 'W', buttonLabel: 'W' }, 
+                { triggerText: 'C', buttonLabel: 'C' }, 
+                { triggerText: 'P', buttonLabel: 'P' }, 
+                { triggerText: 'E', buttonLabel: 'E' }
+            ], 
+            cssPrefix: 'dw-autocomplete-oemn', 
+            autoSelectRule: 'always' 
+        },
+        'betrifft Mieter': { 
+            buttons: [{ triggerText: 'Allgemein (', buttonLabel: 'Allgemein' }], 
+            cssPrefix: 'dw-autocomplete-mieter', 
+            autoSelectRule: 'single_only' 
+        }
     };
 
     const log = (msg) => console.log(`[Autocomplete] ${msg}`);
 
     // Reset
     if (window[SCRIPT_ID]) {
-        Object.values(CONFIG).forEach(c => document.querySelectorAll(`.${c.cssPrefix}-button-row`).forEach(r => r.remove()));
+        Object.values(CONFIG).forEach(c => document.querySelectorAll(`.${c.cssPrefix}-button-row, .${c.cssPrefix}-button-container`).forEach(r => r.remove()));
         document.querySelector('style[data-autocomplete-helper]')?.remove();
         window[SCRIPT_ID].observer?.disconnect();
         window[SCRIPT_ID].listeners?.forEach(({ element, event, handler }) => element.removeEventListener(event, handler));
@@ -24,12 +130,109 @@
 
     window[SCRIPT_ID] = { observer: null, listeners: [], timeouts: [], processedFields: new Set() };
 
-    // CSS - ANGEPASST mit gewünschten Styles
-    const css = Object.values(CONFIG).map(c => `.${c.cssPrefix}-button-row{background:inherit!important}.${c.cssPrefix}-button-content{word-break:normal!important}.${c.cssPrefix}-button-container{display:flex!important;align-items:center!important;justify-content:flex-start!important;padding:0px 1px 8px 29px!important;gap:6px!important;flex-wrap:wrap!important;margin-top:-5px!important;font-family:inherit;font-size:inherit}.${c.cssPrefix}-action-button{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;border-radius:3px;border:1px solid #ccc;white-space:nowrap;background:inherit;color:inherit;font-weight:normal;user-select:none;padding:0px 8px;min-height:20px;font-size:inherit;min-width:25px}.${c.cssPrefix}-action-button:hover{background-color:#f0f0f0}`).join('');
-    const style = document.createElement('style');
-    style.textContent = css;
-    style.setAttribute('data-autocomplete-helper', 'true');
-    document.head.appendChild(style);
+    // ÄNDERUNG: Dynamisches CSS mit individuellen Positionen
+    function injectCSS() {
+        if (document.querySelector('style[data-autocomplete-helper]')) return;
+        
+        let css = `
+/* Content-Cell Vorbereitung */
+td.table-fields-content {
+    position: relative !important;
+}
+
+/* Standard Inline-Button Container */
+.dw-autocomplete-inline-buttons {
+    position: ${POSITION.default.standard.position} !important;
+    top: ${POSITION.default.standard.top} !important;
+    left: ${POSITION.default.standard.left} !important;
+    z-index: ${POSITION.default.standard.zIndex} !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+    pointer-events: auto !important;
+}
+
+/* Modal Standard */
+.dw-autocomplete-inline-buttons.in-modal {
+    position: ${POSITION.default.modal.position} !important;
+    top: ${POSITION.default.modal.top} !important;
+    left: ${POSITION.default.modal.left} !important;
+    z-index: ${POSITION.default.modal.zIndex} !important;
+}
+`;
+
+        // NEU: Individuelle Positionen für jeden Feld-Typ
+        Object.keys(POSITION).forEach(fieldType => {
+            if (fieldType === 'default') return;
+            
+            const pos = POSITION[fieldType];
+            const safeClass = fieldType.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase();
+            
+            css += `
+/* ${fieldType} - Standard */
+.dw-autocomplete-inline-buttons[data-field-type="${fieldType}"] {
+    position: ${pos.standard.position} !important;
+    top: ${pos.standard.top} !important;
+    left: ${pos.standard.left} !important;
+    z-index: ${pos.standard.zIndex} !important;
+}
+
+/* ${fieldType} - Modal */
+.dw-autocomplete-inline-buttons[data-field-type="${fieldType}"].in-modal {
+    position: ${pos.modal.position} !important;
+    top: ${pos.modal.top} !important;
+    left: ${pos.modal.left} !important;
+    z-index: ${pos.modal.zIndex} !important;
+}
+`;
+        });
+
+        // Button-Styles
+        css += `
+/* Button-Styling */
+.dw-autocomplete-inline-buttons button {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    border-radius: 2px !important;
+    border: 1px solid #d1d5db !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    color: #374151 !important;
+    padding: 2px 8px !important;
+    min-height: 20px !important;
+    min-width: 25px !important;
+    font-size: 12px !important;
+    font-weight: normal !important;
+    white-space: nowrap !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    user-select: none !important;
+    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.dw-autocomplete-inline-buttons button:hover {
+    background: rgba(240, 240, 240, 0.98) !important;
+    border-color: #9ca3af !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.ui-dialog .dw-autocomplete-inline-buttons button {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    min-height: 18px !important;
+    min-width: 20px !important;
+}
+`;
+
+        const style = document.createElement('style');
+        style.textContent = css;
+        style.setAttribute('data-autocomplete-helper', 'true');
+        document.head.appendChild(style);
+    }
 
     const track = (element, event, handler) => {
         element.addEventListener(event, handler);
@@ -93,17 +296,39 @@
         } catch (e) { log('❌ Select error: ' + e); }
     };
 
-    // Button creation
-    const createButtons = (input, config, fieldName) => {
+    // ÄNDERUNG: Prüft ob Buttons bereits in Content-Cell existieren
+    function hasButtons(contentCell, cssPrefix) {
+        return contentCell.querySelector(`.${cssPrefix}-button-container, .dw-autocomplete-inline-buttons[data-css-prefix="${cssPrefix}"]`) !== null;
+    }
+
+    // ÄNDERUNG: Button-Erstellung als Inline-Container
+    const createButtons = (input, config, fieldName, configKey) => {
         const row = input.closest('tr');
-        if (!row || row.nextElementSibling?.classList.contains(`${config.cssPrefix}-button-row`)) return false;
+        if (!row) return false;
+
+        const contentCell = input.closest('td.table-fields-content');
+        if (!contentCell) return false;
+
+        if (hasButtons(contentCell, config.cssPrefix)) return false;
+
+        // Content-Cell für relative Positionierung vorbereiten
+        if (getComputedStyle(contentCell).position === 'static') {
+            contentCell.style.position = 'relative';
+        }
 
         const container = document.createElement('div');
-        container.className = `${config.cssPrefix}-button-container`;
+        container.className = `${config.cssPrefix}-button-container dw-autocomplete-inline-buttons`;
+        container.setAttribute('data-field-type', configKey); // NEU: Feld-Typ für CSS-Selektor
+        container.setAttribute('data-css-prefix', config.cssPrefix);
+
+        // NEU: Modal-Erkennung
+        const inModal = input.closest('.ui-dialog') !== null;
+        if (inModal) {
+            container.classList.add('in-modal');
+        }
 
         config.buttons.forEach(btn => {
             const button = document.createElement('button');
-            button.className = `${config.cssPrefix}-action-button`;
             button.type = 'button';
             button.textContent = btn.buttonLabel;
             button.title = `Autocomplete ${fieldName} mit "${btn.triggerText}"`;
@@ -116,35 +341,30 @@
             container.appendChild(button);
         });
 
-        const newRow = document.createElement('tr');
-        newRow.className = `${config.cssPrefix}-button-row`;
-
-        const labelCell = document.createElement('td');
-        labelCell.className = 'dw-fieldLabel';
-
-        const contentCell = document.createElement('td');
-        contentCell.className = `table-fields-content ${config.cssPrefix}-button-content`;
-        contentCell.style.cssText = 'word-break:normal!important';
-
+        // NEU: Container direkt in Content-Cell einfügen (nicht als neue Zeile)
         contentCell.appendChild(container);
-        newRow.appendChild(labelCell);
-        newRow.appendChild(contentCell);
-        row.parentNode.insertBefore(newRow, row.nextSibling);
+        
+        log(`✅ Inline-Buttons eingefügt für: ${configKey}`);
         return true;
     };
 
-    // Field processing
+    // ÄNDERUNG: Field processing mit configKey
     const processFields = () => {
         let count = 0;
         document.querySelectorAll('input.dw-textField').forEach(input => {
             try {
                 const label = input.closest('tr')?.querySelector('.dw-fieldLabel span')?.textContent?.trim() || '';
-                const config = Object.entries(CONFIG).find(([name]) => label.includes(name))?.[1];
+                
+                // NEU: configKey mit übergeben
+                const configEntry = Object.entries(CONFIG).find(([name]) => label.includes(name));
+                if (!configEntry) return;
+                
+                const [configKey, config] = configEntry;
 
                 if (config && input.closest('.right-inner-addons')?.querySelector('button.ac-button')) {
                     const id = `${config.cssPrefix}_${input.name || input.id || Date.now()}`;
                     if (!window[SCRIPT_ID].processedFields.has(id)) {
-                        if (createButtons(input, config, label)) {
+                        if (createButtons(input, config, label, configKey)) {
                             window[SCRIPT_ID].processedFields.add(id);
                             count++;
                         }
@@ -160,9 +380,15 @@
     window[SCRIPT_ID].observer.observe(document.body, { childList: true, subtree: true });
 
     // Initialize
-    const init = () => { log('🚀 Started'); processFields(); };
+    const init = () => { 
+        log('🚀 Started'); 
+        injectCSS(); // NEU: CSS injizieren
+        processFields(); 
+    };
+    
     document.readyState === 'loading' ? track(document, 'DOMContentLoaded', init) : init();
     [500, 1500, 3000, 5000].forEach((ms, i) => delay(() => processFields(), ms));
 
-    log('Multi-Button Autocomplete Helper aktiviert');
+    log('Multi-Button Autocomplete Helper mit individueller Positionskontrolle aktiviert');
 })();
+
