@@ -464,7 +464,7 @@ td.table-fields-content {
 }
 
 td.table-fields-content:has(.dw-datum-inline-buttons) input.dw-dateField {
-    padding-left: 5px !important;
+    padding-left: 64px !important;
 }`;
 
         const style = document.createElement('style');
