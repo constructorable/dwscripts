@@ -1,4 +1,3 @@
-// buttons-verwaltung.js - OPTIMIERT
 (function () {
     'use strict';
 
@@ -12,10 +11,11 @@
             gap: '20px',
             opts: [
                 { v: 'Repa ', l: 'Repa ' },
+                { v: 'Repa Heizung', l: 'Repa Heizung ' },
+                { v: 'Repa Warmwasser', l: 'Repa Warmwasser ' },
+                { v: 'Repa Sanitär', l: 'Repa Sanitär ' },
                 { v: 'Repa Fenster ', l: 'Repa Fenster ' },
                 { v: 'Repa Tür ', l: 'Repa Tür ' },
-                { v: 'Repa Sanitär', l: 'Repa Sanitär ' },
-                { v: 'Repa Heizung', l: 'Repa Heizung ' },
                 { v: 'Repa Elektrik', l: 'Repa Elektrik ' },
                 { v: 'Wartung ', l: 'Wartung ' },
                 { v: 'Prüfung ', l: 'Prüfung ' },
@@ -99,7 +99,7 @@
                 { v: 'persönlich übergeben', l: 'persönlich übergeben' },
                 { v: 'persönlich in Briefkasten eingeworfen', l: 'persönlich in Briefkasten eingeworfen' },
                 { v: 'nicht erforderlich', l: 'nicht erforderlich' },
-                { v: 'nicht erforderlich (Entwurf)', l: 'nicht erforderlich (Entwurf)' }
+                { v: 'nicht erforderlich (Entwurf)', l: 'nicht erforderlich (Entwurf)' },
             ]
         },
 
@@ -116,7 +116,7 @@
                 { v: '800204 - Heizung - Direktkosten', l: 'Heizung Direktkosten' },
                 { v: '801101 - Strom/ Gas für Leerstände', l: 'Strom/Gas Leerstände' },
                 { v: '800501 - Winterdienst', l: 'Winterdienst' }
-               
+
             ],
             valueMapping: {
                 '807000': '807000', 'instandhaltung': '807000', 'reparatur': '807000', 'instandsetzung': '807000',
@@ -124,7 +124,7 @@
                 '801400': '801400', 'hausmeister': '801400',
                 '800204': '800204', 'heizung direktkosten': '800204', 'direktkosten': '800204',
                 '801101': '801101', 'strom': '801101', 'gas': '801101', 'leerstände': '801101', 'leerstand': '801101',
-                '800501': '800501', 'winterdienst': '800501' 
+                '800501': '800501', 'winterdienst': '800501'
             }
         }
     };
@@ -409,7 +409,4 @@
 
     main();
 })();
-
-
-
 
